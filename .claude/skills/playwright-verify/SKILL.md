@@ -43,6 +43,9 @@ await page.evaluate(() => {
   localStorage.setItem("ff-theme", "dark");
   document.documentElement.setAttribute("data-theme", "dark");
 });
+// IMPORTANT : les fonds ont une transition CSS de 120 ms — attendre avant de capturer,
+// sinon le screenshot sombre montre des fonds encore clairs (faux positif d'écart).
+await page.waitForTimeout(300);
 await page.screenshot({ path: "<scratchpad>/<route>-dark.png", fullPage: true });
 
 // … interactions selon les critères : clics, formulaires, assertions de contenu,
