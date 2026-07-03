@@ -42,15 +42,19 @@ bunx shadcn add <c>  # ajouter un composant shadcn
 - **Stubs** : pages placeholder pour /dashboard, /clients, /projets, /devis, /factures, /rapports, /abonnement, /parametres (`components/layout/page-placeholder.tsx`) ; `/` redirige provisoirement vers /dashboard
 - **Prérequis shadcn** : `components.json`, `lib/utils.ts` (cn), clsx, tailwind-merge, cva, tailwindcss-animate, lucide-react
 
-### 🔜 À faire (dans l'ordre logique du README design)
-1. Contenu du dashboard (KPI ×4, graphique CA barres empilées, panneau latéral 380px, bandeau bas ×3) — `Tableau de bord.html`
-2. Écrans (public) : landing, connexion, inscription, mdp oublié, réinitialisation, pages légales
-3. Supabase (auth + BDD + RLS `user_id = auth.uid()` sur chaque table) + Prisma (schéma dans le README design)
-4. CRUD clients / projets / documents (écrans listés dans le README design)
-5. Éditeur de facture avec aperçu A4 temps réel + calcul TVA
-6. Génération PDF (route API + Puppeteer)
-7. Paywall freemium (5 docs/mois, modale `Limite atteinte.html`), abonnement, rapports
-8. Paramètres (régime TVA, relances, apparence avec toggle thème)
+### 🔜 À faire — une issue GitHub par user story, branche liée `feat/<num>-<slug>` déjà créée
+1. **#1** Tableau de bord (KPI ×4, graphique CA, panneau 380px, bandeau ×3) — `feat/1-dashboard`
+2. **#2** Landing publique + pages légales — `feat/2-landing-legal`
+3. **#3** Auth Supabase (4 écrans + middleware) — `feat/3-auth`
+4. **#4** BDD : Prisma + Supabase + RLS — `feat/4-db-prisma-rls`
+5. **#5** CRUD Clients — `feat/5-crud-clients` (dépend #4)
+6. **#6** CRUD Projets — `feat/6-crud-projets` (dépend #5)
+7. **#7** Listes Devis/Factures + vue Document — `feat/7-devis-factures` (dépend #4)
+8. **#8** Éditeur de document (A4 + TVA) — `feat/8-editeur-document` (dépend #4, #7)
+9. **#9** PDF serveur Puppeteer — `feat/9-pdf-puppeteer` (dépend #8)
+10. **#10** Paywall freemium + Abonnement — `feat/10-paywall-abonnement` (dépend #4)
+11. **#11** Rapports — `feat/11-rapports` (dépend #4, #10)
+12. **#12** Paramètres — `feat/12-parametres` (dépend #3, #4)
 
 ### Mocks à remplacer plus tard par Prisma
 - Badges nav sidebar (24 clients, 8 projets, 5 devis, 12 factures)
