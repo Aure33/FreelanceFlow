@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================================
+   FREELANCE FLOW — Design tokens
+   Source de vérité : design_ref/design_handoff_freelance_flow/styles/freelance-flow.css
+   --font-sans / --font-mono sont injectées par next/font dans app/layout.tsx.
+   ========================================================================= */
+
+:root {
+  /* — Neutres chauds — */
+  --bg:        oklch(0.985 0.004 95);   /* fond appli, blanc cassé crème */
+  --surface:   oklch(1 0 0);            /* cartes */
+  --surface-2: oklch(0.975 0.005 95);   /* zones internes, hover doux */
+  --line:      oklch(0.915 0.005 95);   /* bordures */
+  --line-soft: oklch(0.945 0.004 95);   /* séparateurs ténus */
+
+  --ink:       oklch(0.23 0.012 75);    /* texte principal, encre chaude */
+  --ink-2:     oklch(0.45 0.012 75);    /* texte secondaire */
+  --ink-3:     oklch(0.60 0.010 75);    /* texte tertiaire / labels */
+
+  /* — Accent indigo — */
+  --accent:        oklch(0.48 0.14 264);
+  --accent-hover:  oklch(0.42 0.145 264);
+  --accent-soft:   oklch(0.95 0.035 264);
+  --accent-ink:    oklch(0.40 0.15 264);
+  --on-accent:     oklch(0.99 0.01 264);
+
+  /* — Sémantique — */
+  --ok:       oklch(0.55 0.11 155);     /* payé / accepté */
+  --ok-soft:  oklch(0.95 0.04 155);
+  --ok-ink:   oklch(0.42 0.10 155);
+  --warn:     oklch(0.66 0.12 75);      /* en attente */
+  --warn-soft:oklch(0.95 0.05 80);
+  --warn-ink: oklch(0.46 0.10 70);
+  --danger:   oklch(0.55 0.16 25);      /* en retard / refusé */
+  --danger-soft: oklch(0.955 0.03 25);
+  --danger-ink:  oklch(0.48 0.16 25);
+  --danger-line: oklch(0.88 0.04 25);
+  --accent-line: oklch(0.85 0.05 264);
+  --topbar-bg:   oklch(0.985 0.004 95 / 0.85);
+  --badge-active-bg: oklch(1 0 0 / 0.6);
+  color-scheme: light;
+
+  /* — Rayons — */
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+
+  /* — Ombres (très discrètes, chaudes) — */
+  --shadow-sm: 0 1px 2px oklch(0.4 0.02 75 / 0.05), 0 1px 1px oklch(0.4 0.02 75 / 0.04);
+  --shadow-md: 0 4px 16px oklch(0.4 0.02 75 / 0.06), 0 1px 3px oklch(0.4 0.02 75 / 0.05);
+  --shadow-lg: 0 12px 40px oklch(0.4 0.02 75 / 0.10), 0 2px 8px oklch(0.4 0.02 75 / 0.05);
+
+  /* — Espacement (densité équilibrée) — */
+  --gap: 20px;
+  --pad: 22px;
+
+  /* — Layout — */
+  --sidebar-w: 248px;
+  --topbar-h: 64px;
+}
+
+/* ===== Thème sombre — activé depuis Paramètres → Apparence ===== */
+:root[data-theme="dark"] {
+  --bg:        oklch(0.185 0.006 75);
+  --surface:   oklch(0.225 0.007 75);
+  --surface-2: oklch(0.265 0.008 75);
+  --line:      oklch(0.32 0.010 75);
+  --line-soft: oklch(0.275 0.008 75);
+
+  --ink:       oklch(0.93 0.006 95);
+  --ink-2:     oklch(0.76 0.009 95);
+  --ink-3:     oklch(0.60 0.010 95);
+
+  --accent:        oklch(0.60 0.13 264);
+  --accent-hover:  oklch(0.65 0.13 264);
+  --accent-soft:   oklch(0.30 0.055 264);
+  --accent-ink:    oklch(0.80 0.09 264);
+  --on-accent:     oklch(0.98 0.01 264);
+
+  --ok:       oklch(0.65 0.11 155);
+  --ok-soft:  oklch(0.29 0.045 155);
+  --ok-ink:   oklch(0.78 0.10 155);
+  --warn:     oklch(0.72 0.12 75);
+  --warn-soft:oklch(0.29 0.045 80);
+  --warn-ink: oklch(0.80 0.10 75);
+  --danger:   oklch(0.66 0.15 25);
+  --danger-soft: oklch(0.28 0.045 25);
+  --danger-ink:  oklch(0.78 0.11 25);
+  --danger-line: oklch(0.40 0.07 25);
+  --accent-line: oklch(0.44 0.08 264);
+  --topbar-bg:   oklch(0.185 0.006 75 / 0.85);
+  --badge-active-bg: oklch(0.20 0.03 264 / 0.55);
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.25), 0 1px 1px oklch(0 0 0 / 0.2);
+  --shadow-md: 0 4px 16px oklch(0 0 0 / 0.3), 0 1px 3px oklch(0 0 0 / 0.25);
+  --shadow-lg: 0 12px 40px oklch(0 0 0 / 0.4), 0 2px 8px oklch(0 0 0 / 0.25);
+
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    @apply bg-bg font-sans text-ink antialiased;
+    font-size: 15px;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+  }
+}
+
+@layer utilities {
+  /* Valeurs numériques (montants, compteurs) — JetBrains Mono tabulaire */
+  .num {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+}
