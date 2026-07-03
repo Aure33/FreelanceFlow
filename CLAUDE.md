@@ -65,6 +65,10 @@ bunx shadcn add <c>  # ajouter un composant shadcn
 
 Pour toute fonctionnalité/correctif, utiliser le skill **`/issue-flow <description>`** (`.claude/skills/issue-flow/SKILL.md`) : il crée l'issue GitHub, la branche liée (`feat/<num>-<slug>`), implémente, vérifie le build, ouvre la PR (`Closes #<num>`) et merge en squash. Repo : `Aure33/FreelanceFlow`, `gh` CLI authentifié.
 
+## Vérification navigateur
+
+Skill **`/playwright-verify [route]`** (`.claude/skills/playwright-verify/SKILL.md`) : teste chaque feature dans Chromium headless (playwright installé en devDependency) — screenshots clair/sombre comparés aux maquettes, interactions, erreurs console, port dédié 3199. Étape obligatoire d'issue-flow avant PR. Si Chromium ne se lance pas (libs système WSL manquantes) : `sudo ~/.bun/bin/bunx playwright install-deps chromium`.
+
 ## Conventions
 
 - **Langue** : UI et commentaires en français (copies exactes des maquettes)

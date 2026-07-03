@@ -36,6 +36,7 @@ Convention de nommage : `feat/` (fonctionnalité), `fix/` (correctif), `chore/` 
 
 1. Implémente la tâche en respectant les conventions du projet (voir CLAUDE.md : tokens uniquement, maquettes `design_ref/` comme référence, UI en français, accessibilité).
 2. Vérifie que le build passe : `bun run build`. **Si le build échoue, corrige avant de continuer — jamais de PR rouge.**
+3. **Vérification navigateur obligatoire** : invoque le skill `playwright-verify` pour tester la fonctionnalité en conditions réelles (screenshots clair/sombre vs maquette, interactions des critères d'acceptation, zéro erreur console). Corrige les écarts et re-vérifie avant de passer à l'étape suivante.
 
 ## Étape 4 — Commit et push
 
