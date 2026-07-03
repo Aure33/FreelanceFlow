@@ -1,13 +1,28 @@
+import { DashboardHeader } from "@/components/dashboard/page-header";
+import { KpiCards } from "@/components/dashboard/kpi-cards";
+import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import { PriorityPanel } from "@/components/dashboard/priority-panel";
+import { RecentInvoices } from "@/components/dashboard/recent-invoices";
+import { TopClients } from "@/components/dashboard/top-clients";
+
 export default function DashboardPage() {
   return (
-    <div className="rounded-lg border border-line bg-surface p-pad shadow-sm">
-      <h2 className="text-[15px] font-bold tracking-[-0.01em]">
-        Tableau de bord
-      </h2>
-      <p className="mt-1 text-sm text-ink-3">
-        Shell applicatif en place — contenu du dashboard à implémenter
-        (KPI, graphique CA, dernières factures).
-      </p>
-    </div>
+    <>
+      <DashboardHeader />
+
+      <KpiCards />
+
+      {/* Grille principale : graphe CA (1fr) + panneau prioritaire (380px) */}
+      <div className="grid grid-cols-[1fr_380px] items-start gap-gap max-[1100px]:grid-cols-1">
+        <RevenueChart />
+        <PriorityPanel />
+      </div>
+
+      {/* Bandeau bas : factures récentes (2 col) + top clients */}
+      <div className="mt-gap grid grid-cols-3 gap-gap max-[1100px]:grid-cols-1">
+        <RecentInvoices />
+        <TopClients />
+      </div>
+    </>
   );
 }
