@@ -41,9 +41,9 @@ bunx shadcn add <c>  # ajouter un composant shadcn
 - **Shell applicatif** : `app/(app)/layout.tsx` + `components/layout/sidebar.tsx` / `topbar.tsx` — sidebar 248px (brand, nav + badges, jauge freemium, user-chip), topbar 64px sticky backdrop-blur (titre par route, recherche ⌘K, notifs)
 - **Stubs** : pages placeholder pour /dashboard, /clients, /projets, /devis, /factures, /rapports, /abonnement, /parametres (`components/layout/page-placeholder.tsx`) ; `/` redirige provisoirement vers /dashboard
 - **Prérequis shadcn** : `components.json`, `lib/utils.ts` (cn), clsx, tailwind-merge, cva, tailwindcss-animate, lucide-react
+- **#1 Tableau de bord** (mergé) : contenu dans `components/dashboard/` (KPI ×4, graphique CA 8 mois barres empilées CSS, panneau « À traiter », factures récentes, top clients) ; données mockées dans `components/dashboard/mock-data.ts`. Primitives ajoutées : `components/ui/button.tsx` (Button shadcn Slot+cva mappé sur les tokens) et `components/icons/currency-icon.tsx` (seule icône custom ; le reste via lucide-react)
 
 ### 🔜 À faire — une issue GitHub par user story, branche liée `feat/<num>-<slug>` déjà créée
-1. **#1** Tableau de bord (KPI ×4, graphique CA, panneau 380px, bandeau ×3) — `feat/1-dashboard`
 2. **#2** Landing publique + pages légales — `feat/2-landing-legal`
 3. **#3** Auth Supabase (4 écrans + middleware) — `feat/3-auth`
 4. **#4** BDD : Prisma + Supabase + RLS — `feat/4-db-prisma-rls`
