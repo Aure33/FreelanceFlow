@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Nord Web</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  /* —— En-tête fiche —— */
+  .crumbs { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .crumbs a { color: var(--ink-3); font-weight: 500; }
+  .crumbs a:hover { color: var(--accent-ink); }
+  .crumbs svg { width: 14px; height: 14px; color: var(--ink-3); stroke-width: 2; }
+  .crumbs b { font-weight: 700; letter-spacing: -0.01em; }
+
+  .client-head { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .client-head .ini {
+    width: 54px; height: 54px; border-radius: 14px;
+    display: grid; place-items: center; font-weight: 700; font-size: 18px; flex: none;
+    background: var(--accent-soft); color: var(--accent-ink);
+  }
+  .client-head .hi { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.2; }
+  .client-head .sub { font-size: 14px; color: var(--ink-3); margin-top: 2px; display: flex; align-items: center; gap: 10px; }
+  .client-head .tools { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  /* —— Stats —— */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); margin-bottom: var(--gap); }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 20px; box-shadow: var(--shadow-sm); }
+  .stat .l { font-size: 12.5px; color: var(--ink-3); font-weight: 600; }
+  .stat .v { font-family: var(--font-mono); font-weight: 600; font-size: 21px; letter-spacing: -0.01em; margin-top: 3px; }
+  .stat .d { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+  .stat .d.warn { color: var(--warn-ink); font-weight: 600; }
+
+  /* —— Colonnes —— */
+  .cols { display: grid; grid-template-columns: 360px 1fr; gap: var(--gap); align-items: start; }
+  .col { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+
+  .kv { display: grid; grid-template-columns: 120px 1fr; row-gap: 11px; font-size: 14px; }
+  .kv dt { color: var(--ink-3); }
+  .kv dd { font-weight: 550; overflow-wrap: anywhere; }
+  .kv dd.mono { font-family: var(--font-mono); font-size: 13px; }
+  .tva-pill { font-family: var(--font-mono); font-size: 12px; font-weight: 600; background: var(--surface-2); border: 1px solid var(--line-soft); padding: 2px 8px; border-radius: 6px; color: var(--ink-2); }
+  .edit-link { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--accent-ink); display: inline-flex; align-items: center; gap: 6px; }
+  .edit-link:hover { text-decoration: underline; }
+  .edit-link svg { width: 14px; height: 14px; stroke-width: 2; }
+
+  .note { font-size: 14px; color: var(--ink-2); line-height: 1.6; }
+  .note small { display: block; margin-top: 10px; color: var(--ink-3); font-size: 12.5px; }
+
+  /* —— Projets du client —— */
+  .mini-proj { display: flex; align-items: center; gap: 14px; padding: 14px var(--pad); border-bottom: 1px solid var(--line-soft); transition: background .1s; cursor: pointer; }
+  .mini-proj:last-child { border-bottom: none; }
+  .mini-proj:hover { background: var(--surface-2); }
+  .mini-proj .m { flex: 1; min-width: 0; }
+  .mini-proj .m b { display: block; font-size: 14.5px; font-weight: 650; }
+  .mini-proj .m small { font-size: 12.5px; color: var(--ink-3); }
+  .mini-proj .fin { text-align: right; }
+  .mini-proj .fin .v { font-family: var(--font-mono); font-weight: 600; font-size: 14px; }
+  .mini-proj .fin small { font-size: 12px; color: var(--ink-3); display: block; }
+  .mini-proj .progress { width: 90px; flex: none; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .mini-proj .progress i { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+  .mini-proj .progress i.full { background: var(--ok); }
+
+  .tbl tbody tr { cursor: pointer; }
+  .tbl td.num a { font-family: var(--font-mono); }
+  .tbl td.num a:hover { color: var(--accent-ink); }
+
+  @media (max-width: 1100px) {
+    .cols { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .hide-md { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="Tableau de bord.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a class="nav-item active" href="Clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 20a5 5 0 0 0-3-4.6"/></svg>
+        Clients <span class="badge">24</span>
+      </a>
+      <a class="nav-item" href="Projets.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>
+        Projets <span class="badge">8</span>
+      </a>
+      <div class="nav-label">Facturation</div>
+      <a class="nav-item" href="Devis.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6z" /><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h4"/></svg>
+        Devis <span class="badge">5</span>
+      </a>
+      <a class="nav-item" href="Factures.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Factures <span class="badge">12</span>
+      </a>
+      <div class="nav-label">Pilotage</div>
+      <a class="nav-item" href="Rapports.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16"/><path d="M8 16l3.5-4 3 2.5L20 8"/></svg>
+        Rapports
+      </a>
+      <a class="nav-item" href="Abonnement.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Abonnement
+      </a>
+      <a class="nav-item" href="Profil.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8z"/></svg>
+        Paramètres
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="side-usage" href="Abonnement.html" title="Voir mon abonnement">
+        <span class="su-l">Documents ce mois <b>4 / 5</b></span>
+        <span class="su-bar"><i style="width:80%"></i></span>
+        <small>Passer en Premium →</small>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">CL</div>
+        <div class="meta">
+          <b>Camille Laurent</b>
+          <small>Studio · Régime réel</small>
+        </div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs">
+        <a href="Clients.html">Clients</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 6 6 6-6 6"/></svg>
+        <b>Nord Web</b>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Rechercher un client, une facture…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn btn-icon btn-ghost" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </header>
+
+    <main class="content">
+
+      <!-- En-tête client -->
+      <div class="client-head" data-screen-label="Fiche client">
+        <div class="ini">NW</div>
+        <div>
+          <div class="hi">Nord Web</div>
+          <div class="sub">Agence digitale · Lille <span class="tag ok">Actif</span></div>
+        </div>
+        <div class="tools">
+          <button class="btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+            Modifier
+          </button>
+          <a class="btn" href="Nouvelle facture.html">Nouveau devis</a>
+          <a class="btn btn-primary" href="Nouvelle facture.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+            Nouvelle facture
+          </a>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <section class="stats">
+        <div class="stat"><div class="l">CA 2026</div><div class="v">12 400 €</div><div class="d">23 % de votre activité</div></div>
+        <div class="stat"><div class="l">En attente de paiement</div><div class="v">1 800 €</div><div class="d">1 facture envoyée</div></div>
+        <div class="stat"><div class="l">Pièces émises</div><div class="v">9</div><div class="d">6 factures · 3 devis</div></div>
+        <div class="stat"><div class="l">Délai moyen de paiement</div><div class="v">11 j</div><div class="d">pour 30 j contractuels</div></div>
+      </section>
+
+      <div class="cols">
+
+        <!-- ===== Colonne info ===== -->
+        <div class="col">
+          <section class="card">
+            <div class="card-head">
+              <h2>Coordonnées</h2>
+              <a class="edit-link" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+                Modifier
+              </a>
+            </div>
+            <div class="card-body">
+              <dl class="kv">
+                <dt>Contact</dt><dd>Julien Mercier</dd>
+                <dt>E-mail</dt><dd>julien@nordweb.fr</dd>
+                <dt>Téléphone</dt><dd class="mono">06 12 45 78 90</dd>
+                <dt>Adresse</dt><dd>14 rue Faidherbe<br>59000 Lille</dd>
+              </dl>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <h2>Informations légales</h2>
+              <a class="edit-link" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+                Modifier
+              </a>
+            </div>
+            <div class="card-body">
+              <dl class="kv">
+                <dt>SIRET</dt><dd class="mono">842 519 637 00021</dd>
+                <dt>Forme</dt><dd>SARL</dd>
+                <dt>TVA intracom.</dt><dd class="mono">FR 32 842519637</dd>
+                <dt>Taux de TVA</dt><dd><span class="tva-pill">20 %</span></dd>
+                <dt>Conditions</dt><dd>Paiement à 30 jours</dd>
+              </dl>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head"><h2>Notes</h2></div>
+            <div class="card-body">
+              <div class="note">
+                Préfère être contacté par e-mail. Validation des devis par Julien uniquement. Renouvellement de la maintenance à proposer chaque mois de juin.
+                <small>Modifié le 2 juin 2026</small>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ===== Colonne activité ===== -->
+        <div class="col">
+          <section class="card">
+            <div class="card-head">
+              <h2>Projets</h2>
+              <span class="sub">2 projets · 1 en cours</span>
+              <span class="spacer"></span>
+              <a class="btn btn-sm" href="Projets.html">Tout voir</a>
+            </div>
+            <div>
+              <a class="mini-proj" href="Projet détail.html">
+                <div class="m"><b>Maintenance annuelle 2026</b><small>Devis accepté · prochaine échéance en juillet</small></div>
+                <div class="progress"><i style="width:33%"></i></div>
+                <div class="fin"><span class="v">1 800 €</span><small>sur 5 400 €</small></div>
+              </a>
+              <a class="mini-proj" href="Projet détail.html">
+                <div class="m"><b>Refonte site vitrine</b><small>Terminé en mai · 2 factures payées</small></div>
+                <div class="progress"><i class="full" style="width:100%"></i></div>
+                <div class="fin"><span class="v">3 600 €</span><small>sur 3 600 €</small></div>
+              </a>
+            </div>
+          </section>
+
+          <section class="card" style="overflow-x:auto">
+            <div class="card-head">
+              <h2>Historique des pièces</h2>
+              <span class="sub">9 documents depuis 2025</span>
+            </div>
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Pièce</th>
+                  <th class="hide-md">Objet</th>
+                  <th>Date</th>
+                  <th>Statut</th>
+                  <th class="right">Montant TTC</th>
+                </tr>
+              </thead>
+              <tbody id="pieces"></tbody>
+            </table>
+          </section>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const pieces = [
+    { ref:'DEV-2026-016', objet:'Maintenance annuelle 2026–2027', date:'4 juin 2026',  st:['warn','À relancer'], ttc:'1 800 €', type:'devis' },
+    { ref:'FAC-2026-030', objet:'Refonte site vitrine — solde',   date:'12 mai 2026',  st:['ok','Payée'],        ttc:'2 160 €', type:'facture' },
+    { ref:'FAC-2026-027', objet:'Refonte site vitrine — acompte', date:'2 avr. 2026',  st:['ok','Payée'],        ttc:'1 440 €', type:'facture' },
+    { ref:'DEV-2026-009', objet:'Refonte site vitrine',           date:'18 mars 2026', st:['ok','Accepté'],      ttc:'3 600 €', type:'devis' },
+    { ref:'FAC-2026-021', objet:'Audit SEO',                      date:'9 févr. 2026', st:['ok','Payée'],        ttc:'960 €',   type:'facture' },
+    { ref:'FAC-2025-058', objet:'Maintenance 2025 — T4',          date:'15 déc. 2025', st:['ok','Payée'],        ttc:'450 €',   type:'facture' },
+  ];
+
+  const tbody = document.getElementById('pieces');
+  pieces.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="num">${p.ref}</td>
+      <td class="hide-md" style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:550">${p.objet}</td>
+      <td class="muted" style="white-space:nowrap">${p.date}</td>
+      <td><span class="tag ${p.st[0]}">${p.st[1]}</span></td>
+      <td class="right amount">${p.ttc}</td>`;
+    tr.addEventListener('click', () => {
+      location.href = 'Document.html' + (p.type === 'devis' ? '?type=devis' : '');
+    });
+    tbody.appendChild(tr);
+  });
+</script>
+</body>
+</html>

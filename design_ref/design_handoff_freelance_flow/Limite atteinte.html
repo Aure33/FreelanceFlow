@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Limite atteinte</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  .page-head { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+  .page-head .hi { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+  .page-head .count { font-size: 14px; color: var(--ink-3); margin-top: 3px; }
+  .page-head .tools { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  /* Bandeau de synthèse */
+  .sums { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap); margin-bottom: var(--gap); }
+  .sum { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 20px; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 14px; }
+  .sum .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .sum .l { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+  .sum .v { font-family: var(--font-mono); font-weight: 600; font-size: 19px; letter-spacing: -0.01em; }
+  .sum .n { margin-left: auto; font-size: 12.5px; color: var(--ink-3); }
+
+  .tbl th { white-space: nowrap; }
+  .tbl td.num, .tbl td.amount, .tbl td:has(.tag) { white-space: nowrap; }
+
+  /* —— Jauge sidebar : limite atteinte —— */
+  .side-usage.full { border-color: var(--danger-line); }
+  .side-usage.full .su-bar i { background: var(--danger); }
+  .side-usage.full small { color: var(--danger-ink); }
+
+  /* —— Bannière limite —— */
+  .limit-banner {
+    display: flex; align-items: center; gap: 13px;
+    background: var(--warn-soft);
+    border-radius: var(--r-md);
+    padding: 13px 18px; margin-bottom: var(--gap);
+    font-size: 13.5px; color: var(--warn-ink); line-height: 1.55;
+  }
+  .limit-banner svg { width: 18px; height: 18px; flex: none; stroke-width: 2.2; }
+  .limit-banner b { font-weight: 700; }
+  .limit-banner .btn { margin-left: auto; flex: none; }
+
+  /* —— Modale paywall —— */
+  .veil {
+    position: fixed; inset: 0; z-index: 100;
+    background: oklch(0.2 0.01 75 / 0.45);
+    backdrop-filter: blur(3px);
+    display: grid; place-items: center;
+    padding: 24px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .18s;
+  }
+  .veil.open { opacity: 1; pointer-events: auto; }
+  .modal {
+    width: 460px; max-width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-lg);
+    padding: 30px;
+    transform: translateY(10px) scale(.98);
+    transition: transform .18s;
+  }
+  .veil.open .modal { transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .veil, .veil .modal { transition: none; }
+  }
+
+  .modal .ico {
+    width: 48px; height: 48px; border-radius: 13px;
+    background: var(--warn-soft); color: var(--warn-ink);
+    display: grid; place-items: center; margin-bottom: 18px;
+  }
+  .modal .ico svg { width: 23px; height: 23px; stroke-width: 2; }
+  .modal h2 { font-size: 19px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.3; margin-bottom: 8px; }
+  .modal .sub { font-size: 14px; color: var(--ink-2); line-height: 1.55; margin-bottom: 18px; }
+  .modal .sub b { color: var(--ink); font-weight: 650; }
+
+  .m-usage { margin-bottom: 20px; }
+  .m-usage .l { display: flex; align-items: baseline; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 7px; }
+  .m-usage .l b { margin-left: auto; font-family: var(--font-mono); font-size: 12.5px; color: var(--danger-ink); }
+  .m-usage .bar { height: 7px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .m-usage .bar i { display: block; height: 100%; width: 100%; background: var(--danger); border-radius: 99px; }
+
+  .modal ul { list-style: none; margin: 0 0 22px; display: flex; flex-direction: column; gap: 9px; }
+  .modal li { display: flex; gap: 10px; font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
+  .modal li svg { width: 16px; height: 16px; flex: none; stroke-width: 2.4; color: var(--ok-ink); margin-top: 1px; }
+  .modal li b { color: var(--ink); font-weight: 650; }
+
+  .modal .acts { display: flex; flex-direction: column; gap: 9px; }
+  .modal .acts .btn { justify-content: center; height: 44px; }
+  .modal .later { font-size: 13px; font-weight: 600; color: var(--ink-3); background: none; border: none; padding: 9px; border-radius: var(--r-sm); transition: color .12s, background .12s; }
+  .modal .later:hover { color: var(--ink); background: var(--surface-2); }
+  .modal .fine { text-align: center; font-size: 12px; color: var(--ink-3); margin-top: 12px; }
+
+  @media (max-width: 1100px) {
+    .sums { grid-template-columns: 1fr; }
+    .hide-md { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="Tableau de bord.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a class="nav-item" href="Clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 20a5 5 0 0 0-3-4.6"/></svg>
+        Clients <span class="badge">24</span>
+      </a>
+      <a class="nav-item" href="Projets.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>
+        Projets <span class="badge">8</span>
+      </a>
+      <div class="nav-label">Facturation</div>
+      <a class="nav-item" href="Devis.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6z" /><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h4"/></svg>
+        Devis <span class="badge">5</span>
+      </a>
+      <a class="nav-item active" href="Factures.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Factures <span class="badge">13</span>
+      </a>
+      <div class="nav-label">Pilotage</div>
+      <a class="nav-item" href="Rapports.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16"/><path d="M8 16l3.5-4 3 2.5L20 8"/></svg>
+        Rapports
+      </a>
+      <a class="nav-item" href="Abonnement.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Abonnement
+      </a>
+      <a class="nav-item" href="Profil.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8z"/></svg>
+        Paramètres
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="side-usage full" href="Abonnement.html" title="Voir mon abonnement">
+        <span class="su-l">Documents ce mois <b>5 / 5</b></span>
+        <span class="su-bar"><i style="width:100%"></i></span>
+        <small>Limite atteinte — repart le 1ᵉʳ juillet</small>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">CL</div>
+        <div class="meta">
+          <b>Camille Laurent</b>
+          <small>Studio · Régime réel</small>
+        </div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <h1>Factures</h1>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Rechercher un client, une facture…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn btn-icon btn-ghost" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </header>
+
+    <main class="content" data-screen-label="Limite atteinte (paywall)">
+
+      <div class="page-head">
+        <div>
+          <div class="hi">Factures</div>
+          <div class="count">13 factures en 2026 · dernière émise le 11 juin</div>
+        </div>
+        <div class="tools">
+          <button class="btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+            Exporter
+          </button>
+          <button class="btn btn-primary" id="newDocBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+            Nouvelle facture
+          </button>
+        </div>
+      </div>
+
+      <!-- Bannière limite -->
+      <div class="limit-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.7 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/></svg>
+        <div>Vous avez émis <b>5 documents sur 5</b> ce mois-ci. La création est bloquée jusqu'au <b>1ᵉʳ juillet</b> sur le forfait Gratuit.</div>
+        <a class="btn btn-sm btn-primary" href="Abonnement.html">Passer en Premium</a>
+      </div>
+
+      <!-- Synthèse -->
+      <section class="sums">
+        <div class="sum">
+          <span class="dot" style="background:var(--ok)"></span>
+          <div><div class="l">Encaissé en 2026</div><div class="v">31 240 €</div></div>
+          <span class="n">8 factures</span>
+        </div>
+        <div class="sum">
+          <span class="dot" style="background:var(--warn)"></span>
+          <div><div class="l">En attente de paiement</div><div class="v">4 030 €</div></div>
+          <span class="n">3 factures</span>
+        </div>
+        <div class="sum">
+          <span class="dot" style="background:var(--danger)"></span>
+          <div><div class="l">En retard</div><div class="v">1 080 €</div></div>
+          <span class="n">2 factures</span>
+        </div>
+      </section>
+
+      <!-- Tableau (extrait du mois en cours) -->
+      <section class="card" style="overflow-x:auto">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Pièce</th>
+              <th>Client</th>
+              <th class="hide-md">Objet</th>
+              <th>Émise le</th>
+              <th>Échéance</th>
+              <th>Statut</th>
+              <th class="right">Montant TTC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">FAC-2026-035</td>
+              <td style="font-weight:600">Nord Web</td>
+              <td class="hide-md muted">Maintenance annuelle — T2</td>
+              <td class="muted">11 juin</td>
+              <td class="muted">11 juil</td>
+              <td><span class="tag warn">En attente</span></td>
+              <td class="right amount">880 €</td>
+            </tr>
+            <tr>
+              <td class="num">DEV-2026-018</td>
+              <td style="font-weight:600">Kaféo</td>
+              <td class="hide-md muted">Packaging gamme été — option 2</td>
+              <td class="muted">9 juin</td>
+              <td class="muted">—</td>
+              <td><span class="tag accent">Envoyé</span></td>
+              <td class="right amount">1 240 €</td>
+            </tr>
+            <tr>
+              <td class="num">FAC-2026-034</td>
+              <td style="font-weight:600">Camille &amp; Co</td>
+              <td class="hide-md muted">Identité visuelle — phase 2</td>
+              <td class="muted">4 juin</td>
+              <td class="muted">15 juin</td>
+              <td><span class="tag ok">Payée</span></td>
+              <td class="right amount">1 440 €</td>
+            </tr>
+            <tr>
+              <td class="num">FAC-2026-033</td>
+              <td style="font-weight:600">Atelier Lumen</td>
+              <td class="hide-md muted">Refonte du site portfolio</td>
+              <td class="muted">2 juin</td>
+              <td class="muted">22 juin</td>
+              <td><span class="tag warn">En attente</span></td>
+              <td class="right amount">2 280 €</td>
+            </tr>
+            <tr>
+              <td class="num">DEV-2026-017</td>
+              <td style="font-weight:600">Maison Roux</td>
+              <td class="hide-md muted">Carte d'automne — proposition</td>
+              <td class="muted">1ᵉʳ juin</td>
+              <td class="muted">—</td>
+              <td><span class="tag accent">Envoyé</span></td>
+              <td class="right amount">760 €</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="tbl-foot" style="display:flex;align-items:center;gap:12px;padding:14px var(--pad);font-size:13px;color:var(--ink-3)"><span>5 documents émis en juin — limite mensuelle du forfait Gratuit atteinte</span></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ===================== MODALE PAYWALL ===================== -->
+<div class="veil open" id="paywall">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pwTitle" aria-describedby="pwDesc">
+    <div class="ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M12 11v4M12 18h.01"/></svg>
+    </div>
+    <h2 id="pwTitle">Vous avez atteint votre limite mensuelle</h2>
+    <p class="sub" id="pwDesc">Le forfait Gratuit inclut <b>5 documents par mois</b>. Votre compteur repart à zéro le <b>1ᵉʳ juillet</b> — ou passez en Premium pour continuer dès maintenant.</p>
+
+    <div class="m-usage">
+      <div class="l">Documents émis en juin <b>5 / 5</b></div>
+      <div class="bar"><i></i></div>
+    </div>
+
+    <ul>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span><b>Documents illimités</b>, dès maintenant</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span><b>Relances automatiques</b> des factures échues</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span>PDF <b>sans filigrane</b>, avec votre logo</span></li>
+    </ul>
+
+    <div class="acts">
+      <a class="btn btn-primary" href="Abonnement.html">Passer en Premium — 15 €/mois</a>
+      <button class="later" id="pwLater">Attendre le 1ᵉʳ juillet</button>
+    </div>
+    <div class="fine">Sans engagement · activation immédiate · annulable en 2 clics</div>
+  </div>
+</div>
+
+<script>
+  // —— Paywall : ouverture / fermeture ——
+  const paywall = document.getElementById('paywall');
+  const newDocBtn = document.getElementById('newDocBtn');
+
+  function openPaywall() {
+    paywall.classList.add('open');
+    paywall.querySelector('.btn-primary').focus();
+  }
+  function closePaywall() {
+    paywall.classList.remove('open');
+    newDocBtn.focus();
+  }
+
+  newDocBtn.addEventListener('click', openPaywall);
+  document.getElementById('pwLater').addEventListener('click', closePaywall);
+  paywall.addEventListener('click', e => { if (e.target === paywall) closePaywall(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && paywall.classList.contains('open')) closePaywall();
+  });
+</script>
+</body>
+</html>

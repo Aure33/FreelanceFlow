@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Bienvenue</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  .page-head { margin-bottom: 24px; }
+  .page-head .hi { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+  .page-head .date { font-size: 14px; color: var(--ink-3); margin-top: 3px; }
+
+  /* —— Checklist d'onboarding —— */
+  .onboard { display: grid; grid-template-columns: 1fr 380px; gap: var(--gap); align-items: start; }
+
+  .steps-head { display: flex; align-items: center; gap: 12px; padding: 18px var(--pad); border-bottom: 1px solid var(--line-soft); }
+  .steps-head h2 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .steps-head .pc { margin-left: auto; font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-3); }
+  .steps-track { height: 5px; background: var(--surface-2); }
+  .steps-track i { display: block; height: 100%; width: 8%; background: var(--accent); border-radius: 0 99px 99px 0; }
+
+  .step-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 18px var(--pad);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .step-row:last-child { border-bottom: none; }
+  .step-row .n {
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
+    display: grid; place-items: center;
+    border: 1.5px solid var(--line);
+    font-family: var(--font-mono); font-weight: 600; font-size: 13.5px; color: var(--ink-2);
+  }
+  .step-row.now .n { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+  .step-row .m { flex: 1; min-width: 0; }
+  .step-row .m b { display: block; font-size: 14.5px; font-weight: 650; letter-spacing: -0.01em; }
+  .step-row .m small { font-size: 13px; color: var(--ink-3); line-height: 1.45; }
+  .step-row.todo { opacity: .55; }
+  .step-row .eta { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+
+  /* —— Aide latérale —— */
+  .aside-card .card-body p { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; margin-bottom: 14px; }
+  .aside-card .card-body p:last-child { margin-bottom: 0; }
+  .aside-card .card-body p b { font-weight: 650; color: var(--ink); }
+  .tip { display: flex; gap: 11px; padding: 13px 16px; background: var(--accent-soft); border-radius: var(--r-md); font-size: 13px; color: var(--accent-ink); line-height: 1.55; }
+  .tip svg { width: 16px; height: 16px; flex: none; stroke-width: 2; margin-top: 2px; }
+
+  /* —— KPI vides —— */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); margin-top: var(--gap); }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-sm); }
+  .kpi .label { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+  .kpi .val { font-size: 27px; font-weight: 700; letter-spacing: -0.02em; margin: 6px 0 8px; color: var(--ink-3); }
+  .kpi .foot { font-size: 12.5px; color: var(--ink-3); }
+
+  @media (max-width: 1100px) {
+    .onboard { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item active" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a class="nav-item" href="Nouveau client.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 20a5 5 0 0 0-3-4.6"/></svg>
+        Clients <span class="badge">0</span>
+      </a>
+      <a class="nav-item" href="Projets.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>
+        Projets <span class="badge">0</span>
+      </a>
+      <div class="nav-label">Facturation</div>
+      <a class="nav-item" href="Devis.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6z" /><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h4"/></svg>
+        Devis <span class="badge">0</span>
+      </a>
+      <a class="nav-item" href="Factures.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Factures <span class="badge">0</span>
+      </a>
+      <div class="nav-label">Pilotage</div>
+      <a class="nav-item" href="Rapports.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16"/><path d="M8 16l3.5-4 3 2.5L20 8"/></svg>
+        Rapports
+      </a>
+      <a class="nav-item" href="Abonnement.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Abonnement
+      </a>
+      <a class="nav-item" href="Profil.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8z"/></svg>
+        Paramètres
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="side-usage" href="Abonnement.html" title="Voir mon abonnement">
+        <span class="su-l">Documents ce mois <b>0 / 5</b></span>
+        <span class="su-bar"><i style="width:0%"></i></span>
+        <small>5 documents offerts chaque mois</small>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">CL</div>
+        <div class="meta">
+          <b>Camille Laurent</b>
+          <small>Forfait Gratuit</small>
+        </div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <h1>Tableau de bord</h1>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Rechercher un client, une facture…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn btn-icon btn-ghost" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </header>
+
+    <main class="content" data-screen-label="Premier lancement">
+
+      <div class="page-head">
+        <div class="hi">Bienvenue, Camille</div>
+        <div class="date">Votre compte est prêt. Trois étapes vous séparent de votre première facture.</div>
+      </div>
+
+      <div class="onboard">
+
+        <!-- Checklist -->
+        <section class="card">
+          <div class="steps-head">
+            <h2>Premiers pas</h2>
+            <span class="pc">0 / 3 terminés · ~3 min</span>
+          </div>
+          <div class="steps-track"><i></i></div>
+
+          <div class="step-row now">
+            <span class="n">1</span>
+            <div class="m">
+              <b>Renseignez votre SIRET et votre régime de TVA</b>
+              <small>Indispensables pour émettre des documents conformes — vérifiés au répertoire SIRENE.</small>
+            </div>
+            <span class="eta">1 min</span>
+            <a class="btn btn-primary btn-sm" href="Profil.html">Compléter</a>
+          </div>
+
+          <div class="step-row todo">
+            <span class="n">2</span>
+            <div class="m">
+              <b>Créez votre premier client</b>
+              <small>Nom, SIREN, adresse de facturation. Vous pourrez l'enrichir plus tard.</small>
+            </div>
+            <span class="eta">1 min</span>
+            <a class="btn btn-sm" href="Nouveau client.html">Créer un client</a>
+          </div>
+
+          <div class="step-row todo">
+            <span class="n">3</span>
+            <div class="m">
+              <b>Émettez votre premier devis ou facture</b>
+              <small>TVA calculée en direct selon votre régime, PDF prêt à envoyer.</small>
+            </div>
+            <span class="eta">1 min</span>
+            <a class="btn btn-sm" href="Nouvelle facture.html">Nouveau document</a>
+          </div>
+        </section>
+
+        <!-- Aide -->
+        <section class="card aside-card">
+          <div class="card-head"><h2>Pourquoi ces trois étapes ?</h2></div>
+          <div class="card-body">
+            <p>Une facture française doit comporter vos <b>mentions légales</b> (SIRET, régime de TVA) et celles de votre client. Une fois ces informations saisies, elles sont reportées automatiquement sur chaque document — vous n'y reviendrez plus.</p>
+            <div class="tip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+              <span>Le forfait Gratuit inclut <b>5 documents par mois</b>, sans limite de clients ni de projets — largement de quoi tester en conditions réelles.</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- KPI vides -->
+      <div class="kpis" aria-label="Vos indicateurs apparaîtront après votre première facture">
+        <div class="kpi">
+          <div class="label">CA de juin</div>
+          <div class="val num">— €</div>
+          <div class="foot">Après votre première facture</div>
+        </div>
+        <div class="kpi">
+          <div class="label">En attente de paiement</div>
+          <div class="val num">— €</div>
+          <div class="foot">Aucune facture émise</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Devis en cours</div>
+          <div class="val num">0</div>
+          <div class="foot">Aucun devis envoyé</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Clients</div>
+          <div class="val num">0</div>
+          <div class="foot">Commencez par l'étape 2</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

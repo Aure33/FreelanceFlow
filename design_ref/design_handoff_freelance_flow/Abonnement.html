@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Abonnement</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  .page-head { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+  .page-head .hi { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+  .page-head .count { font-size: 14px; color: var(--ink-3); margin-top: 3px; }
+  .page-head .tools { margin-left: auto; }
+
+  .narrow { max-width: 880px; }
+
+  /* —— Forfait actuel + usage —— */
+  .current { display: flex; align-items: center; gap: 16px; padding: var(--pad); border-bottom: 1px solid var(--line-soft); }
+  .current .ico {
+    width: 46px; height: 46px; border-radius: 12px; flex: none;
+    background: var(--surface-2); color: var(--ink-2);
+    display: grid; place-items: center;
+  }
+  .current .ico svg { width: 22px; height: 22px; stroke-width: 2; }
+  .current .m b { font-size: 16.5px; font-weight: 750; letter-spacing: -0.015em; display: flex; align-items: center; gap: 10px; }
+  .current .m small { font-size: 13px; color: var(--ink-3); }
+  .current .price { margin-left: auto; text-align: right; }
+  .current .price .v { font-family: var(--font-mono); font-weight: 600; font-size: 21px; }
+  .current .price small { font-size: 12.5px; color: var(--ink-3); display: block; }
+
+  .usage { padding: var(--pad); display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+  .u-item .l { display: flex; align-items: baseline; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 8px; }
+  .u-item .l .n { margin-left: auto; font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-3); }
+  .u-item .l .n b { color: var(--ink); font-weight: 600; }
+  .u-bar { height: 7px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .u-bar i { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+  .u-bar i.hot { background: var(--warn); }
+  .u-item .d { font-size: 12px; color: var(--ink-3); margin-top: 7px; }
+  .u-item .d.hot { color: var(--warn-ink); font-weight: 600; }
+
+  .limit-note {
+    display: flex; align-items: flex-start; gap: 11px;
+    margin: 0 var(--pad) var(--pad);
+    background: var(--warn-soft); border-radius: var(--r-md);
+    padding: 13px 16px; font-size: 13.5px; color: var(--warn-ink); line-height: 1.55;
+  }
+  .limit-note svg { width: 17px; height: 17px; flex: none; stroke-width: 2.2; margin-top: 1px; }
+  .limit-note b { font-weight: 700; }
+
+  /* —— Comparatif —— */
+  .plans-head { display: flex; align-items: center; gap: 16px; margin: 34px 0 16px; }
+  .plans-head h2 { font-size: 17px; font-weight: 750; letter-spacing: -0.02em; }
+  .plans-head .spacer { margin-left: auto; }
+
+  .plans { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); align-items: stretch; }
+  .plan { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: 26px; display: flex; flex-direction: column; }
+  .plan.hero { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow-md); position: relative; }
+  .plan .reco {
+    position: absolute; top: -11px; left: 24px;
+    background: var(--accent); color: var(--on-accent);
+    font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em;
+    padding: 3px 11px; border-radius: 99px;
+  }
+  .plan h3 { font-size: 15.5px; font-weight: 750; letter-spacing: -0.015em; }
+  .plan .tagline { font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+  .plan .pr { display: flex; align-items: baseline; gap: 7px; margin: 18px 0 4px; }
+  .plan .pr .v { font-family: var(--font-mono); font-weight: 600; font-size: 32px; letter-spacing: -0.02em; }
+  .plan .pr small { font-size: 13px; color: var(--ink-3); }
+  .plan .pr-note { font-size: 12px; color: var(--ink-3); min-height: 18px; }
+
+  .plan ul { list-style: none; margin: 20px 0 24px; display: flex; flex-direction: column; gap: 10px; }
+  .plan li { display: flex; gap: 10px; font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
+  .plan li svg { width: 16px; height: 16px; flex: none; stroke-width: 2.4; margin-top: 1px; }
+  .plan li.yes svg { color: var(--ok-ink); }
+  .plan li.no { color: var(--ink-3); }
+  .plan li.no svg { color: var(--line); }
+  .plan li b { color: var(--ink); font-weight: 650; }
+
+  .plan .cta { margin-top: auto; justify-content: center; height: 44px; }
+
+  /* —— Historique —— */
+  .empty {
+    padding: 34px var(--pad); text-align: center; color: var(--ink-3); font-size: 13.5px;
+  }
+  .empty svg { width: 26px; height: 26px; stroke-width: 1.8; margin-bottom: 8px; color: var(--ink-3); }
+  .empty b { display: block; color: var(--ink-2); font-size: 14px; font-weight: 650; margin-bottom: 2px; }
+
+  .secure { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); margin-top: 18px; }
+  .secure svg { width: 14px; height: 14px; stroke-width: 2; }
+
+  @media (max-width: 1000px) {
+    .plans { grid-template-columns: 1fr; }
+    .usage { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="Tableau de bord.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a class="nav-item" href="Clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 20a5 5 0 0 0-3-4.6"/></svg>
+        Clients <span class="badge">24</span>
+      </a>
+      <a class="nav-item" href="Projets.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>
+        Projets <span class="badge">8</span>
+      </a>
+      <div class="nav-label">Facturation</div>
+      <a class="nav-item" href="Devis.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6z" /><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h4"/></svg>
+        Devis <span class="badge">5</span>
+      </a>
+      <a class="nav-item" href="Factures.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Factures <span class="badge">12</span>
+      </a>
+      <div class="nav-label">Pilotage</div>
+      <a class="nav-item" href="Rapports.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16"/><path d="M8 16l3.5-4 3 2.5L20 8"/></svg>
+        Rapports
+      </a>
+      <a class="nav-item active" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Abonnement
+      </a>
+      <a class="nav-item" href="Profil.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8z"/></svg>
+        Paramètres
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="side-usage" href="Abonnement.html" title="Voir mon abonnement">
+        <span class="su-l">Documents ce mois <b>4 / 5</b></span>
+        <span class="su-bar"><i style="width:80%"></i></span>
+        <small>Passer en Premium →</small>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">CL</div>
+        <div class="meta">
+          <b>Camille Laurent</b>
+          <small>Studio · Régime réel</small>
+        </div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <h1>Abonnement</h1>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Rechercher un client, une facture…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn btn-icon btn-ghost" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </header>
+
+    <main class="content narrow" data-screen-label="Abonnement">
+
+      <div class="page-head">
+        <div>
+          <div class="hi">Abonnement</div>
+          <div class="count">Gérez votre forfait et suivez votre consommation.</div>
+        </div>
+      </div>
+
+      <!-- ===== Forfait actuel ===== -->
+      <section class="card">
+        <div class="current">
+          <div class="ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2 3 7v10l9 5 9-5V7z"/></svg>
+          </div>
+          <div class="m">
+            <b>Forfait Gratuit <span class="tag neutral">Plan actuel</span></b>
+            <small>Membre depuis janvier 2026 · aucun engagement</small>
+          </div>
+          <div class="price"><span class="v">0 €</span><small>par mois</small></div>
+        </div>
+
+        <div class="usage">
+          <div class="u-item">
+            <div class="l">Documents ce mois-ci <span class="n"><b>4</b> / 5</span></div>
+            <div class="u-bar"><i class="hot" style="width:80%"></i></div>
+            <div class="d hot">Plus qu'1 document avant le 1ᵉʳ juillet</div>
+          </div>
+          <div class="u-item">
+            <div class="l">Clients <span class="n"><b>24</b> / illimités</span></div>
+            <div class="u-bar"><i style="width:14%"></i></div>
+            <div class="d">Aucune limite sur le plan Gratuit</div>
+          </div>
+          <div class="u-item">
+            <div class="l">Relances <span class="n"><b>manuelles</b></span></div>
+            <div class="u-bar"><i style="width:0%"></i></div>
+            <div class="d">Relances automatiques réservées au Premium</div>
+          </div>
+        </div>
+
+        <div class="limit-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.7 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/></svg>
+          <div>Vous avez émis <b>4 documents sur 5</b> ce mois-ci. Au-delà, la création sera bloquée jusqu'au mois prochain — ou passez en Premium pour des documents illimités.</div>
+        </div>
+      </section>
+
+      <!-- ===== Comparatif ===== -->
+      <div class="plans-head">
+        <h2>Choisir un forfait</h2>
+        <span class="spacer"></span>
+        <div class="segment" id="cycleSeg">
+          <button class="active" data-c="mois">Mensuel</button>
+          <button data-c="an">Annuel <span style="font-family:var(--font-mono);font-size:11px;opacity:.75">−20 %</span></button>
+        </div>
+      </div>
+
+      <div class="plans">
+        <!-- Gratuit -->
+        <article class="plan">
+          <h3>Gratuit</h3>
+          <div class="tagline">Pour démarrer et tester en conditions réelles.</div>
+          <div class="pr"><span class="v">0 €</span><small>/ mois</small></div>
+          <div class="pr-note">pour toujours</div>
+          <ul>
+            <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span><b>5 documents</b> (devis + factures) par mois</span></li>
+            <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span>Clients et projets illimités</span></li>
+            <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span>Calcul TVA et mentions légales automatiques</span></li>
+            <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span>Export PDF <b>avec filigrane</b> Freelance Flow</span></li>
+            <li class="no"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Relances automatiques</span></li>
+            <li class="no"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Logo personnalisé sur les documents</span></li>
+            <li class="no"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Statistiques d'activité avancées</span></li>
+          </ul>
+          <button class="btn cta" disabled style="opacity:.55;cursor:default">Votre plan actuel</button>
+        </article>
+
+        <!-- Premium -->
+        <article class="plan hero">
+          <span class="reco">Recommandé</span>
+          <h3>Premium</h3>
+          <div class="tagline">Pour facturer sans limite et être payé plus vite.</div>
+          <div class="pr"><span class="v" id="prV">15 €</span><small>/ mois</small></div>
+          <div class="pr-note" id="prNote">sans engagement, annulable à tout moment</div>
+          <ul>
+            <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span><b>Documents illimités</b></span></li>
+            <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span>Tout le plan Gratuit, sans filigrane</span></li>
+            <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span><b>Relances automatiques</b> des factures échues</span></li>
+            <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span>Logo et identité sur vos documents</span></li>
+            <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span>Statistiques avancées et évolution du CA</span></li>
+            <li class="yes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg><span>Support prioritaire sous 24 h</span></li>
+          </ul>
+          <button class="btn btn-primary cta">Passer en Premium</button>
+        </article>
+      </div>
+
+      <div class="secure">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Paiement sécurisé · résiliation en 2 clics · données conservées 12 mois après résiliation
+      </div>
+
+      <!-- ===== Historique ===== -->
+      <section class="card" style="margin-top:34px">
+        <div class="card-head"><h2>Historique de facturation</h2></div>
+        <div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg>
+          <b>Aucune facture pour le moment</b>
+          Vous êtes sur le forfait Gratuit — vos reçus Premium apparaîtront ici.
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  // —— Toggle mensuel / annuel ——
+  const prV = document.getElementById('prV');
+  const prNote = document.getElementById('prNote');
+  document.querySelectorAll('#cycleSeg button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#cycleSeg button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      if (b.dataset.c === 'an') {
+        prV.textContent = '12 €';
+        prNote.textContent = 'facturé 144 € par an — 2 mois offerts';
+      } else {
+        prV.textContent = '15 €';
+        prNote.textContent = 'sans engagement, annulable à tout moment';
+      }
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Nouveau mot de passe</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<style>
+  body {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* —— Panneau gauche : promesse —— */
+  .pitch {
+    background: var(--ink);
+    color: oklch(0.95 0.005 95);
+    padding: 56px;
+    display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+  }
+  .pitch .brand-row { display: flex; align-items: center; gap: 11px; }
+  .pitch .brand-mark { box-shadow: none; }
+  .pitch .brand-name { color: oklch(0.97 0.005 95); }
+  .pitch .brand-name span { color: oklch(0.75 0.09 264); }
+
+  .pitch .middle { margin: auto 0; max-width: 420px; }
+  .pitch h2 {
+    font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.18;
+    text-wrap: balance; margin-bottom: 18px;
+  }
+  .pitch p { font-size: 15.5px; line-height: 1.65; color: oklch(0.78 0.008 95); text-wrap: pretty; }
+
+  .pitch .foot { font-size: 12.5px; color: oklch(0.6 0.008 95); }
+
+  .pitch::after {
+    content: '';
+    position: absolute; right: -180px; bottom: -180px;
+    width: 460px; height: 460px; border-radius: 50%;
+    background: radial-gradient(circle, oklch(0.48 0.14 264 / 0.35), transparent 70%);
+    pointer-events: none;
+  }
+
+  /* —— Panneau droit : formulaire —— */
+  .auth {
+    display: flex; align-items: center; justify-content: center;
+    padding: 48px 32px;
+  }
+  .auth-box { width: 100%; max-width: 380px; }
+  .auth-box h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 6px; }
+  .auth-box .sub { font-size: 14.5px; color: var(--ink-3); margin-bottom: 30px; line-height: 1.55; }
+  .auth-box .sub b { color: var(--ink-2); }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+  .input {
+    width: 100%; height: 44px;
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); padding: 0 14px;
+    font-family: inherit; font-size: 14.5px; color: var(--ink);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  /* jauge de robustesse */
+  .strength { display: flex; gap: 5px; margin-top: 8px; }
+  .strength i { flex: 1; height: 4px; border-radius: 99px; background: var(--line-soft); transition: background .15s; }
+  .strength i.on-1 { background: var(--danger); }
+  .strength i.on-2 { background: var(--warn); }
+  .strength i.on-3 { background: var(--ok); }
+  .strength-lbl { font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+
+  .match-hint { font-size: 12px; margin-top: 6px; color: var(--ink-3); }
+  .match-hint.ok { color: oklch(0.42 0.10 155); font-weight: 600; }
+  .match-hint.ko { color: oklch(0.48 0.16 25); font-weight: 600; }
+
+  .btn-block { width: 100%; justify-content: center; height: 44px; font-size: 14.5px; margin-top: 6px; }
+
+  .signup { text-align: center; margin-top: 26px; font-size: 14px; color: var(--ink-2); }
+  .signup a { color: var(--accent-ink); font-weight: 650; }
+  .signup a:hover { text-decoration: underline; }
+
+  /* —— État succès —— */
+  .ok-state { display: none; }
+  body.is-done .form-state { display: none; }
+  body.is-done .ok-state { display: block; }
+
+  .ok-ico {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: var(--ok-soft); color: oklch(0.42 0.10 155);
+    display: grid; place-items: center; margin-bottom: 20px;
+  }
+  .ok-ico svg { width: 24px; height: 24px; stroke-width: 2.2; }
+
+  @media (max-width: 900px) {
+    body { grid-template-columns: 1fr; }
+    .pitch { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ Promesse ============ -->
+  <section class="pitch">
+    <div class="brand-row">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+
+    <div class="middle">
+      <h2>Un nouveau départ,<br>bien protégé.</h2>
+      <p>Choisissez un mot de passe robuste et unique. Toutes vos sessions ouvertes seront déconnectées par sécurité.</p>
+    </div>
+
+    <div class="foot">Hébergé en France · Données chiffrées · RGPD</div>
+  </section>
+
+  <!-- ============ Formulaire ============ -->
+  <section class="auth" data-screen-label="Réinitialisation mot de passe">
+    <div class="auth-box">
+
+      <!-- —— Saisie —— -->
+      <div class="form-state">
+        <h1>Choisir un nouveau mot de passe</h1>
+        <div class="sub">Pour le compte <b>camille@studio.fr</b> — ce lien est valable encore <b>27 minutes</b>.</div>
+
+        <div class="field">
+          <label for="pwd">Nouveau mot de passe</label>
+          <input class="input" id="pwd" type="password" autocomplete="new-password" placeholder="••••••••••">
+          <div class="strength" aria-hidden="true"><i id="s1"></i><i id="s2"></i><i id="s3"></i></div>
+          <div class="strength-lbl" id="sLbl">8 caractères minimum, dont un chiffre.</div>
+        </div>
+        <div class="field">
+          <label for="pwd2">Confirmer le mot de passe</label>
+          <input class="input" id="pwd2" type="password" autocomplete="new-password" placeholder="••••••••••">
+          <div class="match-hint" id="match"></div>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="resetBtn">Réinitialiser le mot de passe</button>
+
+        <div class="signup"><a href="Connexion.html">Retour à la connexion</a></div>
+      </div>
+
+      <!-- —— Succès —— -->
+      <div class="ok-state">
+        <div class="ok-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h1>Mot de passe modifié</h1>
+        <div class="sub">Votre mot de passe a bien été réinitialisé et vos autres sessions ont été déconnectées. Vous pouvez vous reconnecter.</div>
+
+        <a class="btn btn-primary btn-block" href="Connexion.html">Se connecter</a>
+      </div>
+
+    </div>
+  </section>
+
+<script>
+  const pwd = document.getElementById('pwd');
+  const pwd2 = document.getElementById('pwd2');
+  const bars = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3')];
+  const sLbl = document.getElementById('sLbl');
+  const match = document.getElementById('match');
+
+  function score(v) {
+    if (!v) return 0;
+    let s = 0;
+    if (v.length >= 8) s++;
+    if (/\d/.test(v) && /[a-zA-Z]/.test(v)) s++;
+    if (v.length >= 12 || /[^a-zA-Z0-9]/.test(v)) s++;
+    return Math.max(1, s);
+  }
+
+  pwd.addEventListener('input', () => {
+    const s = score(pwd.value);
+    bars.forEach((b, i) => { b.className = (pwd.value && i < s) ? 'on-' + s : ''; });
+    sLbl.textContent = !pwd.value ? '8 caractères minimum, dont un chiffre.'
+      : s === 1 ? 'Trop court — 8 caractères minimum.'
+      : s === 2 ? 'Correct — ajoutez un symbole pour renforcer.'
+      : 'Mot de passe robuste.';
+    check();
+  });
+
+  function check() {
+    if (!pwd2.value) { match.textContent = ''; match.className = 'match-hint'; return; }
+    const ok = pwd.value === pwd2.value;
+    match.textContent = ok ? 'Les mots de passe correspondent.' : 'Les mots de passe ne correspondent pas.';
+    match.className = 'match-hint ' + (ok ? 'ok' : 'ko');
+  }
+  pwd2.addEventListener('input', check);
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    document.body.classList.add('is-done');
+  });
+</script>
+</body>
+</html>

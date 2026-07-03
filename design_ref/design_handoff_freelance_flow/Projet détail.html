@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Refonte du site portfolio</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  .crumbs { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .crumbs a { color: var(--ink-3); font-weight: 500; }
+  .crumbs a:hover { color: var(--accent-ink); }
+  .crumbs svg { width: 14px; height: 14px; color: var(--ink-3); stroke-width: 2; }
+  .crumbs b { font-weight: 700; letter-spacing: -0.01em; }
+
+  .proj-head { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .proj-head .ico {
+    width: 54px; height: 54px; border-radius: 14px; flex: none;
+    display: grid; place-items: center; font-weight: 700; font-size: 18px;
+    background: oklch(0.95 0.04 220); color: oklch(0.42 0.10 220);
+  }
+  .proj-head .hi { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.2; }
+  .proj-head .sub { font-size: 14px; color: var(--ink-3); margin-top: 2px; display: flex; align-items: center; gap: 10px; }
+  .proj-head .sub a { font-weight: 600; color: var(--accent-ink); }
+  .proj-head .sub a:hover { text-decoration: underline; }
+  .proj-head .tools { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  /* —— Bandeau financier —— */
+  .fin-band { display: grid; grid-template-columns: 1fr auto auto auto; gap: 36px; align-items: center; padding: 20px var(--pad); margin-bottom: var(--gap); }
+  .fin-band .main-fig .v { font-family: var(--font-mono); font-weight: 600; font-size: 24px; letter-spacing: -0.01em; }
+  .fin-band .main-fig .of { font-size: 13px; color: var(--ink-3); margin-top: 1px; }
+  .fin-band .main-fig .of b { font-family: var(--font-mono); color: var(--ink-2); }
+  .fin-band .progress { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin-top: 12px; }
+  .fin-band .progress i { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+  .fin-fig { text-align: right; }
+  .fin-fig .v { font-family: var(--font-mono); font-weight: 600; font-size: 16px; }
+  .fin-fig .l { font-size: 12.5px; color: var(--ink-3); }
+  .fin-fig .v.warn { color: var(--warn-ink); }
+
+  .cols { display: grid; grid-template-columns: 1fr 340px; gap: var(--gap); align-items: start; }
+  .col { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+
+  /* —— Jalons —— */
+  .phase { display: flex; align-items: center; gap: 14px; padding: 15px var(--pad); border-bottom: 1px solid var(--line-soft); }
+  .phase:last-child { border-bottom: none; }
+  .phase .dot { width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center; }
+  .phase .dot svg { width: 14px; height: 14px; stroke-width: 2.4; }
+  .phase .dot.done { background: var(--ok-soft); color: var(--ok-ink); }
+  .phase .dot.now { background: var(--accent-soft); color: var(--accent-ink); }
+  .phase .dot.todo { background: var(--surface-2); color: var(--ink-3); }
+  .phase .m { flex: 1; min-width: 0; }
+  .phase .m b { display: block; font-size: 14.5px; font-weight: 650; }
+  .phase .m small { font-size: 12.5px; color: var(--ink-3); }
+  .phase .amt { font-family: var(--font-mono); font-weight: 600; font-size: 14px; white-space: nowrap; }
+  .phase .mini-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 30px; padding: 0 11px; border-radius: 7px;
+    border: 1px solid var(--accent-line); background: var(--surface);
+    font-weight: 600; font-size: 12.5px; color: var(--accent-ink); white-space: nowrap;
+    transition: background .12s, color .12s;
+  }
+  .phase .mini-btn:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .phase .mini-btn svg { width: 14px; height: 14px; stroke-width: 2; }
+
+  .tbl tbody tr { cursor: pointer; }
+
+  .kv { display: grid; grid-template-columns: 130px 1fr; row-gap: 11px; font-size: 14px; }
+  .kv dt { color: var(--ink-3); }
+  .kv dd { font-weight: 550; }
+  .desc { font-size: 14px; color: var(--ink-2); line-height: 1.65; }
+
+  /* —— Activité —— */
+  .feed { display: flex; flex-direction: column; }
+  .feed-item { display: flex; gap: 12px; padding: 11px 0; font-size: 13.5px; }
+  .feed-item + .feed-item { border-top: 1px solid var(--line-soft); }
+  .feed-item .when { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); width: 58px; flex: none; padding-top: 2px; }
+  .feed-item .what b { font-weight: 650; }
+  .feed-item .what small { display: block; color: var(--ink-3); font-size: 12.5px; }
+
+  @media (max-width: 1100px) {
+    .cols { grid-template-columns: 1fr; }
+    .fin-band { grid-template-columns: 1fr; gap: 14px; }
+    .fin-fig { text-align: left; }
+    .hide-md { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="Tableau de bord.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a class="nav-item" href="Clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 20a5 5 0 0 0-3-4.6"/></svg>
+        Clients <span class="badge">24</span>
+      </a>
+      <a class="nav-item active" href="Projets.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>
+        Projets <span class="badge">8</span>
+      </a>
+      <div class="nav-label">Facturation</div>
+      <a class="nav-item" href="Devis.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6z" /><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h4"/></svg>
+        Devis <span class="badge">5</span>
+      </a>
+      <a class="nav-item" href="Factures.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Factures <span class="badge">12</span>
+      </a>
+      <div class="nav-label">Pilotage</div>
+      <a class="nav-item" href="Rapports.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16"/><path d="M8 16l3.5-4 3 2.5L20 8"/></svg>
+        Rapports
+      </a>
+      <a class="nav-item" href="Abonnement.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Abonnement
+      </a>
+      <a class="nav-item" href="Profil.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8z"/></svg>
+        Paramètres
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="side-usage" href="Abonnement.html" title="Voir mon abonnement">
+        <span class="su-l">Documents ce mois <b>4 / 5</b></span>
+        <span class="su-bar"><i style="width:80%"></i></span>
+        <small>Passer en Premium →</small>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">CL</div>
+        <div class="meta">
+          <b>Camille Laurent</b>
+          <small>Studio · Régime réel</small>
+        </div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs">
+        <a href="Projets.html">Projets</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 6 6 6-6 6"/></svg>
+        <b>Refonte du site portfolio</b>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Rechercher un client, une facture…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn btn-icon btn-ghost" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </header>
+
+    <main class="content">
+
+      <!-- En-tête projet -->
+      <div class="proj-head" data-screen-label="Détail projet">
+        <div class="ico">AL</div>
+        <div>
+          <div class="hi">Refonte du site portfolio</div>
+          <div class="sub"><a href="Fiche client.html">Atelier Lumen</a> · livraison estimée : 31 juillet 2026 <span class="tag accent">En cours</span></div>
+        </div>
+        <div class="tools">
+          <button class="btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+            Modifier
+          </button>
+          <a class="btn" href="Nouvelle facture.html">Créer un devis</a>
+          <a class="btn btn-primary" href="Nouvelle facture.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+            Créer une facture
+          </a>
+        </div>
+      </div>
+
+      <!-- Bandeau financier -->
+      <section class="card fin-band">
+        <div class="main-fig">
+          <span class="v">2 280 €</span>
+          <div class="of">facturés sur <b>5 310 €</b> de budget accepté · 43 %</div>
+          <div class="progress"><i style="width:43%"></i></div>
+        </div>
+        <div class="fin-fig"><div class="v">1 140 €</div><div class="l">encaissés</div></div>
+        <div class="fin-fig"><div class="v warn">1 140 €</div><div class="l">en attente</div></div>
+        <div class="fin-fig"><div class="v">3 030 €</div><div class="l">restant à facturer</div></div>
+      </section>
+
+      <div class="cols">
+
+        <!-- ===== Colonne principale ===== -->
+        <div class="col">
+
+          <section class="card">
+            <div class="card-head">
+              <h2>Phases de la mission</h2>
+              <span class="sub">2 sur 4 livrées</span>
+            </div>
+            <div>
+              <div class="phase">
+                <span class="dot done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg></span>
+                <div class="m"><b>Phase 1 — Direction artistique</b><small>Livrée le 18 avril · facturée et payée</small></div>
+                <span class="amt">1 140 €</span>
+                <span class="tag ok">Payée</span>
+              </div>
+              <div class="phase">
+                <span class="dot done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg></span>
+                <div class="m"><b>Phase 2 — Maquettes desktop &amp; mobile</b><small>Livrée le 28 mai · facture envoyée le 2 juin</small></div>
+                <span class="amt">1 140 €</span>
+                <span class="tag warn">Envoyée</span>
+              </div>
+              <div class="phase">
+                <span class="dot now"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4"/></svg></span>
+                <div class="m"><b>Phase 3 — Intégration &amp; CMS</b><small>En cours · livraison prévue le 8 juillet</small></div>
+                <span class="amt">2 400 €</span>
+                <button class="mini-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M12 8v6M9 11h6"/></svg>
+                  Facturer
+                </button>
+              </div>
+              <div class="phase">
+                <span class="dot todo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4"/></svg></span>
+                <div class="m"><b>Phase 4 — Recette &amp; mise en ligne</b><small>À venir · fin juillet</small></div>
+                <span class="amt">630 €</span>
+                <span class="tag neutral">À venir</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" style="overflow-x:auto">
+            <div class="card-head">
+              <h2>Pièces du projet</h2>
+              <span class="sub">2 factures · 2 devis</span>
+            </div>
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Pièce</th>
+                  <th class="hide-md">Objet</th>
+                  <th>Date</th>
+                  <th>Statut</th>
+                  <th class="right">Montant TTC</th>
+                </tr>
+              </thead>
+              <tbody id="pieces"></tbody>
+            </table>
+          </section>
+
+        </div>
+
+        <!-- ===== Colonne secondaire ===== -->
+        <div class="col">
+
+          <section class="card">
+            <div class="card-head"><h2>À propos</h2></div>
+            <div class="card-body">
+              <p class="desc">Refonte complète du site portfolio : nouvelle direction artistique, maquettes responsive, intégration sur CMS headless et accompagnement à la mise en ligne.</p>
+              <hr style="border:none;border-top:1px solid var(--line-soft);margin:16px 0">
+              <dl class="kv">
+                <dt>Client</dt><dd><a href="Fiche client.html" style="color:var(--accent-ink);font-weight:600">Atelier Lumen</a></dd>
+                <dt>Début</dt><dd>17 mars 2026</dd>
+                <dt>Livraison</dt><dd>31 juillet 2026</dd>
+                <dt>Devis de réf.</dt><dd class="num" style="font-size:13px">DEV-2026-008</dd>
+              </dl>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head"><h2>Activité récente</h2></div>
+            <div class="card-body" style="padding-top:12px;padding-bottom:12px">
+              <div class="feed">
+                <div class="feed-item"><span class="when">2 juin</span><div class="what"><b>Facture FAC-2026-032 envoyée</b><small>Phase 2 — 1 140 € TTC</small></div></div>
+                <div class="feed-item"><span class="when">28 mai</span><div class="what"><b>Phase 2 marquée livrée</b><small>Maquettes desktop &amp; mobile</small></div></div>
+                <div class="feed-item"><span class="when">22 avr.</span><div class="what"><b>Paiement reçu</b><small>FAC-2026-024 — 1 140 € TTC</small></div></div>
+                <div class="feed-item"><span class="when">1 juin</span><div class="what"><b>Devis DEV-2026-014 envoyé</b><small>Phase 3 (avenant) — 2 400 € TTC</small></div></div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const pieces = [
+    { ref:'FAC-2026-032', objet:'Phase 2 — Maquettes',            date:'2 juin 2026',  st:['warn','Envoyée'],  ttc:'1 140 €', type:'facture' },
+    { ref:'DEV-2026-014', objet:'Phase 3 — Intégration (avenant)',date:'1 juin 2026',  st:['warn','À relancer'], ttc:'2 400 €', type:'devis' },
+    { ref:'FAC-2026-024', objet:'Phase 1 — Direction artistique', date:'18 avr. 2026', st:['ok','Payée'],      ttc:'1 140 €', type:'facture' },
+    { ref:'DEV-2026-008', objet:'Refonte portfolio — devis initial', date:'10 mars 2026', st:['ok','Accepté'], ttc:'2 910 €', type:'devis' },
+  ];
+
+  const tbody = document.getElementById('pieces');
+  pieces.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="num">${p.ref}</td>
+      <td class="hide-md" style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:550">${p.objet}</td>
+      <td class="muted" style="white-space:nowrap">${p.date}</td>
+      <td><span class="tag ${p.st[0]}">${p.st[1]}</span></td>
+      <td class="right amount">${p.ttc}</td>`;
+    tr.addEventListener('click', () => {
+      location.href = 'Document.html' + (p.type === 'devis' ? '?type=devis' : '');
+    });
+    tbody.appendChild(tr);
+  });
+</script>
+</body>
+</html>

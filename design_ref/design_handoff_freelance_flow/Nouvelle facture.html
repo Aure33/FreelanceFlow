@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Nouvelle facture</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  body { overflow: hidden; }
+  .editor-app { display: grid; grid-template-columns: 1fr 1fr; height: 100vh; }
+
+  /* ============ Colonne formulaire ============ */
+  .form-col { display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+  .editor-bar {
+    height: var(--topbar-h); flex: none;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 24px; background: var(--surface);
+  }
+  .editor-bar .back {
+    width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--surface); display: grid; place-items: center; color: var(--ink-2);
+    transition: background .12s;
+  }
+  .editor-bar .back:hover { background: var(--surface-2); }
+  .editor-bar .back svg { width: 17px; height: 17px; stroke-width: 2; }
+  .editor-bar .title { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
+  .editor-bar .title small { display: block; font-size: 12px; color: var(--ink-3); font-weight: 500; }
+  .editor-bar .right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  .autosave { font-size: 12.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
+  .autosave i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+
+  .form-scroll { flex: 1; overflow-y: auto; padding: 26px 28px 60px; }
+  .fsection { margin-bottom: 30px; }
+  .fsection > h3 {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 13px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .fsection > h3 .step {
+    width: 21px; height: 21px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent-ink);
+    display: grid; place-items: center;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0;
+  }
+
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+  .input, .select {
+    width: 100%; height: 42px;
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); padding: 0 13px;
+    font-family: inherit; font-size: 14px; color: var(--ink);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .input:focus, .select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23857f74' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 38px; }
+
+  /* Carte client sélectionné */
+  .client-pick { display: flex; align-items: center; gap: 13px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-md); padding: 13px 15px; }
+  .client-pick .ini { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-weight: 700; font-size: 13px; background: var(--accent-soft); color: var(--accent-ink); flex: none; }
+  .client-pick .m { flex: 1; min-width: 0; }
+  .client-pick .m b { display: block; font-size: 14.5px; }
+  .client-pick .m small { font-size: 12.5px; color: var(--ink-3); font-family: var(--font-mono); }
+  .client-pick .change { font-size: 13px; font-weight: 600; color: var(--accent-ink); background: none; border: none; }
+
+  /* Lignes de prestation */
+  .lines-head, .line {
+    display: grid;
+    grid-template-columns: 1fr 64px 92px 84px 96px 32px;
+    gap: 9px; align-items: center;
+  }
+  .lines-head { font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); padding: 0 2px 8px; }
+  .lines-head .r, .line .r { text-align: right; }
+  .line { margin-bottom: 9px; }
+  .line .input { height: 40px; font-size: 13.5px; }
+  .line .input.num-in { font-family: var(--font-mono); font-size: 13px; text-align: right; }
+  .line .select { height: 40px; font-size: 13px; font-family: var(--font-mono); padding-right: 30px; background-position: right 8px center; }
+  .line .total {
+    font-family: var(--font-mono); font-weight: 600; font-size: 13.5px;
+    text-align: right; padding-right: 2px; white-space: nowrap;
+  }
+  .line .del {
+    width: 30px; height: 30px; border: none; background: none; border-radius: 7px;
+    color: var(--ink-3); display: grid; place-items: center;
+  }
+  .line .del:hover { background: var(--danger-soft); color: var(--danger-ink); }
+  .line .del svg { width: 15px; height: 15px; stroke-width: 2; }
+
+  .add-line {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px dashed var(--line); border-radius: var(--r-md);
+    background: none; color: var(--accent-ink);
+    font-weight: 600; font-size: 13.5px;
+    padding: 10px 16px; margin-top: 4px;
+    width: 100%; justify-content: center;
+    transition: background .12s, border-color .12s;
+  }
+  .add-line:hover { background: var(--accent-soft); border-color: var(--accent); }
+  .add-line svg { width: 16px; height: 16px; stroke-width: 2.2; }
+
+  /* Totaux */
+  .totals { margin-left: auto; width: 300px; margin-top: 18px; }
+  .trow { display: flex; justify-content: space-between; padding: 7px 2px; font-size: 14px; }
+  .trow .k { color: var(--ink-2); }
+  .trow .v { font-family: var(--font-mono); font-weight: 550; }
+  .trow.grand { border-top: 2px solid var(--ink); margin-top: 7px; padding-top: 12px; }
+  .trow.grand .k { font-weight: 700; color: var(--ink); font-size: 15px; }
+  .trow.grand .v { font-weight: 700; font-size: 19px; }
+
+  /* Note conformité */
+  .legal-note {
+    display: flex; gap: 11px; align-items: flex-start;
+    background: var(--accent-soft); border-radius: var(--r-md);
+    padding: 13px 15px; font-size: 13px; color: var(--accent-ink);
+    line-height: 1.5;
+  }
+  .legal-note svg { width: 17px; height: 17px; flex: none; stroke-width: 2; margin-top: 1px; }
+
+  /* ============ Colonne aperçu ============ */
+  .preview-col {
+    background: oklch(0.93 0.008 95);
+    border-left: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    min-width: 0;
+  }
+  .preview-bar {
+    height: var(--topbar-h); flex: none;
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .preview-bar .t { font-weight: 650; font-size: 14px; color: var(--ink-2); display: flex; align-items: center; gap: 9px; }
+  .preview-bar .t svg { width: 16px; height: 16px; stroke-width: 2; }
+  .preview-bar .right { margin-left: auto; display: flex; gap: 10px; }
+
+  .preview-scroll { flex: 1; overflow-y: auto; padding: 30px; display: flex; justify-content: center; }
+
+  /* —— Document A4 —— */
+  .doc {
+    /* Le document reste un papier blanc, quel que soit le thème de l'interface */
+    --accent-ink: oklch(0.40 0.15 264);
+    --accent-soft: oklch(0.95 0.035 264);
+    background: #fff; width: 595px; min-height: 842px; flex: none;
+    box-shadow: var(--shadow-lg);
+    border-radius: 4px;
+    padding: 48px 52px;
+    font-size: 11.5px; line-height: 1.5; color: oklch(0.25 0.01 75);
+    display: flex; flex-direction: column;
+    height: fit-content;
+  }
+  .doc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 38px; }
+  .doc-emitter b { font-size: 14px; display: block; margin-bottom: 3px; }
+  .doc-emitter { color: oklch(0.42 0.012 75); }
+  .doc-emitter .mono, .doc-client .mono { font-family: var(--font-mono); font-size: 10px; }
+  .doc-badge { text-align: right; }
+  .doc-badge .kind { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; color: var(--accent-ink); }
+  .doc-badge .ref { font-family: var(--font-mono); font-size: 11px; color: oklch(0.45 0.012 75); margin-top: 2px; }
+  .doc-meta { display: flex; gap: 36px; margin-bottom: 30px; }
+  .doc-meta .b label { display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: oklch(0.55 0.01 75); margin-bottom: 2px; }
+  .doc-meta .b div { font-weight: 600; }
+  .doc-client { background: oklch(0.975 0.005 95); border-radius: 8px; padding: 13px 16px; margin-bottom: 30px; }
+  .doc-client label { display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: oklch(0.55 0.01 75); margin-bottom: 3px; }
+  .doc-client b { font-size: 13px; }
+
+  .doc-tbl { width: 100%; border-collapse: collapse; margin-bottom: 22px; }
+  .doc-tbl th {
+    text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: oklch(0.5 0.01 75); padding: 0 8px 7px; border-bottom: 1.5px solid oklch(0.25 0.01 75);
+  }
+  .doc-tbl td { padding: 9px 8px; border-bottom: 1px solid oklch(0.92 0.005 95); vertical-align: top; }
+  .doc-tbl .r { text-align: right; }
+  .doc-tbl .mono { font-family: var(--font-mono); font-size: 10.5px; white-space: nowrap; }
+  .doc-tbl td:first-child { font-weight: 550; }
+
+  .doc-totals { margin-left: auto; width: 230px; }
+  .doc-trow { display: flex; justify-content: space-between; padding: 4px 8px; }
+  .doc-trow .v { font-family: var(--font-mono); font-size: 10.5px; }
+  .doc-trow.g { background: var(--accent-soft); border-radius: 6px; margin-top: 6px; padding: 9px 10px; }
+  .doc-trow.g .k { font-weight: 700; }
+  .doc-trow.g .v { font-weight: 700; font-size: 13px; color: var(--accent-ink); }
+
+  .doc-foot { margin-top: auto; padding-top: 28px; }
+  .doc-pay { display: flex; gap: 30px; padding: 13px 0; border-top: 1px solid oklch(0.92 0.005 95); }
+  .doc-pay .b label { display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: oklch(0.55 0.01 75); margin-bottom: 2px; }
+  .doc-pay .mono { font-family: var(--font-mono); font-size: 10px; }
+  .doc-legal { font-size: 8.5px; color: oklch(0.55 0.01 75); line-height: 1.6; border-top: 1px solid oklch(0.92 0.005 95); padding-top: 10px; }
+
+  @media (max-width: 1180px) {
+    body { overflow: auto; }
+    .editor-app { grid-template-columns: 1fr; height: auto; }
+    .preview-col { border-left: none; border-top: 1px solid var(--line); }
+    .form-scroll, .preview-scroll { overflow: visible; }
+  }
+</style>
+</head>
+<body>
+<div class="editor-app">
+
+  <!-- ============ FORMULAIRE ============ -->
+  <div class="form-col">
+    <div class="editor-bar">
+      <a class="back" href="Factures.html" title="Retour aux factures">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      </a>
+      <div class="title">Nouvelle facture<small>Brouillon · FAC-2026-035</small></div>
+      <div class="right">
+        <span class="autosave"><i></i>Enregistré</span>
+        <div class="segment">
+          <button class="active" id="kindFacture">Facture</button>
+          <button id="kindDevis">Devis</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-scroll scroll-area">
+
+      <!-- 1. Client -->
+      <div class="fsection">
+        <h3><span class="step">1</span>Client</h3>
+        <div class="client-pick">
+          <div class="ini">AL</div>
+          <div class="m">
+            <b>Atelier Lumen</b>
+            <small>SIRET 901 274 583 00014 · TVA 20 %</small>
+          </div>
+          <button class="change">Changer</button>
+        </div>
+      </div>
+
+      <!-- 2. Informations -->
+      <div class="fsection">
+        <h3><span class="step">2</span>Informations</h3>
+        <div class="frow">
+          <div class="field">
+            <label for="fDate">Date d'émission</label>
+            <input class="input num-in" id="fDate" type="text" value="10/06/2026">
+          </div>
+          <div class="field">
+            <label for="fEch">Conditions de paiement</label>
+            <select class="select" id="fEch">
+              <option>À réception</option>
+              <option selected>30 jours — échéance 10/07/2026</option>
+              <option>45 jours fin de mois</option>
+              <option>60 jours</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="fObj">Objet</label>
+          <input class="input" id="fObj" type="text" value="Refonte du site portfolio — phase 2" placeholder="Ex. : Refonte du site vitrine">
+        </div>
+      </div>
+
+      <!-- 3. Prestations -->
+      <div class="fsection">
+        <h3><span class="step">3</span>Prestations</h3>
+        <div class="lines-head">
+          <span>Description</span><span class="r">Qté</span><span class="r">PU HT</span><span>TVA</span><span class="r">Total HT</span><span></span>
+        </div>
+        <div id="lines"></div>
+        <button class="add-line" id="addLine">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+          Ajouter une ligne
+        </button>
+
+        <div class="totals" id="totals"></div>
+      </div>
+
+      <!-- 4. Conformité -->
+      <div class="fsection">
+        <h3><span class="step">4</span>Mentions légales</h3>
+        <div class="legal-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-3.6 8-9.5V5.2L12 2 4 5.2v7.3C4 18.4 12 22 12 22z"/><path d="m9 11.8 2.1 2.1L15.4 9.5"/></svg>
+          <div>Les mentions obligatoires (pénalités de retard, indemnité forfaitaire de 40 €, escompte) sont <b>ajoutées automatiquement</b> au document, conformément au Code de commerce.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ APERÇU ============ -->
+  <div class="preview-col">
+    <div class="preview-bar">
+      <span class="t">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        Aperçu du document
+      </span>
+      <div class="right">
+        <button class="btn btn-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+          PDF
+        </button>
+        <button class="btn btn-sm btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
+          Envoyer
+        </button>
+      </div>
+    </div>
+
+    <div class="preview-scroll scroll-area">
+      <div class="doc">
+        <div class="doc-top">
+          <div class="doc-emitter">
+            <b>Camille Laurent — Studio</b>
+            18 rue des Capucins<br>
+            69001 Lyon<br>
+            <span class="mono">SIRET 913 462 875 00019 · TVA FR46913462875</span>
+          </div>
+          <div class="doc-badge">
+            <div class="kind" id="docKind">FACTURE</div>
+            <div class="ref" id="docRef">FAC-2026-035</div>
+          </div>
+        </div>
+
+        <div class="doc-meta">
+          <div class="b"><label>Date d'émission</label><div class="mono" id="docDate">10/06/2026</div></div>
+          <div class="b"><label>Échéance</label><div class="mono" id="docEch">10/07/2026</div></div>
+          <div class="b"><label>Objet</label><div id="docObj">Refonte du site portfolio — phase 2</div></div>
+        </div>
+
+        <div class="doc-client">
+          <label>Facturé à</label>
+          <b>Atelier Lumen</b><br>
+          3 quai de la Fosse, 44000 Nantes<br>
+          <span class="mono">SIRET 901 274 583 00014</span>
+        </div>
+
+        <table class="doc-tbl">
+          <thead>
+            <tr><th>Description</th><th class="r">Qté</th><th class="r">PU HT</th><th class="r">TVA</th><th class="r">Total HT</th></tr>
+          </thead>
+          <tbody id="docLines"></tbody>
+        </table>
+
+        <div class="doc-totals" id="docTotals"></div>
+
+        <div class="doc-foot">
+          <div class="doc-pay">
+            <div class="b"><label>Règlement par virement</label><span class="mono">IBAN FR76 3000 4028 3798 7654 3210 943 · BIC BNPAFRPPXXX</span></div>
+          </div>
+          <div class="doc-legal">
+            En cas de retard de paiement, pénalités calculées à trois fois le taux d'intérêt légal et indemnité forfaitaire de recouvrement de 40 € (art. L441-10 du Code de commerce). Pas d'escompte pour règlement anticipé. TVA sur les encaissements.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="scripts/facture-editor.js"></script>
+</body>
+</html>

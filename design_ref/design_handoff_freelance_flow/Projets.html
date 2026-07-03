@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Projets</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  .page-head { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+  .page-head .hi { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+  .page-head .count { font-size: 14px; color: var(--ink-3); margin-top: 3px; }
+  .page-head .tools { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  .filters { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    height: 34px; padding: 0 14px;
+    border-radius: 99px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink-2);
+    font-weight: 600; font-size: 13px;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .chip:hover { background: var(--surface-2); }
+  .chip.active { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .chip .n { font-family: var(--font-mono); font-size: 11.5px; opacity: .7; }
+  .filters .spacer { margin-left: auto; }
+
+  /* —— Grille projets —— */
+  .projects { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap); }
+  .proj {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+    box-shadow: var(--shadow-sm); padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+    transition: box-shadow .15s, transform .15s, border-color .15s;
+    cursor: pointer;
+  }
+  .proj:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: oklch(0.86 0.02 264); }
+  .proj.done { opacity: 0.82; }
+  .proj.done:hover { opacity: 1; }
+
+  .proj-top { display: flex; align-items: flex-start; gap: 12px; }
+  .proj-ico {
+    width: 40px; height: 40px; border-radius: 10px; flex: none;
+    display: grid; place-items: center; font-weight: 700; font-size: 13px;
+  }
+  .proj-top .m { min-width: 0; flex: 1; }
+  .proj-top .m b { display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
+  .proj-top .m small { font-size: 13px; color: var(--ink-3); }
+  .proj-top .tag { flex: none; }
+
+  .proj-fin { display: flex; align-items: baseline; gap: 7px; }
+  .proj-fin .v { font-family: var(--font-mono); font-weight: 600; font-size: 17px; }
+  .proj-fin .of { font-size: 12.5px; color: var(--ink-3); }
+  .proj-fin .of b { font-family: var(--font-mono); font-weight: 600; color: var(--ink-2); }
+
+  .progress { height: 7px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .progress i { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+  .progress i.full { background: var(--ok); }
+
+  .proj-foot { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+  .proj-foot .pieces { display: inline-flex; align-items: center; gap: 5px; }
+  .proj-foot .pieces svg { width: 14px; height: 14px; stroke-width: 2; }
+  .proj-foot .next { margin-left: auto; font-weight: 600; color: var(--accent-ink); display: inline-flex; align-items: center; gap: 5px; }
+  .proj-foot .next svg { width: 13px; height: 13px; stroke-width: 2.2; }
+  .proj-foot .next.warn { color: var(--warn-ink); }
+
+  /* carte "nouveau projet" */
+  .proj-new {
+    border: 1.5px dashed var(--line); border-radius: var(--r-lg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    color: var(--ink-3); font-weight: 600; font-size: 14px;
+    min-height: 178px; background: none;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .proj-new:hover { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
+  .proj-new .plus {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: grid; place-items: center;
+  }
+  .proj-new svg { width: 18px; height: 18px; stroke-width: 2; }
+
+  /* —— Vue Kanban —— */
+  .kanban { display: none; grid-template-columns: repeat(3, 1fr); gap: var(--gap); align-items: start; }
+  body.view-kanban .kanban { display: grid; }
+  body.view-kanban .projects { display: none; }
+  body.view-kanban .filters .chip[data-f] { display: none; }
+
+  .kcol { background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--r-lg); padding: 10px; }
+  .kcol-head { display: flex; align-items: center; gap: 9px; padding: 8px 10px 12px; }
+  .kcol-head .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .kcol-head b { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
+  .kcol-head .n { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: var(--ink-3); background: var(--surface); border: 1px solid var(--line-soft); padding: 1px 8px; border-radius: 99px; }
+  .kcol-head .sum { margin-left: auto; font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); }
+  .kcol-cards { display: flex; flex-direction: column; gap: 9px; }
+
+  .kcard {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: var(--shadow-sm); padding: 13px 14px;
+    display: flex; flex-direction: column; gap: 9px;
+    cursor: pointer; text-align: left;
+    transition: box-shadow .15s, transform .15s, border-color .15s;
+  }
+  .kcard:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); border-color: oklch(0.86 0.02 264); }
+  .kcard .t { font-size: 14px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.3; }
+  .kcard .who { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); }
+  .kcard .who .ini { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-weight: 700; font-size: 10px; flex: none; }
+  .kcard .foot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-3); }
+  .kcard .foot .amt { font-family: var(--font-mono); font-weight: 600; font-size: 12.5px; color: var(--ink-2); }
+  .kcard .foot .nx { margin-left: auto; font-weight: 600; }
+  .kcard .foot .nx.warn { color: var(--warn-ink); }
+  .kcard .kprog { height: 5px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .kcard .kprog i { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+  .kcard .kprog i.full { background: var(--ok); }
+
+  @media (max-width: 1180px) { .kanban { grid-template-columns: 1fr; } }
+
+  /* —— Modale nouveau projet —— */
+  .overlay {
+    position: fixed; inset: 0; background: oklch(0.25 0.01 75 / 0.32);
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 40;
+  }
+  .modal {
+    position: fixed; top: 50%; left: 50%; z-index: 50;
+    width: 520px; max-width: 92vw;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-xl); box-shadow: var(--shadow-lg);
+    transform: translate(-50%, -46%) scale(0.97); opacity: 0; pointer-events: none;
+    transition: transform .2s cubic-bezier(.4,0,.2,1), opacity .2s;
+  }
+  body.modal-open .overlay { opacity: 1; pointer-events: auto; }
+  body.modal-open .modal { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
+
+  .modal-head { display: flex; align-items: center; gap: 12px; padding: 20px 24px 16px; border-bottom: 1px solid var(--line-soft); }
+  .modal-head h2 { font-size: 17px; font-weight: 750; letter-spacing: -0.02em; }
+  .modal-head .close { margin-left: auto; }
+  .modal-body { padding: 20px 24px; }
+  .modal-foot { display: flex; gap: 10px; justify-content: flex-end; padding: 16px 24px; border-top: 1px solid var(--line-soft); background: var(--surface-2); border-radius: 0 0 var(--r-xl) var(--r-xl); }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+  .field label small { font-weight: 500; color: var(--ink-3); }
+  .input, .select, .textarea {
+    width: 100%; height: 42px;
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); padding: 0 13px;
+    font-family: inherit; font-size: 14px; color: var(--ink);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .textarea { height: auto; min-height: 76px; padding: 10px 13px; resize: vertical; line-height: 1.5; }
+  .select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23807a6e' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 38px; }
+  .input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  @media (max-width: 1180px) { .projects { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 800px) { .projects { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="Tableau de bord.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a class="nav-item" href="Clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 20a5 5 0 0 0-3-4.6"/></svg>
+        Clients <span class="badge">24</span>
+      </a>
+      <a class="nav-item active" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>
+        Projets <span class="badge">8</span>
+      </a>
+      <div class="nav-label">Facturation</div>
+      <a class="nav-item" href="Devis.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6z" /><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h4"/></svg>
+        Devis <span class="badge">5</span>
+      </a>
+      <a class="nav-item" href="Factures.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Factures <span class="badge">12</span>
+      </a>
+      <div class="nav-label">Pilotage</div>
+      <a class="nav-item" href="Rapports.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16"/><path d="M8 16l3.5-4 3 2.5L20 8"/></svg>
+        Rapports
+      </a>
+      <a class="nav-item" href="Abonnement.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Abonnement
+      </a>
+      <a class="nav-item" href="Profil.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8z"/></svg>
+        Paramètres
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="side-usage" href="Abonnement.html" title="Voir mon abonnement">
+        <span class="su-l">Documents ce mois <b>4 / 5</b></span>
+        <span class="su-bar"><i style="width:80%"></i></span>
+        <small>Passer en Premium →</small>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">CL</div>
+        <div class="meta">
+          <b>Camille Laurent</b>
+          <small>Studio · Régime réel</small>
+        </div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <h1>Projets</h1>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Rechercher un client, une facture…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn btn-icon btn-ghost" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </header>
+
+    <main class="content">
+
+      <div class="page-head">
+        <div>
+          <div class="hi">Projets</div>
+          <div class="count">8 projets · 5 en cours, 18 350 € facturés sur l'ensemble</div>
+        </div>
+        <div class="tools">
+          <div class="segment" id="viewSeg">
+            <button class="active" data-v="grille">Grille</button>
+            <button data-v="kanban">Kanban</button>
+          </div>
+          <button class="btn btn-primary" id="newProjBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+            Nouveau projet
+          </button>
+        </div>
+      </div>
+
+      <div class="filters">
+        <button class="chip active" data-f="all">Tous <span class="n">8</span></button>
+        <button class="chip" data-f="encours">En cours <span class="n">5</span></button>
+        <button class="chip" data-f="termine">Terminés <span class="n">3</span></button>
+        <div class="spacer"></div>
+        <button class="chip">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+          Trier : activité récente
+        </button>
+      </div>
+
+      <div class="projects" id="grid"></div>
+
+      <!-- Vue Kanban -->
+      <div class="kanban" id="kanban" data-screen-label="Projets — Kanban"></div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ===================== MODALE NOUVEAU PROJET ===================== -->
+<div class="overlay" id="overlay"></div>
+<div class="modal" id="modal" role="dialog" aria-label="Nouveau projet" data-screen-label="Modale nouveau projet">
+  <div class="modal-head">
+    <h2>Nouveau projet</h2>
+    <button class="btn btn-icon btn-ghost close" id="mClose" title="Fermer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="modal-body">
+    <div class="field">
+      <label for="mTitre">Titre de la mission</label>
+      <input class="input" id="mTitre" type="text" placeholder="Ex. : Refonte du site vitrine">
+    </div>
+    <div class="frow">
+      <div class="field">
+        <label for="mClient">Client</label>
+        <select class="select" id="mClient">
+          <option>Atelier Lumen</option>
+          <option>Nord Web</option>
+          <option>Camille &amp; Co</option>
+          <option>Studio Delmas</option>
+          <option>Maison Roux</option>
+          <option>Le Comptoir Vert</option>
+          <option>Kaféo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="mDate">Livraison estimée</label>
+        <input class="input" id="mDate" type="text" placeholder="JJ/MM/AAAA" style="font-family:var(--font-mono);font-size:13.5px">
+      </div>
+    </div>
+    <div class="field">
+      <label for="mDesc">Description <small>— facultatif</small></label>
+      <textarea class="textarea" id="mDesc" placeholder="Périmètre, livrables, jalons…"></textarea>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn" id="mCancel">Annuler</button>
+    <a class="btn btn-primary" href="Projet détail.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>
+      Créer le projet
+    </a>
+  </div>
+</div>
+
+<script>
+  const palette = [
+    ['var(--accent-soft)', 'var(--accent-ink)'],
+    ['var(--ok-soft)', 'var(--ok-ink)'],
+    ['var(--warn-soft)', 'var(--warn-ink)'],
+    ['oklch(0.95 0.03 320)', 'oklch(0.45 0.12 320)'],
+    ['oklch(0.95 0.04 220)', 'oklch(0.42 0.10 220)'],
+  ];
+
+  const projets = [
+    { ini:'AL', p:4, nom:'Refonte du site portfolio', client:'Atelier Lumen', statut:'encours',
+      fact:2280, budget:5310, pieces:'2 factures · 1 devis', next:['Facturer la phase 2','warn'] },
+    { ini:'NW', p:0, nom:'Maintenance annuelle 2026', client:'Nord Web', statut:'encours',
+      fact:1800, budget:5400, pieces:'1 devis accepté', next:['Prochaine échéance : juil.',''] },
+    { ini:'CC', p:3, nom:'Identité visuelle complète', client:'Camille & Co', statut:'encours',
+      fact:3480, budget:4800, pieces:'3 factures', next:['Livraison charte : 19 juin',''] },
+    { ini:'KF', p:2, nom:'Packaging gamme été', client:'Kaféo', statut:'encours',
+      fact:0, budget:870, pieces:'1 brouillon de facture', next:['Envoyer la facture','warn'] },
+    { ini:'SD', p:1, nom:'Habillage vidéo — teaser', client:'Studio Delmas', statut:'encours',
+      fact:680, budget:680, pieces:'1 facture en retard', next:['Relancer le paiement','warn'] },
+    { ini:'NW', p:0, nom:'Refonte site vitrine', client:'Nord Web', statut:'termine',
+      fact:3600, budget:3600, pieces:'2 factures · payées', next:['Terminé en mai',''] },
+    { ini:'CV', p:1, nom:'Affiches & signalétique', client:'Le Comptoir Vert', statut:'termine',
+      fact:960, budget:960, pieces:'1 facture · payée', next:['Terminé en juin',''] },
+    { ini:'PH', p:4, nom:'Brochure & papeterie', client:'Petit Hôtel du Parc', statut:'termine',
+      fact:1980, budget:1980, pieces:'1 facture · payée', next:['Terminé en avril',''] },
+  ];
+
+  const eur = n => n.toLocaleString('fr-FR') + ' €';
+  const grid = document.getElementById('grid');
+
+  function render(filter) {
+    grid.innerHTML = '';
+    projets.filter(p => filter === 'all' || p.statut === filter).forEach(p => {
+      const [bg, fg] = palette[p.p];
+      const pct = p.budget ? Math.round(p.fact / p.budget * 100) : 0;
+      const done = p.statut === 'termine';
+      const card = document.createElement('article');
+      card.className = 'proj' + (done ? ' done' : '');
+      card.innerHTML = `
+        <div class="proj-top">
+          <div class="proj-ico" style="background:${bg};color:${fg}">${p.ini}</div>
+          <div class="m"><b>${p.nom}</b><small>${p.client}</small></div>
+          <span class="tag ${done ? 'ok' : 'accent'}">${done ? 'Terminé' : 'En cours'}</span>
+        </div>
+        <div>
+          <div class="proj-fin">
+            <span class="v">${eur(p.fact)}</span>
+            <span class="of">facturés sur <b>${eur(p.budget)}</b></span>
+          </div>
+          <div class="progress" style="margin-top:9px"><i class="${pct >= 100 ? 'full' : ''}" style="width:${Math.min(pct,100)}%"></i></div>
+        </div>
+        <div class="proj-foot">
+          <span class="pieces">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg>
+            ${p.pieces}
+          </span>
+          <span class="next ${p.next[1]}">${p.next[0]}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </span>
+        </div>`;
+      card.addEventListener('click', () => { location.href = 'Projet détail.html'; });
+      grid.appendChild(card);
+    });
+
+    const add = document.createElement('button');
+    add.className = 'proj-new';
+    add.innerHTML = `<span class="plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg></span>Nouveau projet`;
+    add.addEventListener('click', openModal);
+    grid.appendChild(add);
+  }
+
+  document.querySelectorAll('.chip[data-f]').forEach(ch => {
+    ch.addEventListener('click', () => {
+      document.querySelectorAll('.chip[data-f]').forEach(x => x.classList.remove('active'));
+      ch.classList.add('active');
+      render(ch.dataset.f);
+    });
+  });
+
+  render('all');
+
+  // —— Vue Kanban ——
+  // À faire = mission acceptée mais pas démarrée (rien de facturé)
+  const kbOf = p => p.statut === 'termine' ? 'termine' : (p.fact === 0 ? 'afaire' : 'encours');
+  const kcols = [
+    { id: 'afaire',  nom: 'À faire',  dot: 'var(--warn)' },
+    { id: 'encours', nom: 'En cours', dot: 'var(--accent)' },
+    { id: 'termine', nom: 'Terminé',  dot: 'var(--ok)' },
+  ];
+
+  const kanban = document.getElementById('kanban');
+  kcols.forEach(col => {
+    const items = projets.filter(p => kbOf(p) === col.id);
+    const sum = items.reduce((s, p) => s + p.budget, 0);
+    const kc = document.createElement('section');
+    kc.className = 'kcol';
+    kc.innerHTML = `
+      <div class="kcol-head">
+        <span class="dot" style="background:${col.dot}"></span>
+        <b>${col.nom}</b>
+        <span class="n">${items.length}</span>
+        <span class="sum">${eur(sum)}</span>
+      </div>
+      <div class="kcol-cards"></div>`;
+    const wrap = kc.querySelector('.kcol-cards');
+    items.forEach(p => {
+      const [bg, fg] = palette[p.p];
+      const pct = p.budget ? Math.round(p.fact / p.budget * 100) : 0;
+      const card = document.createElement('button');
+      card.className = 'kcard';
+      card.innerHTML = `
+        <div class="t">${p.nom}</div>
+        <div class="who"><span class="ini" style="background:${bg};color:${fg}">${p.ini}</span>${p.client}</div>
+        <div class="kprog"><i class="${pct >= 100 ? 'full' : ''}" style="width:${Math.min(pct,100)}%"></i></div>
+        <div class="foot">
+          <span class="amt">${eur(p.fact)} / ${eur(p.budget)}</span>
+          <span class="nx ${p.next[1]}">${p.next[0]}</span>
+        </div>`;
+      card.addEventListener('click', () => { location.href = 'Projet détail.html'; });
+      wrap.appendChild(card);
+    });
+    kanban.appendChild(kc);
+  });
+
+  // —— Toggle Grille / Kanban ——
+  document.querySelectorAll('#viewSeg button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#viewSeg button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      document.body.classList.toggle('view-kanban', b.dataset.v === 'kanban');
+    });
+  });
+
+  // —— Modale ——
+  function openModal() { document.body.classList.add('modal-open'); }
+  function closeModal() { document.body.classList.remove('modal-open'); }
+  document.getElementById('newProjBtn').addEventListener('click', openModal);
+  document.getElementById('overlay').addEventListener('click', closeModal);
+  document.getElementById('mClose').addEventListener('click', closeModal);
+  document.getElementById('mCancel').addEventListener('click', closeModal);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>

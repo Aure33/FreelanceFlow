@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Informations légales</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<style>
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 28px; }
+
+  /* —— Nav publique (même vocabulaire que la landing) —— */
+  .pubnav {
+    display: flex; align-items: center; gap: 26px;
+    padding: 18px 0;
+  }
+  .pubnav .cta { margin-left: auto; display: flex; gap: 10px; }
+
+  /* —— Layout —— */
+  .legal { display: grid; grid-template-columns: 230px 1fr; gap: 44px; align-items: start; padding: 34px 0 60px; }
+
+  .toc { position: sticky; top: 28px; display: flex; flex-direction: column; gap: 2px; }
+  .toc-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); padding: 0 12px 8px; }
+  .toc a {
+    padding: 9px 12px; border-radius: var(--r-sm);
+    font-size: 14px; font-weight: 550; color: var(--ink-2);
+    transition: background .12s, color .12s;
+  }
+  .toc a:hover { background: var(--surface-2); color: var(--ink); }
+  .toc a.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 650; }
+  .toc .back { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line-soft); font-size: 13px; color: var(--ink-3); display: flex; align-items: center; gap: 7px; }
+  .toc .back:hover { color: var(--ink); background: none; }
+  .toc .back svg { width: 14px; height: 14px; stroke-width: 2; }
+
+  /* —— Corps de texte —— */
+  .doc { max-width: 660px; }
+  .doc h1 { font-size: 27px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 6px; }
+  .doc .maj { font-size: 13px; color: var(--ink-3); font-family: var(--font-mono); margin-bottom: 30px; }
+  .doc h2 { font-size: 16.5px; font-weight: 700; letter-spacing: -0.015em; margin: 30px 0 10px; }
+  .doc p { font-size: 14.5px; line-height: 1.7; color: var(--ink-2); margin-bottom: 12px; text-wrap: pretty; }
+  .doc p b { color: var(--ink); font-weight: 650; }
+  .doc ul { margin: 0 0 12px 20px; display: flex; flex-direction: column; gap: 6px; }
+  .doc li { font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+  .doc li b { color: var(--ink); font-weight: 650; }
+  .doc a { color: var(--accent-ink); font-weight: 550; }
+  .doc a:hover { text-decoration: underline; }
+
+  .doc .panel-note {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 14px 18px; font-size: 13.5px; color: var(--ink-2); line-height: 1.6;
+    margin: 18px 0;
+  }
+  .doc .panel-note b { color: var(--ink); }
+
+  .doc-section { display: none; }
+  .doc-section.visible { display: block; }
+
+  /* —— Footer —— */
+  .pubfoot {
+    border-top: 1px solid var(--line-soft);
+    padding: 26px 0 34px;
+    display: flex; align-items: center; gap: 20px;
+    font-size: 13px; color: var(--ink-3);
+  }
+  .pubfoot .links { margin-left: auto; display: flex; gap: 18px; }
+  .pubfoot a:hover { color: var(--ink); }
+
+  @media (max-width: 860px) {
+    .legal { grid-template-columns: 1fr; gap: 24px; }
+    .toc { position: static; flex-direction: row; flex-wrap: wrap; }
+    .toc-label, .toc .back { display: none; }
+  }
+</style>
+</head>
+<body data-screen-label="Pages légales">
+
+  <!-- ============ NAV ============ -->
+  <header class="pubnav wrap">
+    <a class="brand" style="border:none;padding:0;height:auto" href="Accueil.html">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </a>
+    <div class="cta">
+      <a class="btn btn-ghost" href="Connexion.html">Se connecter</a>
+      <a class="btn btn-primary" href="Inscription.html">Essayer gratuitement</a>
+    </div>
+  </header>
+
+  <!-- ============ CONTENU ============ -->
+  <div class="legal wrap">
+
+    <nav class="toc" aria-label="Documents légaux">
+      <div class="toc-label">Informations légales</div>
+      <a href="#mentions" data-doc="mentions" class="active">Mentions légales</a>
+      <a href="#cgu" data-doc="cgu">CGU &amp; CGV</a>
+      <a href="#confidentialite" data-doc="confidentialite">Politique de confidentialité</a>
+      <a class="back" href="Accueil.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        Retour à l'accueil
+      </a>
+    </nav>
+
+    <div class="doc">
+
+      <!-- ===== MENTIONS LÉGALES ===== -->
+      <section class="doc-section visible" id="doc-mentions">
+        <h1>Mentions légales</h1>
+        <div class="maj">Dernière mise à jour : 1ᵉʳ juin 2026</div>
+
+        <h2>1. Éditeur du site</h2>
+        <p>Le site et l'application <b>Freelance Flow</b> sont édités par <b>Freelance Flow SAS</b>, société par actions simplifiée au capital de 10 000 €, immatriculée au RCS de Lyon sous le numéro 914 728 305, dont le siège social est situé 18 rue des Capucins, 69001 Lyon, France.</p>
+        <ul>
+          <li><b>N° TVA intracommunautaire :</b> FR 27 914728305</li>
+          <li><b>Directrice de la publication :</b> Camille Laurent</li>
+          <li><b>Contact :</b> <a href="mailto:contact@freelanceflow.fr">contact@freelanceflow.fr</a></li>
+        </ul>
+
+        <h2>2. Hébergement</h2>
+        <p>L'interface de l'application est hébergée par <b>Vercel Inc.</b>, 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis (<a href="https://vercel.com" rel="noopener">vercel.com</a>).</p>
+        <p>Les données (base de données, authentification, fichiers) sont hébergées par <b>Supabase</b>, sur une infrastructure localisée dans l'Union européenne — région <b>eu-west-3 (Paris, France)</b>. Aucune donnée métier n'est stockée hors de l'Union européenne.</p>
+
+        <h2>3. Propriété intellectuelle</h2>
+        <p>L'ensemble des éléments composant le service (interface, textes, logos, charte graphique, code) est protégé par le droit de la propriété intellectuelle et demeure la propriété exclusive de Freelance Flow SAS. Toute reproduction, même partielle, est soumise à autorisation écrite préalable.</p>
+        <p>Les documents (devis, factures) générés par les utilisateurs et les données qu'ils saisissent restent leur entière propriété.</p>
+
+        <h2>4. Signalement</h2>
+        <p>Pour signaler un contenu ou un dysfonctionnement : <a href="mailto:contact@freelanceflow.fr">contact@freelanceflow.fr</a>. Nous nous engageons à répondre sous 72 heures ouvrées.</p>
+      </section>
+
+      <!-- ===== CGU / CGV ===== -->
+      <section class="doc-section" id="doc-cgu">
+        <h1>Conditions générales d'utilisation et de vente</h1>
+        <div class="maj">Version 1.2 — en vigueur au 1ᵉʳ juin 2026</div>
+
+        <h2>1. Objet</h2>
+        <p>Les présentes conditions encadrent l'utilisation du service Freelance Flow, application de gestion d'activité destinée aux travailleurs indépendants : gestion de clients, devis, factures, suivi des paiements et relances.</p>
+        <p>La création d'un compte emporte acceptation pleine et entière des présentes conditions.</p>
+
+        <h2>2. Compte et accès au service</h2>
+        <p>Le service est réservé aux <b>professionnels</b> (B2B) au sens du Code de la consommation. L'utilisateur garantit l'exactitude des informations fournies, notamment son numéro SIRET et son régime de TVA, qui figurent sur les documents émis.</p>
+        <p>L'utilisateur est responsable de la confidentialité de ses identifiants. Toute connexion effectuée depuis son compte est réputée effectuée par lui.</p>
+
+        <h2>3. Offres et tarifs</h2>
+        <ul>
+          <li><b>Forfait Gratuit :</b> 5 documents (devis ou factures) par mois, clients et projets illimités, export PDF avec filigrane.</li>
+          <li><b>Forfait Premium :</b> 15 € HT/mois (ou 144 € HT/an, soit deux mois offerts) — documents illimités, relances automatiques, personnalisation des documents, statistiques avancées.</li>
+        </ul>
+        <p>Les prix s'entendent hors taxes. L'abonnement est <b>sans engagement</b> : il se renouvelle tacitement à chaque échéance et peut être résilié à tout moment depuis la page Abonnement, avec effet à la fin de la période en cours.</p>
+
+        <h2>4. Paiement</h2>
+        <p>Le paiement s'effectue par carte bancaire via un prestataire de paiement sécurisé. En cas d'échec de paiement, l'accès aux fonctionnalités Premium est suspendu après un délai de grâce de 7 jours ; les données restent accessibles en lecture.</p>
+
+        <h2>5. Droit de rétractation</h2>
+        <p>Le service s'adressant exclusivement à des professionnels dans le cadre de leur activité, le droit de rétractation prévu pour les consommateurs ne s'applique pas. Une période d'essai gratuite de 30 jours permet d'évaluer le service sans engagement ni carte bancaire.</p>
+
+        <h2>6. Disponibilité et responsabilité</h2>
+        <p>Freelance Flow s'efforce d'assurer une disponibilité du service de 99,5 % par mois, hors maintenances programmées annoncées 48 h à l'avance. Le service est un <b>outil d'aide</b> à la gestion : l'utilisateur demeure seul responsable de ses obligations comptables, fiscales et déclaratives.</p>
+
+        <h2>7. Résiliation et restitution des données</h2>
+        <p>En cas de résiliation, l'utilisateur peut exporter l'ensemble de ses documents et données pendant <b>12 mois</b>. Passé ce délai, les données sont supprimées définitivement, à l'exception des éléments soumis à une obligation légale de conservation.</p>
+
+        <h2>8. Droit applicable</h2>
+        <p>Les présentes conditions sont soumises au droit français. À défaut de résolution amiable, tout litige relève des tribunaux compétents de Lyon.</p>
+      </section>
+
+      <!-- ===== CONFIDENTIALITÉ ===== -->
+      <section class="doc-section" id="doc-confidentialite">
+        <h1>Politique de confidentialité</h1>
+        <div class="maj">Dernière mise à jour : 1ᵉʳ juin 2026</div>
+
+        <div class="panel-note"><b>En bref :</b> vos données sont hébergées en France, isolées des autres comptes au niveau de la base de données, jamais revendues, et supprimables à tout moment.</div>
+
+        <h2>1. Responsable de traitement</h2>
+        <p>Freelance Flow SAS, 18 rue des Capucins, 69001 Lyon. Contact délégué à la protection des données : <a href="mailto:dpo@freelanceflow.fr">dpo@freelanceflow.fr</a>.</p>
+
+        <h2>2. Données collectées et finalités</h2>
+        <ul>
+          <li><b>Données de compte</b> (nom, e-mail, SIRET, régime TVA) — exécution du contrat : création des documents conformes.</li>
+          <li><b>Données métier</b> (clients, projets, devis, factures, IBAN) — exécution du contrat : fonctionnement du service.</li>
+          <li><b>Données de connexion</b> (journaux techniques, adresse IP) — intérêt légitime : sécurité et prévention de la fraude.</li>
+          <li><b>Données de facturation de l'abonnement</b> — obligation légale : comptabilité.</li>
+        </ul>
+        <p>Aucune donnée n'est utilisée à des fins publicitaires ni transmise à des tiers à des fins commerciales.</p>
+
+        <h2>3. Sécurité — privacy by design</h2>
+        <ul>
+          <li>Isolation stricte des données entre comptes par <b>Row Level Security</b> au niveau de la base de données PostgreSQL.</li>
+          <li>Chiffrement <b>TLS</b> de tous les échanges ; chiffrement au repos des sauvegardes.</li>
+          <li>Authentification avec hachage des mots de passe (bcrypt) ; aucune conservation en clair.</li>
+        </ul>
+
+        <h2>4. Hébergement et sous-traitants</h2>
+        <p>Les données sont hébergées dans l'Union européenne (Supabase — région Paris, France). Le rendu de l'interface transite par le CDN de Vercel. La liste complète des sous-traitants est disponible sur demande auprès du DPO.</p>
+
+        <h2>5. Durées de conservation</h2>
+        <ul>
+          <li><b>Compte actif :</b> pendant toute la durée d'utilisation du service.</li>
+          <li><b>Après résiliation :</b> 12 mois, pour permettre l'export et la réactivation.</li>
+          <li><b>Journaux techniques :</b> 12 mois maximum.</li>
+        </ul>
+
+        <h2>6. Vos droits</h2>
+        <p>Conformément au RGPD, vous disposez des droits d'accès, de rectification, d'effacement, de portabilité et d'opposition. Exercez-les depuis votre page Profil ou par e-mail à <a href="mailto:dpo@freelanceflow.fr">dpo@freelanceflow.fr</a> — réponse sous 30 jours. Vous pouvez introduire une réclamation auprès de la CNIL (<a href="https://www.cnil.fr" rel="noopener">cnil.fr</a>).</p>
+
+        <h2>7. Cookies</h2>
+        <p>Freelance Flow n'utilise que des cookies <b>strictement nécessaires</b> (session d'authentification, préférence de thème). Aucun cookie publicitaire ou de mesure d'audience tierce n'est déposé — c'est pourquoi aucun bandeau de consentement n'est requis.</p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="wrap">
+    <div class="pubfoot">
+      <span>© 2026 Freelance Flow</span>
+      <nav class="links">
+        <a href="#cgu" data-doc="cgu">CGU</a>
+        <a href="#confidentialite" data-doc="confidentialite">Confidentialité</a>
+        <a href="mailto:contact@freelanceflow.fr">Contact</a>
+      </nav>
+    </div>
+  </footer>
+
+<script>
+  // —— Navigation entre les trois documents (par hash, partageable) ——
+  const docs = ['mentions', 'cgu', 'confidentialite'];
+
+  function showDoc(name) {
+    if (!docs.includes(name)) name = 'mentions';
+    document.querySelectorAll('.doc-section').forEach(s => s.classList.remove('visible'));
+    document.getElementById('doc-' + name).classList.add('visible');
+    document.querySelectorAll('.toc a[data-doc]').forEach(a => {
+      a.classList.toggle('active', a.dataset.doc === name);
+    });
+    document.documentElement.scrollTop = 0;
+  }
+
+  function fromHash() { showDoc((location.hash || '#mentions').slice(1)); }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+</script>
+</body>
+</html>

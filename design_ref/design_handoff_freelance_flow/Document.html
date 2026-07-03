@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Document</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  .crumbs { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .crumbs a { color: var(--ink-3); font-weight: 500; }
+  .crumbs a:hover { color: var(--accent-ink); }
+  .crumbs svg { width: 14px; height: 14px; color: var(--ink-3); stroke-width: 2; }
+  .crumbs b { font-weight: 700; font-family: var(--font-mono); font-size: 13.5px; }
+
+  .doc-layout { display: grid; grid-template-columns: 1fr 340px; gap: var(--gap); align-items: start; }
+
+  /* —— Zone document —— */
+  .doc-zone {
+    background: oklch(0.93 0.008 95);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 34px; display: flex; justify-content: center;
+  }
+
+  /* —— Document A4 (repris de l'éditeur) —— */
+  .doc {
+    /* Le document reste un papier blanc, quel que soit le thème de l'interface */
+    --accent-ink: oklch(0.40 0.15 264);
+    --accent-soft: oklch(0.95 0.035 264);
+    background: #fff; width: 595px; min-height: 842px; flex: none; max-width: 100%;
+    box-shadow: var(--shadow-lg);
+    border-radius: 4px;
+    padding: 48px 52px;
+    font-size: 11.5px; line-height: 1.5; color: oklch(0.25 0.01 75);
+    display: flex; flex-direction: column;
+    height: fit-content;
+  }
+  .doc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 38px; }
+  .doc-emitter b { font-size: 14px; display: block; margin-bottom: 3px; }
+  .doc-emitter { color: oklch(0.42 0.012 75); }
+  .doc-emitter .mono, .doc-client .mono { font-family: var(--font-mono); font-size: 10px; }
+  .doc-badge { text-align: right; }
+  .doc-badge .kind { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; color: var(--accent-ink); }
+  .doc-badge .ref { font-family: var(--font-mono); font-size: 11px; color: oklch(0.45 0.012 75); margin-top: 2px; }
+  .doc-meta { display: flex; gap: 36px; margin-bottom: 30px; }
+  .doc-meta .b label { display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: oklch(0.55 0.01 75); margin-bottom: 2px; }
+  .doc-meta .b div { font-weight: 600; }
+  .doc-client { background: oklch(0.975 0.005 95); border-radius: 8px; padding: 13px 16px; margin-bottom: 30px; }
+  .doc-client label { display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: oklch(0.55 0.01 75); margin-bottom: 3px; }
+  .doc-client b { font-size: 13px; }
+
+  .doc-tbl { width: 100%; border-collapse: collapse; margin-bottom: 22px; }
+  .doc-tbl th {
+    text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: oklch(0.5 0.01 75); padding: 0 8px 7px; border-bottom: 1.5px solid oklch(0.25 0.01 75);
+  }
+  .doc-tbl td { padding: 9px 8px; border-bottom: 1px solid oklch(0.92 0.005 95); vertical-align: top; }
+  .doc-tbl .r { text-align: right; }
+  .doc-tbl .mono { font-family: var(--font-mono); font-size: 10.5px; white-space: nowrap; }
+  .doc-tbl td:first-child { font-weight: 550; }
+
+  .doc-totals { margin-left: auto; width: 230px; }
+  .doc-trow { display: flex; justify-content: space-between; padding: 4px 8px; }
+  .doc-trow .v { font-family: var(--font-mono); font-size: 10.5px; }
+  .doc-trow.g { background: var(--accent-soft); border-radius: 6px; margin-top: 6px; padding: 9px 10px; }
+  .doc-trow.g .k { font-weight: 700; }
+  .doc-trow.g .v { font-weight: 700; font-size: 13px; color: var(--accent-ink); }
+
+  .doc-foot { margin-top: auto; padding-top: 28px; }
+  .doc-pay { display: flex; gap: 30px; padding: 13px 0; border-top: 1px solid oklch(0.92 0.005 95); }
+  .doc-pay .b label { display: block; font-size: 9px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: oklch(0.55 0.01 75); margin-bottom: 2px; }
+  .doc-pay .mono { font-family: var(--font-mono); font-size: 10px; }
+  .doc-legal { font-size: 8.5px; color: oklch(0.55 0.01 75); line-height: 1.6; border-top: 1px solid oklch(0.92 0.005 95); padding-top: 10px; }
+
+  /* —— Panneau latéral —— */
+  .side { display: flex; flex-direction: column; gap: var(--gap); position: sticky; top: calc(var(--topbar-h) + 28px); }
+
+  .status-head { display: flex; align-items: center; gap: 12px; }
+  .status-head .m b { display: block; font-size: 15px; font-weight: 700; }
+  .status-head .m small { font-size: 12.5px; color: var(--ink-3); }
+  .status-head .tag { margin-left: auto; }
+
+  /* timeline */
+  .tline { display: flex; flex-direction: column; margin-top: 6px; }
+  .tstep { display: flex; gap: 13px; position: relative; padding-bottom: 18px; }
+  .tstep:last-child { padding-bottom: 0; }
+  .tstep::before {
+    content: ''; position: absolute; left: 10px; top: 24px; bottom: 2px;
+    width: 2px; background: var(--line-soft); border-radius: 2px;
+  }
+  .tstep:last-child::before { display: none; }
+  .tstep .pt {
+    width: 22px; height: 22px; border-radius: 50%; flex: none; z-index: 1;
+    display: grid; place-items: center; background: var(--surface-2); color: var(--ink-3);
+  }
+  .tstep .pt svg { width: 12px; height: 12px; stroke-width: 2.6; }
+  .tstep.done .pt { background: var(--ok-soft); color: var(--ok-ink); }
+  .tstep.now .pt { background: var(--accent-soft); color: var(--accent-ink); }
+  .tstep .m { padding-top: 1px; }
+  .tstep .m b { display: block; font-size: 13.5px; font-weight: 650; }
+  .tstep .m small { font-size: 12px; color: var(--ink-3); }
+  .tstep.todo .m b { color: var(--ink-3); font-weight: 550; }
+
+  .actions { display: flex; flex-direction: column; gap: 9px; }
+  .actions .btn { justify-content: center; }
+
+  .kv { display: grid; grid-template-columns: 110px 1fr; row-gap: 10px; font-size: 13.5px; }
+  .kv dt { color: var(--ink-3); }
+  .kv dd { font-weight: 550; }
+  .kv dd a { color: var(--accent-ink); font-weight: 600; }
+  .kv dd a:hover { text-decoration: underline; }
+
+  @media (max-width: 1180px) {
+    .doc-layout { grid-template-columns: 1fr; }
+    .side { position: static; }
+    .doc-zone { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="Tableau de bord.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a class="nav-item" href="Clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 20a5 5 0 0 0-3-4.6"/></svg>
+        Clients <span class="badge">24</span>
+      </a>
+      <a class="nav-item" href="Projets.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>
+        Projets <span class="badge">8</span>
+      </a>
+      <div class="nav-label">Facturation</div>
+      <a class="nav-item" href="Devis.html" id="navDevis">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6z" /><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h4"/></svg>
+        Devis <span class="badge">5</span>
+      </a>
+      <a class="nav-item" href="Factures.html" id="navFactures">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Factures <span class="badge">12</span>
+      </a>
+      <div class="nav-label">Pilotage</div>
+      <a class="nav-item" href="Rapports.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16"/><path d="M8 16l3.5-4 3 2.5L20 8"/></svg>
+        Rapports
+      </a>
+      <a class="nav-item" href="Abonnement.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Abonnement
+      </a>
+      <a class="nav-item" href="Profil.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8z"/></svg>
+        Paramètres
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="side-usage" href="Abonnement.html" title="Voir mon abonnement">
+        <span class="su-l">Documents ce mois <b>4 / 5</b></span>
+        <span class="su-bar"><i style="width:80%"></i></span>
+        <small>Passer en Premium →</small>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">CL</div>
+        <div class="meta">
+          <b>Camille Laurent</b>
+          <small>Studio · Régime réel</small>
+        </div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs">
+        <a href="Factures.html" id="crumbList">Factures</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 6 6 6-6 6"/></svg>
+        <b id="crumbRef">FAC-2026-032</b>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Rechercher un client, une facture…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn btn-icon btn-ghost" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </header>
+
+    <main class="content" data-screen-label="Aperçu document">
+      <div class="doc-layout">
+
+        <!-- ===== Document ===== -->
+        <div class="doc-zone">
+          <div class="doc">
+            <div class="doc-top">
+              <div class="doc-emitter">
+                <b>Camille Laurent — Studio</b>
+                18 rue des Capucins<br>
+                69001 Lyon<br>
+                <span class="mono">SIRET 913 462 875 00019 · TVA FR46913462875</span>
+              </div>
+              <div class="doc-badge">
+                <div class="kind" id="docKind">FACTURE</div>
+                <div class="ref" id="docRef">FAC-2026-032</div>
+              </div>
+            </div>
+
+            <div class="doc-meta">
+              <div class="b"><label>Date d'émission</label><div class="mono" id="docDate">02/06/2026</div></div>
+              <div class="b"><label id="docEchLbl">Échéance</label><div class="mono" id="docEch">02/07/2026</div></div>
+              <div class="b"><label>Objet</label><div id="docObj">Refonte portfolio — phase 2</div></div>
+            </div>
+
+            <div class="doc-client">
+              <label id="docToLbl">Facturé à</label>
+              <b>Atelier Lumen</b><br>
+              3 quai de la Fosse, 44000 Nantes<br>
+              <span class="mono">SIRET 901 274 583 00014</span>
+            </div>
+
+            <table class="doc-tbl">
+              <thead>
+                <tr><th>Description</th><th class="r">Qté</th><th class="r">PU HT</th><th class="r">TVA</th><th class="r">Total HT</th></tr>
+              </thead>
+              <tbody id="docLines"></tbody>
+            </table>
+
+            <div class="doc-totals" id="docTotals"></div>
+
+            <div class="doc-foot">
+              <div class="doc-pay">
+                <div class="b"><label>Règlement par virement</label><span class="mono">IBAN FR76 3000 4028 3798 7654 3210 943 · BIC BNPAFRPPXXX</span></div>
+              </div>
+              <div class="doc-legal" id="docLegal">
+                En cas de retard de paiement, pénalités calculées à trois fois le taux d'intérêt légal et indemnité forfaitaire de recouvrement de 40 € (art. L441-10 du Code de commerce). Pas d'escompte pour règlement anticipé. TVA sur les encaissements.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Panneau actions ===== -->
+        <aside class="side">
+
+          <section class="card">
+            <div class="card-body">
+              <div class="status-head">
+                <div class="m"><b id="sRef">FAC-2026-032</b><small id="sSub">Atelier Lumen · 1 140 € TTC</small></div>
+                <span class="tag warn" id="sTag">Envoyée</span>
+              </div>
+              <hr style="border:none;border-top:1px solid var(--line-soft);margin:16px 0 14px">
+              <div class="tline" id="tline"></div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-body actions" id="actions"></div>
+          </section>
+
+          <section class="card">
+            <div class="card-head"><h2>Rattachements</h2></div>
+            <div class="card-body">
+              <dl class="kv">
+                <dt>Client</dt><dd><a href="Fiche client.html">Atelier Lumen</a></dd>
+                <dt>Projet</dt><dd><a href="Projet détail.html">Refonte du site portfolio</a></dd>
+                <dt id="kvOriginLbl">Devis d'origine</dt><dd class="num" style="font-size:12.5px" id="kvOrigin">DEV-2026-008</dd>
+              </dl>
+            </div>
+          </section>
+
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  const isDevis = new URLSearchParams(location.search).get('type') === 'devis';
+
+  const eur = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 2 }).replace(',00', ',00') + ' €';
+
+  const data = isDevis ? {
+    kind: 'DEVIS', ref: 'DEV-2026-014', list: ['Devis.html', 'Devis'],
+    date: '01/06/2026', echLbl: 'Validité', ech: '01/07/2026',
+    obj: 'Refonte portfolio — phase 3', toLbl: 'Adressé à',
+    sub: 'Atelier Lumen · 2 400 € TTC', tag: ['warn', 'À relancer'],
+    lines: [
+      ['Intégration HTML/CSS des maquettes', '6 j', '320,00 €', '20 %', '1 920,00 €'],
+      ['Mise en place du CMS headless', '1', '80,00 €', '20 %', '80,00 €'],
+    ],
+    totals: [['Total HT', '2 000,00 €'], ['TVA 20 %', '400,00 €']],
+    grand: ['Total TTC', '2 400,00 €'],
+    legal: 'Devis valable 30 jours à compter de sa date d\u2019émission. Toute acceptation vaut bon pour accord et engagement de paiement selon les conditions indiquées.',
+    tline: [
+      ['done', 'Créé', '1 juin 2026'],
+      ['done', 'Envoyé', '1 juin · ouvert par le client le 3 juin'],
+      ['now',  'En attente de réponse', 'depuis 9 jours — relance conseillée'],
+      ['todo', 'Accepté', 'puis conversion en facture'],
+    ],
+    actions: [
+      ['primary', 'send', 'Envoyer une relance'],
+      ['', 'check', 'Marquer comme accepté'],
+      ['', 'convert', 'Convertir en facture'],
+      ['', 'pdf', 'Télécharger le PDF'],
+      ['', 'copy', 'Dupliquer'],
+    ],
+    originLbl: 'Projet', originHide: true,
+  } : {
+    kind: 'FACTURE', ref: 'FAC-2026-032', list: ['Factures.html', 'Factures'],
+    date: '02/06/2026', echLbl: 'Échéance', ech: '02/07/2026',
+    obj: 'Refonte portfolio — phase 2', toLbl: 'Facturé à',
+    sub: 'Atelier Lumen · 1 140 € TTC', tag: ['warn', 'Envoyée'],
+    lines: [
+      ['Maquettes desktop & mobile — forfait phase 2', '1', '950,00 €', '20 %', '950,00 €'],
+    ],
+    totals: [['Total HT', '950,00 €'], ['TVA 20 %', '190,00 €']],
+    grand: ['Total TTC', '1 140,00 €'],
+    legal: 'En cas de retard de paiement, pénalités calculées à trois fois le taux d\u2019intérêt légal et indemnité forfaitaire de recouvrement de 40 € (art. L441-10 du Code de commerce). Pas d\u2019escompte pour règlement anticipé. TVA sur les encaissements.',
+    tline: [
+      ['done', 'Créée', '2 juin 2026'],
+      ['done', 'Envoyée', '2 juin · ouverte par le client le 4 juin'],
+      ['now',  'En attente de paiement', 'échéance le 2 juillet 2026'],
+      ['todo', 'Payée', ''],
+    ],
+    actions: [
+      ['primary', 'check', 'Marquer comme payée'],
+      ['', 'send', 'Envoyer une relance'],
+      ['', 'pdf', 'Télécharger le PDF'],
+      ['', 'copy', 'Dupliquer'],
+    ],
+    originLbl: 'Devis d\u2019origine', originHide: false,
+  };
+
+  // —— Remplissage ——
+  document.title = 'Freelance Flow — ' + data.ref;
+  document.getElementById('crumbList').textContent = data.list[1];
+  document.getElementById('crumbList').href = data.list[0];
+  document.getElementById('crumbRef').textContent = data.ref;
+  document.getElementById('docKind').textContent = data.kind;
+  document.getElementById('docRef').textContent = data.ref;
+  document.getElementById('docDate').textContent = data.date;
+  document.getElementById('docEchLbl').textContent = data.echLbl;
+  document.getElementById('docEch').textContent = data.ech;
+  document.getElementById('docObj').textContent = data.obj;
+  document.getElementById('docToLbl').textContent = data.toLbl;
+  document.getElementById('docLegal').textContent = data.legal;
+  document.getElementById('sRef').textContent = data.ref;
+  document.getElementById('sSub').textContent = data.sub;
+  const sTag = document.getElementById('sTag');
+  sTag.className = 'tag ' + data.tag[0];
+  sTag.textContent = data.tag[1];
+
+  if (isDevis) {
+    document.getElementById('navFactures').classList.remove('active');
+    document.getElementById('navDevis').classList.add('active');
+    document.getElementById('kvOriginLbl').style.display = 'none';
+    document.getElementById('kvOrigin').style.display = 'none';
+  } else {
+    document.getElementById('navFactures').classList.add('active');
+  }
+
+  // lignes
+  const tb = document.getElementById('docLines');
+  data.lines.forEach(l => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${l[0]}</td><td class="r mono">${l[1]}</td><td class="r mono">${l[2]}</td><td class="r mono">${l[3]}</td><td class="r mono">${l[4]}</td>`;
+    tb.appendChild(tr);
+  });
+
+  // totaux
+  const tot = document.getElementById('docTotals');
+  data.totals.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'doc-trow';
+    d.innerHTML = `<span class="k">${t[0]}</span><span class="v">${t[1]}</span>`;
+    tot.appendChild(d);
+  });
+  const g = document.createElement('div');
+  g.className = 'doc-trow g';
+  g.innerHTML = `<span class="k">${data.grand[0]}</span><span class="v">${data.grand[1]}</span>`;
+  tot.appendChild(g);
+
+  // timeline
+  const icons = {
+    done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>',
+    now:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4"/></svg>',
+    todo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4"/></svg>',
+  };
+  const tl = document.getElementById('tline');
+  data.tline.forEach(s => {
+    const d = document.createElement('div');
+    d.className = 'tstep ' + s[0];
+    d.innerHTML = `<span class="pt">${icons[s[0]]}</span><div class="m"><b>${s[1]}</b>${s[2] ? `<small>${s[2]}</small>` : ''}</div>`;
+    tl.appendChild(d);
+  });
+
+  // actions
+  const aIcons = {
+    check:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>',
+    send:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>',
+    convert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+    pdf:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>',
+    copy:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  };
+  const act = document.getElementById('actions');
+  data.actions.forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'btn' + (a[0] ? ' btn-' + a[0] : '');
+    b.innerHTML = aIcons[a[1]] + a[2];
+    act.appendChild(b);
+  });
+</script>
+</body>
+</html>

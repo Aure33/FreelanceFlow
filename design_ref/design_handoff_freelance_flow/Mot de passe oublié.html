@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Mot de passe oublié</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<style>
+  body {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* —— Panneau gauche : promesse —— */
+  .pitch {
+    background: var(--ink);
+    color: oklch(0.95 0.005 95);
+    padding: 56px;
+    display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+  }
+  .pitch .brand-row { display: flex; align-items: center; gap: 11px; }
+  .pitch .brand-mark { box-shadow: none; }
+  .pitch .brand-name { color: oklch(0.97 0.005 95); }
+  .pitch .brand-name span { color: oklch(0.75 0.09 264); }
+
+  .pitch .middle { margin: auto 0; max-width: 420px; }
+  .pitch h2 {
+    font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.18;
+    text-wrap: balance; margin-bottom: 18px;
+  }
+  .pitch p { font-size: 15.5px; line-height: 1.65; color: oklch(0.78 0.008 95); text-wrap: pretty; }
+
+  .pitch .foot { font-size: 12.5px; color: oklch(0.6 0.008 95); }
+
+  .pitch::after {
+    content: '';
+    position: absolute; right: -180px; bottom: -180px;
+    width: 460px; height: 460px; border-radius: 50%;
+    background: radial-gradient(circle, oklch(0.48 0.14 264 / 0.35), transparent 70%);
+    pointer-events: none;
+  }
+
+  /* —— Panneau droit : formulaire —— */
+  .auth {
+    display: flex; align-items: center; justify-content: center;
+    padding: 48px 32px;
+  }
+  .auth-box { width: 100%; max-width: 380px; }
+
+  .back-link {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13.5px; font-weight: 600; color: var(--ink-3);
+    margin-bottom: 28px;
+    transition: color .12s;
+  }
+  .back-link:hover { color: var(--accent-ink); }
+  .back-link svg { width: 15px; height: 15px; stroke-width: 2.2; }
+
+  .auth-box h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 6px; }
+  .auth-box .sub { font-size: 14.5px; color: var(--ink-3); margin-bottom: 30px; line-height: 1.55; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+  .input {
+    width: 100%; height: 44px;
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); padding: 0 14px;
+    font-family: inherit; font-size: 14.5px; color: var(--ink);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .btn-block { width: 100%; justify-content: center; height: 44px; font-size: 14.5px; margin-top: 6px; }
+
+  .signup { text-align: center; margin-top: 26px; font-size: 14px; color: var(--ink-2); }
+  .signup a { color: var(--accent-ink); font-weight: 650; }
+  .signup a:hover { text-decoration: underline; }
+
+  /* —— État « e-mail envoyé » —— */
+  .sent { display: none; }
+  body.is-sent .ask { display: none; }
+  body.is-sent .sent { display: block; }
+
+  .sent-ico {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: var(--ok-soft); color: oklch(0.42 0.10 155);
+    display: grid; place-items: center; margin-bottom: 20px;
+  }
+  .sent-ico svg { width: 24px; height: 24px; stroke-width: 2; }
+
+  .sent-mail {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface-2); border: 1px solid var(--line-soft);
+    border-radius: var(--r-md); padding: 11px 14px;
+    font-size: 14px; font-weight: 600; margin-bottom: 22px;
+  }
+  .sent-mail svg { width: 16px; height: 16px; flex: none; stroke-width: 2; color: var(--ink-3); }
+
+  .resend { font-size: 13.5px; color: var(--ink-3); margin-top: 18px; line-height: 1.6; }
+  .resend a { color: var(--accent-ink); font-weight: 650; }
+  .resend a:hover { text-decoration: underline; }
+
+  .demo-note {
+    margin-top: 28px; padding: 11px 14px;
+    border: 1.5px dashed var(--line); border-radius: var(--r-md);
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); line-height: 1.6;
+  }
+  .demo-note a { color: var(--accent-ink); font-weight: 600; text-decoration: underline; }
+
+  @media (max-width: 900px) {
+    body { grid-template-columns: 1fr; }
+    .pitch { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ Promesse ============ -->
+  <section class="pitch">
+    <div class="brand-row">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+
+    <div class="middle">
+      <h2>Ça arrive<br>aux meilleurs.</h2>
+      <p>Recevez un lien sécurisé par e-mail et choisissez un nouveau mot de passe. Le lien expire au bout de 30 minutes, votre compte reste protégé.</p>
+    </div>
+
+    <div class="foot">Hébergé en France · Données chiffrées · RGPD</div>
+  </section>
+
+  <!-- ============ Formulaire ============ -->
+  <section class="auth" data-screen-label="Mot de passe oublié">
+    <div class="auth-box">
+      <a class="back-link" href="Connexion.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        Retour à la connexion
+      </a>
+
+      <!-- —— Étape 1 : demande —— -->
+      <div class="ask">
+        <h1>Mot de passe oublié ?</h1>
+        <div class="sub">Indiquez l'adresse e-mail de votre compte. Si elle existe chez nous, vous recevrez un lien de réinitialisation.</div>
+
+        <div class="field">
+          <label for="email">Adresse e-mail</label>
+          <input class="input" id="email" type="email" autocomplete="email" placeholder="camille@studio.fr" value="camille@studio.fr">
+        </div>
+
+        <button class="btn btn-primary btn-block" id="sendBtn">Envoyer le lien de réinitialisation</button>
+
+        <div class="signup">Pas encore de compte ? <a href="Inscription.html">Essayer gratuitement</a></div>
+      </div>
+
+      <!-- —— Étape 2 : e-mail envoyé —— -->
+      <div class="sent">
+        <div class="sent-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 7 12 14 2 7"/><rect x="2" y="5" width="20" height="15" rx="2"/></svg>
+        </div>
+        <h1>Vérifiez votre boîte mail</h1>
+        <div class="sub">Si un compte existe pour cette adresse, un lien de réinitialisation vient d'y être envoyé. Il est valable 30 minutes.</div>
+
+        <div class="sent-mail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          <span id="sentTo">camille@studio.fr</span>
+        </div>
+
+        <a class="btn btn-block" href="Connexion.html">Retour à la connexion</a>
+
+        <div class="resend">Rien reçu après quelques minutes ? Vérifiez vos indésirables ou <a href="#" id="resend">renvoyer l'e-mail</a>.</div>
+
+        <div class="demo-note">maquette : <a href="Réinitialisation.html">ouvrir le lien reçu par e-mail →</a></div>
+      </div>
+    </div>
+  </section>
+
+<script>
+  document.getElementById('sendBtn').addEventListener('click', () => {
+    const email = document.getElementById('email').value.trim();
+    if (email) document.getElementById('sentTo').textContent = email;
+    document.body.classList.add('is-sent');
+  });
+  document.getElementById('resend').addEventListener('click', (e) => {
+    e.preventDefault();
+    e.target.textContent = 'e-mail renvoyé ✓';
+  });
+</script>
+</body>
+</html>

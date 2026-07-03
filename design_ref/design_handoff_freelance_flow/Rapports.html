@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Rapports</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  .page-head { display: flex; align-items: flex-end; gap: 18px; margin-bottom: 24px; }
+  .page-head .hi { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+  .page-head .count { font-size: 14px; color: var(--ink-3); margin-top: 3px; }
+  .page-head .tools { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  /* KPI (même vocabulaire que le tableau de bord) */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); margin-bottom: var(--gap); }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-sm); }
+  .kpi .label { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+  .kpi .val { font-size: 27px; font-weight: 700; letter-spacing: -0.02em; margin: 6px 0 8px; }
+  .kpi .val small { font-size: 16px; color: var(--ink-3); font-weight: 600; }
+  .kpi .foot { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-3); }
+  .delta { font-family: var(--font-mono); font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+  .delta.up { color: var(--ok-ink); }
+  .delta.down { color: var(--danger); }
+  .delta svg { width: 13px; height: 13px; stroke-width: 2.4; }
+
+  /* Graphe CA annuel */
+  .chart { display: flex; align-items: flex-end; gap: 14px; height: 250px; padding: 8px 4px 0; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; height: 100%; justify-content: flex-end; }
+  .bar-stack { width: 100%; max-width: 44px; display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; height: 100%; }
+  .bar { width: 100%; border-radius: 5px 5px 3px 3px; transition: filter .15s; }
+  .bar.paid { background: var(--accent); }
+  .bar.pending { background: var(--accent-soft); border: 1px solid var(--accent-line); }
+  .bar-col:hover .bar.paid { filter: brightness(1.08); }
+  .bar-col.peak .bar.paid { box-shadow: 0 0 0 3px var(--accent-soft); }
+  .bar-x { font-size: 12px; color: var(--ink-3); font-weight: 600; }
+  .bar-col.peak .bar-x { color: var(--accent-ink); }
+  .chart-legend { display: flex; gap: 18px; align-items: center; }
+  .chart-legend span { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+  .chart-legend i { width: 11px; height: 11px; border-radius: 3px; }
+
+  /* Grille avancée */
+  .adv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-top: var(--gap); }
+
+  /* Barres horizontales (répartition clients) */
+  .client-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
+  .client-bar:last-child { margin-bottom: 0; }
+  .client-bar .nm { font-size: 13.5px; font-weight: 600; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .client-bar .tr { flex: 1; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .client-bar .tr i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .client-bar .pc { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); width: 56px; text-align: right; }
+
+  /* Délais de paiement */
+  .delay-row { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
+  .delay-row:last-child { margin-bottom: 0; }
+  .delay-row .nm { font-size: 13.5px; font-weight: 600; width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .delay-row .tr { flex: 1; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .delay-row .tr i { display: block; height: 100%; border-radius: 99px; background: var(--ok); }
+  .delay-row .tr i.late { background: var(--warn); }
+  .delay-row .dj { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); width: 56px; text-align: right; }
+
+  /* Verrou Premium */
+  .locked { position: relative; overflow: hidden; }
+  .locked .card-body { filter: blur(5px); opacity: .55; pointer-events: none; user-select: none; }
+  .lock-veil {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    text-align: center; padding: 24px;
+  }
+  .lock-veil .pad {
+    width: 42px; height: 42px; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--line);
+    box-shadow: var(--shadow-md);
+    display: grid; place-items: center; color: var(--ink-2);
+  }
+  .lock-veil .pad svg { width: 20px; height: 20px; stroke-width: 2; }
+  .lock-veil b { font-size: 14.5px; font-weight: 700; letter-spacing: -0.01em; }
+  .lock-veil p { font-size: 13px; color: var(--ink-2); max-width: 300px; line-height: 1.5; margin: 0; }
+
+  @media (max-width: 1100px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .adv-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="Tableau de bord.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a class="nav-item" href="Clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 20a5 5 0 0 0-3-4.6"/></svg>
+        Clients <span class="badge">24</span>
+      </a>
+      <a class="nav-item" href="Projets.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>
+        Projets <span class="badge">8</span>
+      </a>
+      <div class="nav-label">Facturation</div>
+      <a class="nav-item" href="Devis.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6z" /><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h4"/></svg>
+        Devis <span class="badge">5</span>
+      </a>
+      <a class="nav-item" href="Factures.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Factures <span class="badge">12</span>
+      </a>
+      <div class="nav-label">Pilotage</div>
+      <a class="nav-item active" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16"/><path d="M8 16l3.5-4 3 2.5L20 8"/></svg>
+        Rapports
+      </a>
+      <a class="nav-item" href="Abonnement.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Abonnement
+      </a>
+      <a class="nav-item" href="Profil.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8z"/></svg>
+        Paramètres
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="side-usage" href="Abonnement.html" title="Voir mon abonnement">
+        <span class="su-l">Documents ce mois <b>4 / 5</b></span>
+        <span class="su-bar"><i style="width:80%"></i></span>
+        <small>Passer en Premium →</small>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">CL</div>
+        <div class="meta">
+          <b>Camille Laurent</b>
+          <small>Studio · Régime réel</small>
+        </div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <h1>Rapports</h1>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Rechercher un client, une facture…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn btn-icon btn-ghost" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </header>
+
+    <main class="content" data-screen-label="Rapports">
+
+      <div class="page-head">
+        <div>
+          <div class="hi">Rapports</div>
+          <div class="count">Votre activité en chiffres — année 2026.</div>
+        </div>
+        <div class="tools">
+          <div class="segment">
+            <button class="active">Année 2026</button>
+            <button>12 derniers mois</button>
+            <button>Trimestre</button>
+          </div>
+          <button class="btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Exporter en PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== KPI ===== -->
+      <div class="kpis">
+        <div class="kpi">
+          <div class="label">CA encaissé en 2026</div>
+          <div class="val num">38 270 <small>€ HT</small></div>
+          <div class="foot"><span class="delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 17 17 7M9 7h8v8"/></svg>+12 %</span> vs 2025 à date</div>
+        </div>
+        <div class="kpi">
+          <div class="label">En attente de paiement</div>
+          <div class="val num">6 480 <small>€ HT</small></div>
+          <div class="foot">4 factures émises non réglées</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Délai moyen de paiement</div>
+          <div class="val num">18 <small>jours</small></div>
+          <div class="foot"><span class="delta up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 17 17 7M9 7h8v8"/></svg>−4 j</span> vs 2025</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Taux d'acceptation des devis</div>
+          <div class="val num">72 <small>%</small></div>
+          <div class="foot">13 devis acceptés sur 18 envoyés</div>
+        </div>
+      </div>
+
+      <!-- ===== Évolution du CA ===== -->
+      <section class="card">
+        <div class="card-head">
+          <h2>Évolution du chiffre d'affaires</h2>
+          <span class="sub">facturé par mois, HT</span>
+          <span class="spacer"></span>
+          <div class="chart-legend">
+            <span><i style="background:var(--accent)"></i>Encaissé</span>
+            <span><i style="background:var(--accent-soft);border:1px solid var(--accent-line)"></i>En attente</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart" role="img" aria-label="Chiffre d'affaires mensuel de janvier à décembre 2026, point haut en mai à 5 900 euros">
+            <div class="bar-col"><div class="bar-stack"><div class="bar paid" style="height:38%"></div></div><span class="bar-x">Jan</span></div>
+            <div class="bar-col"><div class="bar-stack"><div class="bar paid" style="height:46%"></div></div><span class="bar-x">Fév</span></div>
+            <div class="bar-col"><div class="bar-stack"><div class="bar paid" style="height:42%"></div></div><span class="bar-x">Mar</span></div>
+            <div class="bar-col"><div class="bar-stack"><div class="bar paid" style="height:58%"></div></div><span class="bar-x">Avr</span></div>
+            <div class="bar-col peak"><div class="bar-stack"><div class="bar paid" style="height:78%"></div></div><span class="bar-x">Mai</span></div>
+            <div class="bar-col"><div class="bar-stack"><div class="bar pending" style="height:24%"></div><div class="bar paid" style="height:40%"></div></div><span class="bar-x">Juin</span></div>
+            <div class="bar-col"><div class="bar-stack"><div class="bar pending" style="height:16%"></div></div><span class="bar-x">Juil</span></div>
+            <div class="bar-col"><div class="bar-stack"><div class="bar pending" style="height:8%"></div></div><span class="bar-x">Août</span></div>
+            <div class="bar-col"><div class="bar-stack"></div><span class="bar-x">Sep</span></div>
+            <div class="bar-col"><div class="bar-stack"></div><span class="bar-x">Oct</span></div>
+            <div class="bar-col"><div class="bar-stack"></div><span class="bar-x">Nov</span></div>
+            <div class="bar-col"><div class="bar-stack"></div><span class="bar-x">Déc</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Statistiques avancées (Premium) ===== -->
+      <div class="adv-grid">
+
+        <section class="card locked" aria-label="Répartition du chiffre d'affaires par client — fonctionnalité Premium">
+          <div class="card-head">
+            <h2>Répartition du CA par client</h2>
+            <span class="spacer"></span>
+            <span class="tag accent">Premium</span>
+          </div>
+          <div class="card-body" aria-hidden="true">
+            <div class="client-bar"><span class="nm">Nord Web</span><span class="tr"><i style="width:84%"></i></span><span class="pc">12 360 €</span></div>
+            <div class="client-bar"><span class="nm">Atelier Lumen</span><span class="tr"><i style="width:62%"></i></span><span class="pc">9 140 €</span></div>
+            <div class="client-bar"><span class="nm">Maison Verdier</span><span class="tr"><i style="width:45%"></i></span><span class="pc">6 620 €</span></div>
+            <div class="client-bar"><span class="nm">Studio Karto</span><span class="tr"><i style="width:33%"></i></span><span class="pc">4 870 €</span></div>
+            <div class="client-bar"><span class="nm">Autres</span><span class="tr"><i style="width:36%"></i></span><span class="pc">5 280 €</span></div>
+          </div>
+          <div class="lock-veil">
+            <span class="pad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            <b>Réservé au forfait Premium</b>
+            <p>Identifiez vos clients les plus rentables et votre dépendance commerciale.</p>
+            <a class="btn btn-primary btn-sm" href="Abonnement.html">Passer en Premium — 15 €/mois</a>
+          </div>
+        </section>
+
+        <section class="card locked" aria-label="Délais de paiement par client — fonctionnalité Premium">
+          <div class="card-head">
+            <h2>Délais de paiement par client</h2>
+            <span class="spacer"></span>
+            <span class="tag accent">Premium</span>
+          </div>
+          <div class="card-body" aria-hidden="true">
+            <div class="delay-row"><span class="nm">Nord Web</span><span class="tr"><i style="width:30%"></i></span><span class="dj">9 j</span></div>
+            <div class="delay-row"><span class="nm">Atelier Lumen</span><span class="tr"><i style="width:48%"></i></span><span class="dj">15 j</span></div>
+            <div class="delay-row"><span class="nm">Studio Karto</span><span class="tr"><i style="width:66%"></i></span><span class="dj">21 j</span></div>
+            <div class="delay-row"><span class="nm">Maison Verdier</span><span class="tr"><i class="late" style="width:100%"></i></span><span class="dj">34 j</span></div>
+            <div class="delay-row"><span class="nm">Moyenne</span><span class="tr"><i style="width:56%"></i></span><span class="dj">18 j</span></div>
+          </div>
+          <div class="lock-veil">
+            <span class="pad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            <b>Réservé au forfait Premium</b>
+            <p>Repérez les mauvais payeurs et ajustez vos conditions de règlement.</p>
+            <a class="btn btn-primary btn-sm" href="Abonnement.html">Passer en Premium — 15 €/mois</a>
+          </div>
+        </section>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  // —— Segment période (visuel uniquement, maquette) ——
+  document.querySelectorAll('.segment button').forEach(b => {
+    b.addEventListener('click', () => {
+      b.closest('.segment').querySelectorAll('button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

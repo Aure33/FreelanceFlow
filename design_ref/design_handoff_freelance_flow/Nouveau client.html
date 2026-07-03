@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Nouveau client</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  .crumbs { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .crumbs a { color: var(--ink-3); font-weight: 500; }
+  .crumbs a:hover { color: var(--accent-ink); }
+  .crumbs svg { width: 14px; height: 14px; color: var(--ink-3); stroke-width: 2; }
+  .crumbs b { font-weight: 700; letter-spacing: -0.01em; }
+
+  .form-layout { display: grid; grid-template-columns: minmax(0, 680px) 320px; gap: var(--gap); align-items: start; }
+
+  .fsection { padding: var(--pad); border-bottom: 1px solid var(--line-soft); }
+  .fsection:last-of-type { border-bottom: none; }
+  .fsection h3 {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14.5px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 16px;
+  }
+  .fsection h3 .step {
+    width: 22px; height: 22px; border-radius: 50%; flex: none;
+    background: var(--accent-soft); color: var(--accent-ink);
+    display: grid; place-items: center;
+    font-family: var(--font-mono); font-size: 11.5px; font-weight: 600;
+  }
+
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field { margin-bottom: 14px; min-width: 0; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+  .field label small { font-weight: 500; color: var(--ink-3); }
+  .input, .select {
+    width: 100%; height: 42px;
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); padding: 0 13px;
+    font-family: inherit; font-size: 14px; color: var(--ink);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23807a6e' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 38px; }
+  .input:focus, .select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .input.mono { font-family: var(--font-mono); font-size: 13.5px; }
+
+  /* champ SIRET avec bouton */
+  .siret-row { display: flex; gap: 9px; }
+  .siret-row .input { flex: 1; }
+  .siret-row .btn { flex: none; height: 42px; }
+
+  .siret-found {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--ok-soft); border-radius: var(--r-md);
+    padding: 12px 14px; margin-top: 10px;
+    font-size: 13.5px; color: var(--ok-ink); line-height: 1.5;
+  }
+  .siret-found svg { width: 16px; height: 16px; flex: none; stroke-width: 2.2; margin-top: 2px; }
+  .siret-found[hidden] { display: none; }
+  .siret-found b { font-weight: 700; }
+
+  .form-foot {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px var(--pad);
+    border-top: 1px solid var(--line-soft);
+    background: var(--surface-2);
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+  }
+  .form-foot .note { font-size: 12.5px; color: var(--ink-3); }
+  .form-foot .spacer { margin-left: auto; }
+
+  /* —— Aide latérale —— */
+  .help { display: flex; flex-direction: column; gap: var(--gap); position: sticky; top: calc(var(--topbar-h) + 28px); }
+  .help-item { display: flex; gap: 12px; padding: 13px 0; }
+  .help-item + .help-item { border-top: 1px solid var(--line-soft); }
+  .help-item svg { width: 18px; height: 18px; flex: none; stroke-width: 2; color: var(--accent-ink); margin-top: 2px; }
+  .help-item b { display: block; font-size: 13.5px; font-weight: 650; margin-bottom: 2px; }
+  .help-item p { font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+
+  @media (max-width: 1100px) {
+    .form-layout { grid-template-columns: 1fr; }
+    .help { position: static; }
+    .frow { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="Tableau de bord.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a class="nav-item active" href="Clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 20a5 5 0 0 0-3-4.6"/></svg>
+        Clients <span class="badge">24</span>
+      </a>
+      <a class="nav-item" href="Projets.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>
+        Projets <span class="badge">8</span>
+      </a>
+      <div class="nav-label">Facturation</div>
+      <a class="nav-item" href="Devis.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6z" /><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h4"/></svg>
+        Devis <span class="badge">5</span>
+      </a>
+      <a class="nav-item" href="Factures.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Factures <span class="badge">12</span>
+      </a>
+      <div class="nav-label">Pilotage</div>
+      <a class="nav-item" href="Rapports.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16"/><path d="M8 16l3.5-4 3 2.5L20 8"/></svg>
+        Rapports
+      </a>
+      <a class="nav-item" href="Abonnement.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Abonnement
+      </a>
+      <a class="nav-item" href="Profil.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8z"/></svg>
+        Paramètres
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="side-usage" href="Abonnement.html" title="Voir mon abonnement">
+        <span class="su-l">Documents ce mois <b>4 / 5</b></span>
+        <span class="su-bar"><i style="width:80%"></i></span>
+        <small>Passer en Premium →</small>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">CL</div>
+        <div class="meta">
+          <b>Camille Laurent</b>
+          <small>Studio · Régime réel</small>
+        </div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs">
+        <a href="Clients.html">Clients</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 6 6 6-6 6"/></svg>
+        <b>Nouveau client</b>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Rechercher un client, une facture…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn btn-icon btn-ghost" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </header>
+
+    <main class="content" data-screen-label="Nouveau client">
+      <div class="form-layout">
+
+        <!-- ===== Formulaire ===== -->
+        <section class="card">
+
+          <div class="fsection">
+            <h3><span class="step">1</span>Identification</h3>
+            <div class="field">
+              <label for="siret">SIRET <small>— on pré-remplit le reste pour vous</small></label>
+              <div class="siret-row">
+                <input class="input mono" id="siret" type="text" placeholder="123 456 789 00012" value="842 519 637 00021">
+                <button class="btn" id="lookup">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                  Rechercher
+                </button>
+              </div>
+              <div class="siret-found" id="found" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>
+                <div><b>NORD WEB (SARL)</b> trouvée au répertoire SIRENE — raison sociale, forme juridique et adresse pré-remplies. Vérifiez avant d'enregistrer.</div>
+              </div>
+            </div>
+            <div class="frow">
+              <div class="field">
+                <label for="nom">Nom / raison sociale</label>
+                <input class="input" id="nom" type="text" placeholder="Ex. : Nord Web">
+              </div>
+              <div class="field">
+                <label for="forme">Forme juridique</label>
+                <select class="select" id="forme">
+                  <option>SARL</option>
+                  <option>SAS / SASU</option>
+                  <option>EURL</option>
+                  <option>Micro-entreprise</option>
+                  <option>Association</option>
+                  <option>Particulier</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="fsection">
+            <h3><span class="step">2</span>Contact</h3>
+            <div class="frow">
+              <div class="field">
+                <label for="contact">Nom du contact</label>
+                <input class="input" id="contact" type="text" placeholder="Ex. : Julien Mercier">
+              </div>
+              <div class="field">
+                <label for="tel">Téléphone <small>— facultatif</small></label>
+                <input class="input mono" id="tel" type="tel" placeholder="06 12 34 56 78">
+              </div>
+            </div>
+            <div class="field">
+              <label for="email">E-mail de facturation</label>
+              <input class="input" id="email" type="email" placeholder="compta@entreprise.fr">
+            </div>
+          </div>
+
+          <div class="fsection">
+            <h3><span class="step">3</span>Adresse</h3>
+            <div class="field">
+              <label for="addr">Adresse</label>
+              <input class="input" id="addr" type="text" placeholder="14 rue Faidherbe">
+            </div>
+            <div class="frow">
+              <div class="field">
+                <label for="cp">Code postal</label>
+                <input class="input mono" id="cp" type="text" placeholder="59000">
+              </div>
+              <div class="field">
+                <label for="ville">Ville</label>
+                <input class="input" id="ville" type="text" placeholder="Lille">
+              </div>
+            </div>
+          </div>
+
+          <div class="fsection">
+            <h3><span class="step">4</span>Facturation</h3>
+            <div class="frow">
+              <div class="field">
+                <label for="tva">Taux de TVA habituel</label>
+                <select class="select" id="tva">
+                  <option selected>20 % — taux normal</option>
+                  <option>10 % — taux intermédiaire</option>
+                  <option>5,5 % — taux réduit</option>
+                  <option>0 % — exonéré / export</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="cond">Conditions de paiement</label>
+                <select class="select" id="cond">
+                  <option>À réception</option>
+                  <option selected>30 jours</option>
+                  <option>45 jours fin de mois</option>
+                  <option>60 jours</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-foot">
+            <span class="note">Vous pourrez compléter la fiche à tout moment.</span>
+            <span class="spacer"></span>
+            <a class="btn" href="Clients.html">Annuler</a>
+            <a class="btn btn-primary" href="Fiche client.html">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>
+              Enregistrer le client
+            </a>
+          </div>
+        </section>
+
+        <!-- ===== Aide ===== -->
+        <aside class="help">
+          <section class="card">
+            <div class="card-head"><h2>Pourquoi ces informations ?</h2></div>
+            <div class="card-body" style="padding-top:10px;padding-bottom:10px">
+              <div class="help-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-3.6 8-9.5V5.2L12 2 4 5.2v7.3C4 18.4 12 22 12 22z"/><path d="m9 11.8 2.1 2.1L15.4 9.5"/></svg>
+                <div>
+                  <b>Le SIRET sécurise vos factures</b>
+                  <p>Il identifie légalement votre client professionnel et apparaît sur chaque document émis.</p>
+                </div>
+              </div>
+              <div class="help-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>
+                <div>
+                  <b>La TVA s'applique automatiquement</b>
+                  <p>Le taux choisi ici sera proposé par défaut sur tous les devis et factures de ce client.</p>
+                </div>
+              </div>
+              <div class="help-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+                <div>
+                  <b>Les conditions pilotent les relances</b>
+                  <p>L'échéance est calculée à l'émission et les relances de paiement se déclenchent au bon moment.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  // Démo : la recherche SIRENE pré-remplit le formulaire
+  document.getElementById('lookup').addEventListener('click', () => {
+    document.getElementById('found').hidden = false;
+    document.getElementById('nom').value = 'Nord Web';
+    document.getElementById('addr').value = '14 rue Faidherbe';
+    document.getElementById('cp').value = '59000';
+    document.getElementById('ville').value = 'Lille';
+  });
+</script>
+</body>
+</html>

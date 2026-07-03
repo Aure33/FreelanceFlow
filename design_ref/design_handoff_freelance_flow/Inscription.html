@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Inscription</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<style>
+  body {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* —— Panneau gauche : promesse —— */
+  .pitch {
+    background: var(--ink);
+    color: oklch(0.95 0.005 95);
+    padding: 56px;
+    display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+  }
+  .pitch .brand-row { display: flex; align-items: center; gap: 11px; }
+  .pitch .brand-mark { box-shadow: none; }
+  .pitch .brand-name { color: oklch(0.97 0.005 95); }
+  .pitch .brand-name span { color: oklch(0.75 0.09 264); }
+
+  .pitch .middle { margin: auto 0; max-width: 420px; }
+  .pitch h2 {
+    font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.18;
+    text-wrap: balance; margin-bottom: 18px;
+  }
+  .pitch p { font-size: 15.5px; line-height: 1.65; color: oklch(0.78 0.008 95); text-wrap: pretty; }
+
+  .pitch .quote {
+    margin-top: 36px; padding: 18px 20px;
+    background: oklch(1 0 0 / 0.05); border: 1px solid oklch(1 0 0 / 0.1);
+    border-radius: var(--r-lg);
+  }
+  .pitch .quote p { font-size: 14.5px; color: oklch(0.88 0.006 95); line-height: 1.6; }
+  .pitch .quote .who { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .pitch .quote .who .avatar { width: 30px; height: 30px; font-size: 11px; }
+  .pitch .quote .who small { font-size: 12.5px; color: oklch(0.68 0.008 95); }
+
+  .pitch .foot { font-size: 12.5px; color: oklch(0.6 0.008 95); }
+
+  .pitch::after {
+    content: '';
+    position: absolute; right: -180px; bottom: -180px;
+    width: 460px; height: 460px; border-radius: 50%;
+    background: radial-gradient(circle, oklch(0.48 0.14 264 / 0.35), transparent 70%);
+    pointer-events: none;
+  }
+
+  /* —— Panneau droit : formulaire —— */
+  .auth {
+    display: flex; align-items: center; justify-content: center;
+    padding: 48px 32px;
+  }
+  .auth-box { width: 100%; max-width: 380px; }
+  .auth-box h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 6px; }
+  .auth-box .sub { font-size: 14.5px; color: var(--ink-3); margin-bottom: 30px; }
+
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field { margin-bottom: 16px; min-width: 0; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+  .input {
+    width: 100%; height: 44px;
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); padding: 0 14px;
+    font-family: inherit; font-size: 14.5px; color: var(--ink);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .pwd-hint { font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+
+  .btn-block { width: 100%; justify-content: center; height: 44px; font-size: 14.5px; margin-top: 6px; }
+
+  .sep { display: flex; align-items: center; gap: 14px; margin: 22px 0; color: var(--ink-3); font-size: 12.5px; }
+  .sep::before, .sep::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+  .sso { display: flex; flex-direction: column; gap: 10px; }
+  .sso .btn { width: 100%; justify-content: center; height: 44px; font-weight: 600; }
+  .sso .g { width: 17px; height: 17px; }
+
+  .signup { text-align: center; margin-top: 26px; font-size: 14px; color: var(--ink-2); }
+  .signup a { color: var(--accent-ink); font-weight: 650; }
+  .signup a:hover { text-decoration: underline; }
+
+  .rgpd { text-align: center; margin-top: 14px; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+
+  @media (max-width: 900px) {
+    body { grid-template-columns: 1fr; }
+    .pitch { display: none; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ Promesse ============ -->
+  <section class="pitch">
+    <div class="brand-row">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+
+    <div class="middle">
+      <h2>Votre première facture<br>dans 3 minutes.</h2>
+      <p>Créez votre compte, renseignez votre SIRET, et émettez des devis et factures conformes immédiatement. Gratuit pendant 30 jours, sans carte bancaire.</p>
+
+      <div class="quote">
+        <p>« J'ai envoyé mon premier devis le soir même de l'inscription. Les relances automatiques m'ont fait gagner deux semaines de trésorerie. »</p>
+        <div class="who">
+          <div class="avatar">SB</div>
+          <small><b style="color:oklch(0.88 0.006 95)">Sophie Bréhat</b> · architecte d'intérieur, Nantes</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">Hébergé en France · Données chiffrées · RGPD</div>
+  </section>
+
+  <!-- ============ Formulaire ============ -->
+  <section class="auth" data-screen-label="Inscription">
+    <div class="auth-box">
+      <h1>Créer votre compte</h1>
+      <div class="sub">Essai gratuit de 30 jours — sans carte bancaire.</div>
+
+      <div class="frow">
+        <div class="field">
+          <label for="prenom">Prénom</label>
+          <input class="input" id="prenom" type="text" autocomplete="given-name" placeholder="Camille">
+        </div>
+        <div class="field">
+          <label for="nom">Nom</label>
+          <input class="input" id="nom" type="text" autocomplete="family-name" placeholder="Laurent">
+        </div>
+      </div>
+      <div class="field">
+        <label for="email">Adresse e-mail professionnelle</label>
+        <input class="input" id="email" type="email" autocomplete="email" placeholder="camille@studio.fr">
+      </div>
+      <div class="field">
+        <label for="pwd">Mot de passe</label>
+        <input class="input" id="pwd" type="password" autocomplete="new-password" placeholder="••••••••••">
+        <div class="pwd-hint">8 caractères minimum, dont un chiffre.</div>
+      </div>
+
+      <a class="btn btn-primary btn-block" href="Premier lancement.html">Créer mon compte</a>
+
+      <div class="sep">ou</div>
+
+      <div class="sso">
+        <button class="btn">
+          <svg class="g" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.4 3.62v3h3.88c2.27-2.1 3.57-5.17 3.57-8.81z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.93-2.91l-3.88-3a7.2 7.2 0 0 1-10.75-3.78H1.29v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8l4-3.1z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43A12 12 0 0 0 1.3 6.6l4 3.1A7.2 7.2 0 0 1 12 4.75z"/></svg>
+          S'inscrire avec Google
+        </button>
+      </div>
+
+      <div class="signup">Déjà un compte ? <a href="Connexion.html">Se connecter</a></div>
+      <div class="rgpd">En créant un compte, vous acceptez les <a href="Pages légales.html#cgu" style="text-decoration:underline">CGU</a>.<br>Vos données restent en France.</div>
+    </div>
+  </section>
+
+</body>
+</html>

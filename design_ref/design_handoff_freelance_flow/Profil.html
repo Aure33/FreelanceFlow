@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Flow — Profil &amp; paramètres</title>
+<link rel="stylesheet" href="styles/freelance-flow.css">
+<script src="scripts/theme.js"></script>
+<style>
+  .settings { display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start; }
+
+  /* —— Sommaire latéral —— */
+  .toc { position: sticky; top: calc(var(--topbar-h) + 28px); display: flex; flex-direction: column; gap: 2px; }
+  .toc a {
+    padding: 8px 12px; border-radius: var(--r-sm);
+    font-size: 14px; font-weight: 550; color: var(--ink-2);
+    transition: background .12s, color .12s;
+  }
+  .toc a:hover { background: var(--surface-2); color: var(--ink); }
+  .toc a.active { background: var(--accent-soft); color: var(--accent-ink); font-weight: 650; }
+
+  /* —— Sections —— */
+  .panel { max-width: 720px; display: flex; flex-direction: column; gap: var(--gap); }
+  .card-body p.desc { font-size: 13.5px; color: var(--ink-3); margin: -6px 0 16px; }
+
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .frow.single { grid-template-columns: 1fr; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+  .input, .select {
+    width: 100%; height: 42px;
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); padding: 0 13px;
+    font-family: inherit; font-size: 14px; color: var(--ink);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .input:focus, .select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .input.mono { font-family: var(--font-mono); font-size: 13px; }
+  .select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23857f74' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 38px; }
+  .field .note { font-size: 12.5px; color: var(--ink-3); margin-top: 6px; line-height: 1.5; }
+  .field .note b { color: var(--ink-2); }
+
+  /* Identité : avatar + logo */
+  .id-row { display: flex; gap: 18px; align-items: center; margin-bottom: 18px; }
+  .avatar-xl {
+    width: 64px; height: 64px; border-radius: 50%; flex: none;
+    background: linear-gradient(135deg, oklch(0.55 0.13 264), oklch(0.5 0.12 295));
+    color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 22px;
+  }
+  .logo-drop {
+    flex: 1;
+    border: 1.5px dashed var(--line); border-radius: var(--r-md);
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 13px;
+    color: var(--ink-3); font-size: 13.5px;
+    transition: background .12s, border-color .12s, color .12s;
+    cursor: pointer;
+  }
+  .logo-drop:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+  .logo-drop svg { width: 22px; height: 22px; flex: none; stroke-width: 1.8; }
+  .logo-drop b { display: block; font-size: 13.5px; }
+  .logo-drop small { font-size: 12px; }
+
+  /* Régime TVA : cartes radio */
+  .regimes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin-bottom: 6px; }
+  .regime {
+    border: 1.5px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); padding: 14px;
+    cursor: pointer; text-align: left;
+    transition: border-color .12s, background .12s, box-shadow .12s;
+    position: relative;
+  }
+  .regime:hover { border-color: oklch(0.8 0.05 264); }
+  .regime.active { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+  .regime b { display: block; font-size: 13.5px; margin-bottom: 3px; }
+  .regime small { font-size: 12px; color: var(--ink-3); line-height: 1.45; display: block; }
+  .regime.active small { color: var(--accent-ink); }
+  .regime .check {
+    position: absolute; top: 10px; right: 10px;
+    width: 17px; height: 17px; border-radius: 50%;
+    background: var(--accent); color: var(--on-accent);
+    display: none; place-items: center;
+  }
+  .regime.active .check { display: grid; }
+  .regime .check svg { width: 11px; height: 11px; stroke-width: 3; }
+
+  .card-foot {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px var(--pad);
+    border-top: 1px solid var(--line-soft);
+    background: var(--surface-2);
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+  }
+  .card-foot .saved { font-size: 13px; color: var(--ink-3); }
+  .card-foot .btn { margin-left: auto; }
+
+  .danger-zone { border-color: var(--danger-line); }
+  .danger-zone .card-head h2 { color: var(--danger-ink); }
+  .danger-row { display: flex; align-items: center; gap: 14px; }
+  .danger-row .m { flex: 1; }
+  .danger-row .m b { font-size: 14px; display: block; }
+  .danger-row .m small { font-size: 13px; color: var(--ink-3); }
+  .btn-danger { border-color: var(--danger-line); color: var(--danger-ink); }
+  .btn-danger:hover { background: var(--danger-soft); }
+
+  /* —— Relances automatiques —— */
+  .relance-master {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    margin-bottom: 16px;
+  }
+  .relance-master .m { flex: 1; }
+  .relance-master .m b { font-size: 14px; display: block; }
+  .relance-master .m small { font-size: 13px; color: var(--ink-3); }
+
+  .switch { position: relative; display: inline-block; width: 44px; height: 26px; flex: none; }
+  .switch input { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; }
+  .switch .track { position: absolute; inset: 0; border-radius: 99px; background: var(--line); transition: background .15s; pointer-events: none; }
+  .switch .track::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; box-shadow: var(--shadow-sm);
+    transition: transform .15s;
+  }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::after { transform: translateX(18px); }
+  .switch input:focus-visible + .track { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .rel-config { transition: opacity .15s; }
+  .rel-config.off { opacity: .45; pointer-events: none; }
+  .rel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+  .tone-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+  .tone-row label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+  .rel-preview {
+    background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--r-md);
+    padding: 13px 16px; font-size: 13px; color: var(--ink-2); line-height: 1.6;
+  }
+  .rel-preview .obj { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); display: block; margin-bottom: 4px; }
+  .premium-note {
+    display: flex; gap: 11px; align-items: flex-start;
+    background: var(--accent-soft); color: var(--accent-ink);
+    border-radius: var(--r-md); padding: 13px 16px;
+    font-size: 13.5px; line-height: 1.55; margin-top: 16px;
+  }
+  .premium-note svg { width: 16px; height: 16px; flex: none; stroke-width: 2; margin-top: 2px; }
+  .premium-note a { font-weight: 700; text-decoration: underline; }
+
+  /* —— Apparence —— */
+  .themes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 460px; }
+  .theme-opt {
+    border: 1.5px solid var(--line); border-radius: var(--r-md);
+    background: var(--surface); padding: 10px;
+    cursor: pointer; text-align: left; position: relative;
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .theme-opt:hover { border-color: oklch(0.8 0.05 264); }
+  .theme-opt.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .theme-opt .check {
+    position: absolute; top: 10px; right: 10px;
+    width: 17px; height: 17px; border-radius: 50%;
+    background: var(--accent); color: var(--on-accent);
+    display: none; place-items: center;
+  }
+  .theme-opt.active .check { display: grid; }
+  .theme-opt .check svg { width: 11px; height: 11px; stroke-width: 3; }
+  .theme-opt .prev { height: 72px; border-radius: 7px; overflow: hidden; display: flex; margin-bottom: 9px; border: 1px solid var(--line-soft); }
+  .theme-opt .prev .sb { width: 26%; }
+  .theme-opt .prev .bd { flex: 1; padding: 9px; display: flex; flex-direction: column; gap: 5px; }
+  .theme-opt .prev .ln { height: 6px; border-radius: 3px; }
+  .theme-opt[data-t="light"] .prev { background: oklch(0.985 0.004 95); }
+  .theme-opt[data-t="light"] .prev .sb { background: #fff; border-right: 1px solid oklch(0.92 0.005 95); }
+  .theme-opt[data-t="light"] .prev .ln { background: oklch(0.92 0.005 95); }
+  .theme-opt[data-t="light"] .prev .ln.a { background: oklch(0.48 0.14 264); width: 55%; }
+  .theme-opt[data-t="dark"] .prev { background: oklch(0.185 0.006 75); }
+  .theme-opt[data-t="dark"] .prev .sb { background: oklch(0.23 0.007 75); border-right: 1px solid oklch(0.3 0.01 75); }
+  .theme-opt[data-t="dark"] .prev .ln { background: oklch(0.32 0.01 75); }
+  .theme-opt[data-t="dark"] .prev .ln.a { background: oklch(0.62 0.13 264); width: 55%; }
+  .theme-opt b { font-size: 13.5px; }
+  .theme-opt small { display: block; font-size: 12px; color: var(--ink-3); }
+
+  @media (max-width: 1000px) {
+    .settings { grid-template-columns: 1fr; }
+    .toc { position: static; flex-direction: row; flex-wrap: wrap; }
+    .regimes { grid-template-columns: 1fr; }
+    .rel-grid { grid-template-columns: 1fr; }
+    .themes { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-name">Freelance<span>Flow</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="Tableau de bord.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Tableau de bord
+      </a>
+      <a class="nav-item" href="Clients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 20a5 5 0 0 0-3-4.6"/></svg>
+        Clients <span class="badge">24</span>
+      </a>
+      <a class="nav-item" href="Projets.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg>
+        Projets <span class="badge">8</span>
+      </a>
+      <div class="nav-label">Facturation</div>
+      <a class="nav-item" href="Devis.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6z" /><path d="M14 3v5h5"/><path d="M9 13h6M9 16.5h4"/></svg>
+        Devis <span class="badge">5</span>
+      </a>
+      <a class="nav-item" href="Factures.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Factures <span class="badge">12</span>
+      </a>
+      <div class="nav-label">Pilotage</div>
+      <a class="nav-item" href="Rapports.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5M4 19h16"/><path d="M8 16l3.5-4 3 2.5L20 8"/></svg>
+        Rapports
+      </a>
+      <a class="nav-item" href="Abonnement.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Abonnement
+      </a>
+      <a class="nav-item active" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V20a2 2 0 1 1-4 0 1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4 1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0 1.6 1.6 0 0 0 2.7 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8z"/></svg>
+        Paramètres
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <a class="side-usage" href="Abonnement.html" title="Voir mon abonnement">
+        <span class="su-l">Documents ce mois <b>4 / 5</b></span>
+        <span class="su-bar"><i style="width:80%"></i></span>
+        <small>Passer en Premium →</small>
+      </a>
+      <div class="user-chip">
+        <div class="avatar">CL</div>
+        <div class="meta">
+          <b>Camille Laurent</b>
+          <small>Studio · Régime réel</small>
+        </div>
+        <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main">
+    <header class="topbar">
+      <h1>Profil &amp; paramètres</h1>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Rechercher un client, une facture…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="btn btn-icon btn-ghost" title="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </header>
+
+    <main class="content">
+      <div class="settings">
+
+        <!-- Sommaire -->
+        <nav class="toc">
+          <a href="#identite" class="active">Identité</a>
+          <a href="#legal">Informations légales</a>
+          <a href="#tva">Régime de TVA</a>
+          <a href="#bank">Coordonnées bancaires</a>
+          <a href="#facturation">Préférences de facturation</a>
+          <a href="#relances">Relances automatiques</a>
+          <a href="#apparence">Apparence</a>
+          <a href="#compte">Compte</a>
+        </nav>
+
+        <!-- Panneaux -->
+        <div class="panel">
+
+          <!-- Identité -->
+          <section class="card" id="identite">
+            <div class="card-head"><h2>Identité</h2></div>
+            <div class="card-body">
+              <p class="desc">Ces informations apparaissent en en-tête de vos devis et factures.</p>
+              <div class="id-row">
+                <div class="avatar-xl">CL</div>
+                <div class="logo-drop">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L7 20"/></svg>
+                  <div><b>Ajouter votre logo</b><small>PNG ou SVG · fond transparent recommandé · max 2 Mo</small></div>
+                </div>
+              </div>
+              <div class="frow">
+                <div class="field"><label>Prénom et nom</label><input class="input" value="Camille Laurent"></div>
+                <div class="field"><label>Nom commercial</label><input class="input" value="Camille Laurent — Studio"></div>
+              </div>
+              <div class="frow">
+                <div class="field"><label>Activité</label><input class="input" value="Design graphique &amp; direction artistique"></div>
+                <div class="field"><label>Téléphone</label><input class="input mono" value="06 52 18 74 30"></div>
+              </div>
+              <div class="frow single">
+                <div class="field"><label>Adresse professionnelle</label><input class="input" value="18 rue des Capucins, 69001 Lyon"></div>
+              </div>
+            </div>
+            <div class="card-foot"><span class="saved">Dernière modification il y a 3 jours</span><button class="btn btn-primary btn-sm">Enregistrer</button></div>
+          </section>
+
+          <!-- Légal -->
+          <section class="card" id="legal">
+            <div class="card-head"><h2>Informations légales</h2></div>
+            <div class="card-body">
+              <p class="desc">Obligatoires sur chaque document émis. Vérifiées au format officiel.</p>
+              <div class="frow">
+                <div class="field">
+                  <label>SIRET</label>
+                  <input class="input mono" value="913 462 875 00019">
+                  <div class="note">✓ Vérifié au répertoire SIRENE</div>
+                </div>
+                <div class="field">
+                  <label>Forme juridique</label>
+                  <select class="select">
+                    <option selected>Entreprise individuelle (EI)</option>
+                    <option>EURL</option>
+                    <option>SASU</option>
+                    <option>Micro-entreprise</option>
+                  </select>
+                </div>
+              </div>
+              <div class="frow">
+                <div class="field"><label>N° TVA intracommunautaire</label><input class="input mono" value="FR 46 913462875"></div>
+                <div class="field"><label>Code APE</label><input class="input mono" value="7410Z"></div>
+              </div>
+            </div>
+            <div class="card-foot"><span class="saved">Dernière modification il y a 2 mois</span><button class="btn btn-primary btn-sm">Enregistrer</button></div>
+          </section>
+
+          <!-- TVA -->
+          <section class="card" id="tva">
+            <div class="card-head"><h2>Régime de TVA</h2></div>
+            <div class="card-body">
+              <p class="desc">Détermine le calcul de la TVA et les mentions portées sur vos documents.</p>
+              <div class="regimes" id="regimes">
+                <button class="regime" data-r="franchise">
+                  <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg></span>
+                  <b>Franchise en base</b>
+                  <small>Pas de TVA facturée. Mention « TVA non applicable, art. 293 B du CGI » ajoutée.</small>
+                </button>
+                <button class="regime active" data-r="reel">
+                  <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg></span>
+                  <b>Réel simplifié</b>
+                  <small>TVA facturée et déclarée annuellement, acomptes semestriels.</small>
+                </button>
+                <button class="regime" data-r="normal">
+                  <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg></span>
+                  <b>Réel normal</b>
+                  <small>TVA facturée et déclarée mensuellement (CA3).</small>
+                </button>
+              </div>
+              <div class="frow" style="margin-top:14px">
+                <div class="field">
+                  <label>Taux par défaut</label>
+                  <select class="select"><option selected>20 %</option><option>10 %</option><option>5,5 %</option></select>
+                </div>
+                <div class="field">
+                  <label>Exigibilité</label>
+                  <select class="select"><option selected>TVA sur les encaissements</option><option>TVA sur les débits</option></select>
+                  <div class="note">Le choix figure automatiquement sur vos factures.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-foot"><span class="saved">Dernière modification il y a 2 mois</span><button class="btn btn-primary btn-sm">Enregistrer</button></div>
+          </section>
+
+          <!-- Banque -->
+          <section class="card" id="bank">
+            <div class="card-head"><h2>Coordonnées bancaires</h2></div>
+            <div class="card-body">
+              <p class="desc">Affichées dans le bloc « Règlement » de vos factures.</p>
+              <div class="frow">
+                <div class="field" style="grid-column: span 2"><label>IBAN</label><input class="input mono" value="FR76 3000 4028 3798 7654 3210 943"></div>
+              </div>
+              <div class="frow">
+                <div class="field"><label>BIC</label><input class="input mono" value="BNPAFRPPXXX"></div>
+                <div class="field"><label>Titulaire</label><input class="input" value="Camille Laurent"></div>
+              </div>
+            </div>
+            <div class="card-foot"><span class="saved">Dernière modification il y a 8 mois</span><button class="btn btn-primary btn-sm">Enregistrer</button></div>
+          </section>
+
+          <!-- Facturation -->
+          <section class="card" id="facturation">
+            <div class="card-head"><h2>Préférences de facturation</h2></div>
+            <div class="card-body">
+              <div class="frow">
+                <div class="field">
+                  <label>Conditions de paiement par défaut</label>
+                  <select class="select"><option>À réception</option><option selected>30 jours</option><option>45 jours fin de mois</option><option>60 jours</option></select>
+                </div>
+                <div class="field">
+                  <label>Format de numérotation</label>
+                  <input class="input mono" value="FAC-{ANNÉE}-{N°}">
+                  <div class="note">Prochaine pièce : <b>FAC-2026-035</b>. Numérotation continue, sans trou — exigée par l'administration.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-foot"><span class="saved">Dernière modification il y a 3 semaines</span><button class="btn btn-primary btn-sm">Enregistrer</button></div>
+          </section>
+
+          <!-- Relances automatiques -->
+          <section class="card" id="relances">
+            <div class="card-head">
+              <h2>Relances automatiques</h2>
+              <span class="spacer"></span>
+              <span class="tag accent">Premium</span>
+            </div>
+            <div class="card-body">
+              <p class="desc">Freelance Flow relance vos factures échues à votre place, selon le calendrier et le ton que vous choisissez.</p>
+
+              <div class="relance-master">
+                <div class="m">
+                  <b>Activer les relances automatiques</b>
+                  <small>S'applique aux factures dont l'échéance est dépassée. Vous gardez la main : chaque envoi est notifié.</small>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="relSwitch" checked aria-label="Activer les relances automatiques">
+                  <span class="track"></span>
+                </label>
+              </div>
+
+              <div class="rel-config" id="relConfig">
+                <div class="rel-grid">
+                  <div class="field">
+                    <label>1ʳᵉ relance</label>
+                    <select class="select"><option>J+3 après échéance</option><option selected>J+7 après échéance</option><option>J+10 après échéance</option></select>
+                  </div>
+                  <div class="field">
+                    <label>2ᵉ relance</label>
+                    <select class="select"><option>J+10</option><option selected>J+15</option><option>J+21</option></select>
+                  </div>
+                  <div class="field">
+                    <label>Dernière relance</label>
+                    <select class="select"><option>J+21</option><option selected>J+30</option><option>J+45</option></select>
+                  </div>
+                </div>
+                <div class="tone-row">
+                  <label for="toneSeg">Ton des messages</label>
+                  <div class="segment" id="toneSeg">
+                    <button data-tone="courtois" class="active">Courtois</button>
+                    <button data-tone="neutre">Neutre</button>
+                    <button data-tone="ferme">Ferme</button>
+                  </div>
+                </div>
+                <div class="rel-preview" id="relPreview">
+                  <span class="obj">Objet : Rappel — facture FAC-2026-031</span>
+                  <span id="relPreviewTxt">« Sauf oubli de votre part, la facture FAC-2026-031 est arrivée à échéance. Je me permets de vous la rappeler en toute simplicité. »</span>
+                </div>
+              </div>
+
+              <div class="premium-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>Fonctionnalité réservée au forfait Premium. Votre configuration est conservée et s'activera dès votre <a href="Abonnement.html">passage en Premium</a>.</span>
+              </div>
+            </div>
+            <div class="card-foot"><span class="saved">Configuration jamais activée</span><button class="btn btn-primary btn-sm">Enregistrer</button></div>
+          </section>
+
+          <!-- Apparence -->
+          <section class="card" id="apparence">
+            <div class="card-head"><h2>Apparence</h2></div>
+            <div class="card-body">
+              <p class="desc">Préférence enregistrée sur cet appareil et appliquée à toute l'application.</p>
+              <div class="themes" id="themePick" role="radiogroup" aria-label="Thème de l'interface">
+                <button class="theme-opt active" data-t="light" role="radio" aria-checked="true">
+                  <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg></span>
+                  <span class="prev"><span class="sb"></span><span class="bd"><span class="ln a"></span><span class="ln"></span><span class="ln" style="width:70%"></span></span></span>
+                  <b>Clair</b>
+                  <small>Thème par défaut</small>
+                </button>
+                <button class="theme-opt" data-t="dark" role="radio" aria-checked="false">
+                  <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg></span>
+                  <span class="prev"><span class="sb"></span><span class="bd"><span class="ln a"></span><span class="ln"></span><span class="ln" style="width:70%"></span></span></span>
+                  <b>Sombre</b>
+                  <small>Repose les yeux le soir</small>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Compte -->
+          <section class="card danger-zone" id="compte">
+            <div class="card-head"><h2>Compte</h2></div>
+            <div class="card-body">
+              <div class="danger-row">
+                <div class="m">
+                  <b>Se déconnecter</b>
+                  <small>camille@studio.fr · connectée depuis ce navigateur</small>
+                </div>
+                <a class="btn btn-danger" href="Connexion.html">Déconnexion</a>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  // —— Régime TVA : sélection ——
+  document.querySelectorAll('.regime').forEach(r => {
+    r.addEventListener('click', () => {
+      document.querySelectorAll('.regime').forEach(x => x.classList.remove('active'));
+      r.classList.add('active');
+    });
+  });
+
+  // —— Sommaire : surlignage au scroll + clic ——
+  const tocLinks = document.querySelectorAll('.toc a');
+  tocLinks.forEach(a => a.addEventListener('click', e => {
+    tocLinks.forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+  }));
+
+  // —— Relances : activation + ton du message ——
+  const relSwitch = document.getElementById('relSwitch');
+  const relConfig = document.getElementById('relConfig');
+  relSwitch.addEventListener('change', () => {
+    relConfig.classList.toggle('off', !relSwitch.checked);
+  });
+
+  const tones = {
+    courtois: '«\u00A0Sauf oubli de votre part, la facture FAC-2026-031 est arrivée à échéance. Je me permets de vous la rappeler en toute simplicité.\u00A0»',
+    neutre: '«\u00A0La facture FAC-2026-031 est échue depuis 7 jours. Merci de procéder à son règlement à réception de ce message.\u00A0»',
+    ferme: '«\u00A0Malgré nos précédents échanges, la facture FAC-2026-031 demeure impayée. À défaut de règlement sous 8 jours, les pénalités de retard prévues à l\'article L441-10 seront appliquées.\u00A0»'
+  };
+  document.querySelectorAll('#toneSeg button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#toneSeg button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      document.getElementById('relPreviewTxt').textContent = tones[b.dataset.tone];
+    });
+  });
+
+  // —— Apparence : thème clair / sombre ——
+  const themePick = document.getElementById('themePick');
+  function syncThemeUI() {
+    const t = window.ffTheme ? ffTheme.get() : 'light';
+    themePick.querySelectorAll('.theme-opt').forEach(o => {
+      const on = o.dataset.t === t;
+      o.classList.toggle('active', on);
+      o.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  }
+  themePick.addEventListener('click', e => {
+    const opt = e.target.closest('.theme-opt');
+    if (!opt) return;
+    ffTheme.set(opt.dataset.t);
+    syncThemeUI();
+  });
+  syncThemeUI();
+</script>
+</body>
+</html>
