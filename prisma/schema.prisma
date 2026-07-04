@@ -1,0 +1,131 @@
+// FreelanceFlow — client Prisma typé.
+// La SOURCE DE VÉRITÉ de la base est la migration SQL versionnée
+// (supabase/migrations/*_init_schema_rls.sql). Ce schéma reflète cette base
+// pour fournir un client typé ; les migrations ne sont PAS pilotées par Prisma.
+//
+// Connexion : pooler transaction mode (6543) pour l'app, directUrl (5432) pour
+// l'introspection / la génération — indispensable en serverless (Vercel).
+//
+// Rappel sécurité : ce client se connecte via un rôle qui CONTOURNE la RLS.
+// Chaque requête applicative DOIT filtrer where: { userId: session.user.id }.
+// Montants en centimes entiers (Int). TVA par ligne (Decimal).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @db.Uuid // = auth.users.id (FK gérée en base, alimentée par le trigger handle_new_user)
+  email     String   @unique
+  name      String?
+  activity  String?
+  phone     String?
+  address   String?
+  siret     String?
+  tvaRegime String   @default("reel") @map("tva_regime") // franchise | reel | normal
+  planType  String   @default("free") @map("plan_type") // free | premium
+  iban      String?
+  bic       String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  clients       Client[]
+  projects      Project[]
+  documents     Document[]
+  documentLines DocumentLine[]
+
+  @@map("users")
+}
+
+model Client {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  name          String
+  siren         String?
+  email         String?
+  phone         String?
+  address       String?
+  sector        String?
+  paymentTerms  String?  @map("payment_terms")
+  iban          String?
+  bic           String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects Project[]
+
+  @@index([userId])
+  @@map("clients")
+}
+
+model Project {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  clientId  String   @map("client_id") @db.Uuid
+  name      String
+  status    String   @default("en_cours") // en_cours | termine | en_pause
+  progress  Int      @default(0) // avancement %
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // ON DELETE RESTRICT : impossible de supprimer un client rattaché à des projets
+  client    Client     @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  documents Document[]
+
+  @@index([userId])
+  @@index([clientId])
+  @@map("projects")
+}
+
+model Document {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  projectId     String    @map("project_id") @db.Uuid
+  type          String // devis | facture
+  number        String? // FAC-2026-001 — généré à l'émission (issue #8)
+  status        String    @default("brouillon") // brouillon | envoye | accepte | refuse | paye | en_retard
+  object        String?
+  tvaRegime     String?   @map("tva_regime") // copié du user à l'émission
+  totalHtCents  Int       @default(0) @map("total_ht_cents") // centimes entiers
+  totalTvaCents Int       @default(0) @map("total_tva_cents") // centimes entiers
+  totalTtcCents Int       @default(0) @map("total_ttc_cents") // centimes entiers
+  issuedAt      DateTime? @map("issued_at") @db.Timestamptz(6)
+  dueAt         DateTime? @map("due_at") @db.Timestamptz(6)
+  paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // ON DELETE RESTRICT : impossible de supprimer un projet portant des documents
+  project Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  lines   DocumentLine[]
+
+  @@unique([userId, number], map: "documents_user_number_key") // numérotation unique par utilisateur
+  @@index([userId])
+  @@index([projectId])
+  @@map("documents")
+}
+
+model DocumentLine {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  documentId     String   @map("document_id") @db.Uuid
+  label          String
+  quantity       Decimal  @default(1) @db.Decimal(12, 2)
+  unitPriceCents Int      @default(0) @map("unit_price_cents") // centimes entiers
+  tvaRate        Decimal  @default(20) @map("tva_rate") @db.Decimal(5, 2) // taux TVA par ligne
+  position       Int      @default(0)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([documentId])
+  @@map("document_lines")
+}
