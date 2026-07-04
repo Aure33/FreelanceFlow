@@ -50,8 +50,9 @@ bunx shadcn add <c>  # ajouter un composant shadcn
 
 - **#5 CRUD Clients** (mergé) : liste/création/fiche `app/(app)/clients/` sur **vraies données Prisma filtrées `where: { userId }`** (isolation vérifiée en réel). Server actions dans `app/(app)/clients/actions.ts` (`listClients`/`getClient`/`createClient`/`lookupSiret`). **SIRET** (colonne renommée `siren`→`siret`, 14 ch.) avec **validation live via l'API gratuite Recherche d'entreprises** (badge ✓ Vérifié + préremplissage nom/adresse) ; **recherche par nom d'entreprise** (combobox de suggestions) + re-autocomplete au changement de SIRET (#26). Formulaire **simplifié** (décision : pas de forme juridique/contact/CP-ville/taux TVA). Portée **Créer + Lire** : édition/suppression (drawer « Modifier ») **à faire**, agrégats CA/solde/dernier doc = placeholders jusqu'aux documents (#7). Badges nav sidebar restent mockés (24…) → à brancher.
 
+- **#6 CRUD Projets** (mergé) : liste (vues grille + kanban, filtres) + modale « Nouveau projet » + fiche `app/(app)/projets/`. Server actions `app/(app)/projets/actions.ts` (`listProjects`/`getProject`/`createProject`/`listClientOptions`), filtrées `userId`, **`createProject` vérifie que le `clientId` appartient au user** (isolation vérifiée en réel). Hiérarchie user→client→**projet**→document. Formulaire simple (titre, client requis, description ; « Livraison estimée » non persistée). KPI financiers/documents = placeholders jusqu'à #8. Édition/suppression à faire.
+
 ### 🔜 À faire — une issue GitHub par user story, branche liée `feat/<num>-<slug>` déjà créée
-6. **#6** CRUD Projets — `feat/6-crud-projets` (dépend #5)
 7. **#7** Listes Devis/Factures + vue Document — `feat/7-devis-factures` (dépend #4)
 8. **#8** Éditeur de document (A4 + TVA) — `feat/8-editeur-document` (dépend #4, #7)
 9. **#9** PDF serveur Puppeteer — `feat/9-pdf-puppeteer` (dépend #8)
