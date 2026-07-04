@@ -52,9 +52,10 @@ bunx shadcn add <c>  # ajouter un composant shadcn
 
 - **#6 CRUD Projets** (mergé) : liste (vues grille + kanban, filtres) + modale « Nouveau projet » + fiche `app/(app)/projets/`. Server actions `app/(app)/projets/actions.ts` (`listProjects`/`getProject`/`createProject`/`listClientOptions`), filtrées `userId`, **`createProject` vérifie que le `clientId` appartient au user** (isolation vérifiée en réel). Hiérarchie user→client→**projet**→document. Formulaire simple (titre, client requis, description ; « Livraison estimée » non persistée). KPI financiers/documents = placeholders jusqu'à #8. Édition/suppression à faire.
 
+- **#8 Éditeur de document** (mergé) : `app/(app)/documents/nouveau` — éditeur 2 colonnes (formulaire + **aperçu A4 en temps réel**), lignes de prestation, **calcul TVA par ligne en centimes** live, numérotation à l'émission. Cœur métier pur et testé dans **`lib/invoicing/`** (money/numbering/legal/dates, **31 tests `bun test`** = #30 bien avancé). Server actions `app/(app)/documents/actions.ts` : `listProjectsForPicker`/`saveDraft`/`emitDocument` (numérotation transactionnelle FAC-/DEV-2026-NNN par user/type/an, franchise force 0 %, vérif appartenance projet). Émetteur A4 = profil user, **placeholders tant que #12 (Paramètres)**. PDF réel = #9 (bouton désactivé). Paywall 5/5 = #10 (à câbler avant `emitDocument`). Vérifié en réel (émission → FAC-2026-001, totaux centimes exacts).
+
 ### 🔜 À faire — une issue GitHub par user story, branche liée `feat/<num>-<slug>` déjà créée
 7. **#7** Listes Devis/Factures + vue Document — `feat/7-devis-factures` (dépend #4)
-8. **#8** Éditeur de document (A4 + TVA) — `feat/8-editeur-document` (dépend #4, #7)
 9. **#9** PDF serveur Puppeteer — `feat/9-pdf-puppeteer` (dépend #8)
 10. **#10** Paywall freemium + Abonnement — `feat/10-paywall-abonnement` (dépend #4)
 11. **#11** Rapports — `feat/11-rapports` (dépend #4, #10)
