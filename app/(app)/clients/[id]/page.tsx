@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,20 +30,22 @@ export default async function ClientDetailPage({
             {client.sector ?? "Client professionnel"}
           </div>
         </div>
-        {/* Actions désactivées : l'édition (drawer « Modifier ») n'est pas dans
-            cette issue et la création de devis/factures arrive avec #7. On garde
-            les boutons visibles (fidélité maquette) mais inertes. */}
+        {/* « Modifier » (drawer d'édition) reste à faire. « Nouveau devis /
+            facture » ouvrent l'éditeur (#8) — le projet (qui porte le client)
+            se choisit dans l'éditeur, un client pouvant avoir plusieurs projets. */}
         <div className="ml-auto flex items-center gap-2.5">
           <Button type="button" variant="default" disabled title="Bientôt disponible">
             <Pencil strokeWidth={2} />
             Modifier
           </Button>
-          <Button type="button" variant="default" disabled title="Bientôt disponible">
-            Nouveau devis
+          <Button asChild variant="default">
+            <Link href="/documents/nouveau?type=devis">Nouveau devis</Link>
           </Button>
-          <Button type="button" variant="primary" disabled title="Bientôt disponible">
-            <Plus strokeWidth={2} />
-            Nouvelle facture
+          <Button asChild variant="primary">
+            <Link href="/documents/nouveau?type=facture">
+              <Plus strokeWidth={2} />
+              Nouvelle facture
+            </Link>
           </Button>
         </div>
       </div>

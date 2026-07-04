@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GREETING } from "./mock-data";
@@ -20,9 +21,11 @@ export function DashboardHeader({ firstName }: { firstName: string }) {
       </div>
       <div className="ml-auto flex items-center gap-2.5">
         <PeriodSegment />
-        <Button variant="primary" type="button">
-          <Plus strokeWidth={2} />
-          Créer
+        <Button asChild variant="primary">
+          <Link href="/documents/nouveau">
+            <Plus strokeWidth={2} />
+            Créer
+          </Link>
         </Button>
       </div>
     </div>
