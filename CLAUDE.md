@@ -54,8 +54,9 @@ bunx shadcn add <c>  # ajouter un composant shadcn
 
 - **#8 Éditeur de document** (mergé) : `app/(app)/documents/nouveau` — éditeur 2 colonnes (formulaire + **aperçu A4 en temps réel**), lignes de prestation, **calcul TVA par ligne en centimes** live, numérotation à l'émission. Cœur métier pur et testé dans **`lib/invoicing/`** (money/numbering/legal/dates, **31 tests `bun test`** = #30 bien avancé). Server actions `app/(app)/documents/actions.ts` : `listProjectsForPicker`/`saveDraft`/`emitDocument` (numérotation transactionnelle FAC-/DEV-2026-NNN par user/type/an, franchise force 0 %, vérif appartenance projet). Émetteur A4 = profil user, **placeholders tant que #12 (Paramètres)**. PDF réel = #9 (bouton désactivé). Paywall 5/5 = #10 (à câbler avant `emitDocument`). Vérifié en réel (émission → FAC-2026-001, totaux centimes exacts).
 
+- **#7 Listes Devis/Factures + vue Document** (mergé) : onglets `/factures` et `/devis` (bandeau synthèse, filtres par statut, table, **bouton « Nouvelle facture / Nouveau devis »** → éditeur) sur vraies données ; **vue document** `/factures/[id]` & `/devis/[id]` (A4 lecture + panneau statut/actions). Server actions `listDocuments`/`listInvoiceSummary`/`listQuoteSummary`/`getDocument`/`updateDocumentStatus` (statut `en_retard` dérivé, agrégats en BDD, filtré `userId`). Composants partagés `components/documents/` (document-list, document-paper, document-view, status-actions). « Marquer payé »/« Accepté/Refusé » fonctionnels ; PDF désactivé (#9). Émetteur = placeholders jusqu'à #12.
+
 ### 🔜 À faire — une issue GitHub par user story, branche liée `feat/<num>-<slug>` déjà créée
-7. **#7** Listes Devis/Factures + vue Document — `feat/7-devis-factures` (dépend #4)
 9. **#9** PDF serveur Puppeteer — `feat/9-pdf-puppeteer` (dépend #8)
 10. **#10** Paywall freemium + Abonnement — `feat/10-paywall-abonnement` (dépend #4)
 11. **#11** Rapports — `feat/11-rapports` (dépend #4, #10)
