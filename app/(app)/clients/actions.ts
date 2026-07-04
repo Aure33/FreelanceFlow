@@ -1,0 +1,265 @@
+"use server";
+
+// Server actions du CRUD Clients (issue #5).
+//
+// SÉCURITÉ (non négociable) : Prisma CONTOURNE la RLS Postgres. CHAQUE requête
+// ci-dessous filtre donc explicitement par utilisateur (where: { userId }) et
+// n'est exécutée qu'après requireUserId() (session vérifiée côté serveur).
+// Aucune requête globale. Toutes les entrées sont validées avec zod.
+//
+// ÉCO-CONCEPTION : select explicites (jamais l'objet entier), tri en base.
+// La pagination sera branchée quand le volume le justifiera (issue liste).
+//
+// Les messages d'erreur renvoyés sont en français et NE contiennent jamais de
+// détail technique (stack, SQL).
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireUserId } from "@/lib/auth/session";
+
+// --- Types exposés à l'UI ----------------------------------------------------
+
+// Ligne de la liste Clients. Les agrégats liés aux documents (dernier document,
+// CA total, solde en attente) N'EXISTENT PAS encore : le CRUD documents est
+// l'issue #7. On renvoie des valeurs neutres (0 / null) — surtout PAS de
+// fausses données — à brancher plus tard.
+export type ClientListItem = {
+  id: string;
+  name: string;
+  siret: string | null;
+  email: string | null;
+  phone: string | null;
+  sector: string | null;
+  createdAt: Date;
+  // Stubs #7 (documents pas encore modélisés côté métier)
+  lastDocumentAt: null;
+  caTotalCents: 0;
+  pendingCents: 0;
+};
+
+export type ClientDetail = {
+  id: string;
+  name: string;
+  siret: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  sector: string | null;
+  paymentTerms: string | null;
+  iban: string | null;
+  bic: string | null;
+  createdAt: Date;
+};
+
+export type CreateClientInput = {
+  name: string;
+  siret?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  paymentTerms?: string;
+  sector?: string;
+};
+
+// Résultat d'échec d'une action de formulaire (le succès redirige / revalide).
+export type ActionState = { error: string };
+
+// Résultat de la vérification SIRET auprès de l'API publique de l'État.
+export type SiretLookupResult = {
+  verified: boolean;
+  name?: string;
+  address?: string;
+};
+
+// --- Validation --------------------------------------------------------------
+
+// "842 519 637 00021" -> "84251963700021". Chaîne vide -> undefined.
+function normalizeSiret(value: string | undefined): string | undefined {
+  const digits = value?.replace(/\s+/g, "");
+  return digits && digits.length > 0 ? digits : undefined;
+}
+
+// Champ texte optionnel : trim, et "" -> undefined (on ne stocke pas de vide).
+const optionalText = z
+  .string()
+  .trim()
+  .optional()
+  .transform((v) => (v && v.length > 0 ? v : undefined));
+
+const createClientSchema = z.object({
+  name: z.string().trim().min(1, "Le nom du client est requis."),
+  siret: z
+    .string()
+    .optional()
+    .transform(normalizeSiret)
+    .refine(
+      (v) => v === undefined || /^\d{14}$/.test(v),
+      "Le SIRET doit comporter 14 chiffres.",
+    ),
+  email: optionalText.refine(
+    (v) => v === undefined || z.string().email().safeParse(v).success,
+    "Adresse e-mail invalide.",
+  ),
+  phone: optionalText,
+  address: optionalText,
+  paymentTerms: optionalText,
+  sector: optionalText,
+});
+
+// --- Lectures ----------------------------------------------------------------
+
+// Clients de l'utilisateur courant, triés par nom (insensible à la casse).
+export async function listClients(): Promise<ClientListItem[]> {
+  const userId = await requireUserId();
+
+  const rows = await prisma.client.findMany({
+    where: { userId },
+    select: {
+      id: true,
+      name: true,
+      siret: true,
+      email: true,
+      phone: true,
+      sector: true,
+      createdAt: true,
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return rows.map((c) => ({
+    ...c,
+    lastDocumentAt: null,
+    caTotalCents: 0,
+    pendingCents: 0,
+  }));
+}
+
+// Fiche d'un client. findFirst + filtre userId (JAMAIS findUnique sans userId) :
+// un id d'un autre utilisateur renvoie null (isolation garantie côté app).
+export async function getClient(id: string): Promise<ClientDetail | null> {
+  const userId = await requireUserId();
+
+  // id invalide (non-UUID) : on ne tente même pas la requête.
+  if (!z.string().uuid().safeParse(id).success) {
+    return null;
+  }
+
+  return prisma.client.findFirst({
+    where: { id, userId },
+    select: {
+      id: true,
+      name: true,
+      siret: true,
+      email: true,
+      phone: true,
+      address: true,
+      sector: true,
+      paymentTerms: true,
+      iban: true,
+      bic: true,
+      createdAt: true,
+    },
+  });
+}
+
+// --- Écriture ----------------------------------------------------------------
+
+// Crée un client pour l'utilisateur courant puis redirige vers sa fiche.
+// En cas d'entrée invalide, renvoie { error } (message FR, sans détail technique).
+export async function createClient(
+  input: CreateClientInput,
+): Promise<ActionState> {
+  const userId = await requireUserId();
+
+  const parsed = createClientSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+  }
+
+  let created;
+  try {
+    created = await prisma.client.create({
+      data: {
+        userId,
+        name: parsed.data.name,
+        siret: parsed.data.siret ?? null,
+        email: parsed.data.email ?? null,
+        phone: parsed.data.phone ?? null,
+        address: parsed.data.address ?? null,
+        paymentTerms: parsed.data.paymentTerms ?? null,
+        sector: parsed.data.sector ?? null,
+      },
+      select: { id: true },
+    });
+  } catch {
+    // On n'expose jamais l'erreur brute (SQL, contrainte) au client.
+    return {
+      error: "Impossible d'enregistrer le client. Réessayez dans un instant.",
+    };
+  }
+
+  revalidatePath("/clients");
+  // redirect() lève NEXT_REDIRECT : à placer HORS du try/catch.
+  redirect(`/clients/${created.id}`);
+}
+
+// --- Vérification SIRET (API publique gratuite de l'État) ---------------------
+
+// Recherche d'entreprises (annuaire-entreprises) — appel SERVEUR, sans clé.
+// https://recherche-entreprises.api.gouv.fr/search?q=<siret>
+// Renvoie { verified, name?, address? }. Toute erreur réseau / réponse
+// inattendue => { verified: false } (ne plante jamais l'action).
+export async function lookupSiret(siret: string): Promise<SiretLookupResult> {
+  // Authentification requise : appel réservé aux utilisateurs connectés
+  // (évite d'exposer un proxy d'API ouvert).
+  await requireUserId();
+
+  const normalized = normalizeSiret(siret);
+  if (!normalized || !/^\d{14}$/.test(normalized)) {
+    return { verified: false };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const res = await fetch(
+      `https://recherche-entreprises.api.gouv.fr/search?q=${normalized}&per_page=1`,
+      { signal: controller.signal, headers: { Accept: "application/json" } },
+    );
+    if (!res.ok) return { verified: false };
+
+    const data = (await res.json()) as {
+      results?: Array<{
+        nom_complet?: string;
+        nom_raison_sociale?: string;
+        siege?: { adresse?: string };
+        matching_etablissements?: Array<{ siret?: string; adresse?: string }>;
+      }>;
+    };
+
+    const first = data.results?.[0];
+    if (!first) return { verified: false };
+
+    const name = first.nom_complet || first.nom_raison_sociale || undefined;
+    // Adresse de l'établissement EXACT recherché si disponible (plus précis que
+    // le siège pour un établissement secondaire), sinon repli sur le siège.
+    const matched = first.matching_etablissements?.find(
+      (e) => e.siret === normalized,
+    );
+    const address =
+      matched?.adresse ||
+      first.matching_etablissements?.[0]?.adresse ||
+      first.siege?.adresse ||
+      undefined;
+
+    return { verified: true, name, address };
+  } catch {
+    // Timeout / réseau / JSON invalide : dégradation silencieuse.
+    return { verified: false };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
