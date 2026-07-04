@@ -1,0 +1,38 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Groupe « Tests » distinct de Build & Lint dans l'onglet Actions.
+# tests-unitaires (bun test) + tests-e2e (Playwright, câblé plus tard).
+
+jobs:
+  tests-unitaires:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Installer les dépendances
+        run: bun install --frozen-lockfile
+      - name: Tests unitaires (bun test)
+        run: bun test
+
+  tests-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Placeholder : réserve la colonne E2E. Le vrai runner (Playwright +
+      # navigateur + secrets d'un projet Supabase de TEST) sera câblé en
+      # #32 / #33, une fois la BDD de test disponible (#17).
+      - name: Tests E2E (à venir)
+        run: |
+          if ls tests/e2e/*.spec.ts >/dev/null 2>&1; then
+            echo "Des specs E2E existent : câbler le runner Playwright ici (#32/#33)."
+            echo "Job encore en placeholder — voir .github/workflows/tests.yml."
+            exit 1
+          fi
+          echo "Aucun test E2E versionné pour le moment (à venir en #32). Rien à exécuter."
