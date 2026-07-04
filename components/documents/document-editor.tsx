@@ -115,15 +115,20 @@ export function DocumentEditor({
   projects,
   emitterName,
   regime,
+  initialType = "facture",
+  initialProjectId = "",
 }: {
   projects: ProjectPickerOption[];
   emitterName: string;
   regime: TvaRegime;
+  // Présélection depuis un point d'entrée (fiche projet) — validés côté page.
+  initialType?: DocType;
+  initialProjectId?: string;
 }) {
   const hasProjects = projects.length > 0;
 
-  const [type, setType] = useState<DocType>("facture");
-  const [projectId, setProjectId] = useState("");
+  const [type, setType] = useState<DocType>(initialType);
+  const [projectId, setProjectId] = useState(initialProjectId);
   const [issuedAt, setIssuedAt] = useState(todayInputValue());
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerm>("net30");
   const [object, setObject] = useState("");

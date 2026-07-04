@@ -18,7 +18,11 @@ function normalizeRegime(value: string | null | undefined): TvaRegime {
   return value === "franchise" || value === "normal" ? value : "reel";
 }
 
-export default async function NouveauDocumentPage() {
+export default async function NouveauDocumentPage({
+  searchParams,
+}: {
+  searchParams: { projet?: string; type?: string };
+}) {
   const userId = await requireUserId();
 
   const [projects, profile, me] = await Promise.all([
@@ -30,11 +34,23 @@ export default async function NouveauDocumentPage() {
     }),
   ]);
 
+  // Présélection depuis un point d'entrée. On ne garde le projet que s'il
+  // appartient bien au user (présent dans la liste filtrée `userId`).
+  const initialProjectId = projects.some((p) => p.id === searchParams.projet)
+    ? searchParams.projet
+    : undefined;
+  const initialType =
+    searchParams.type === "devis" || searchParams.type === "facture"
+      ? searchParams.type
+      : undefined;
+
   return (
     <DocumentEditor
       projects={projects}
       emitterName={profile?.name ?? "Vous"}
       regime={normalizeRegime(me?.tvaRegime)}
+      initialProjectId={initialProjectId}
+      initialType={initialType}
     />
   );
 }

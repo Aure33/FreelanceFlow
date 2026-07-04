@@ -40,20 +40,23 @@ export default async function ProjetDetailPage({
             <Tag tone={meta.tone}>{meta.label}</Tag>
           </div>
         </div>
-        {/* Actions désactivées : l'édition (drawer « Modifier ») n'est pas dans
-            cette issue et la création de devis/factures arrive avec l'éditeur (#8).
-            Boutons visibles (fidélité maquette) mais inertes. */}
+        {/* « Modifier » (drawer d'édition) reste à faire ; « Créer un devis /
+            une facture » ouvrent l'éditeur (#8) avec ce projet + le type pré-sélectionnés. */}
         <div className="ml-auto flex items-center gap-2.5">
           <Button type="button" variant="default" disabled title="Bientôt disponible">
             <Pencil strokeWidth={2} />
             Modifier
           </Button>
-          <Button type="button" variant="default" disabled title="Bientôt disponible">
-            Créer un devis
+          <Button asChild variant="default">
+            <Link href={`/documents/nouveau?projet=${project.id}&type=devis`}>
+              Créer un devis
+            </Link>
           </Button>
-          <Button type="button" variant="primary" disabled title="Bientôt disponible">
-            <Plus strokeWidth={2} />
-            Créer une facture
+          <Button asChild variant="primary">
+            <Link href={`/documents/nouveau?projet=${project.id}&type=facture`}>
+              <Plus strokeWidth={2} />
+              Créer une facture
+            </Link>
           </Button>
         </div>
       </div>
