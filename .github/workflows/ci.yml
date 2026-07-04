@@ -1,12 +1,13 @@
-name: Build & Lint
+name: CI
 
 on:
   pull_request:
   push:
     branches: [main]
 
-# Qualité de code et compilation. Les tests sont dans un workflow séparé
-# (.github/workflows/tests.yml) pour former un groupe distinct dans l'UI Actions.
+# Un seul workflow, deux blocs reliés dans la vue graphe de l'onglet Actions :
+#   Bloc 1 (lint, build) → Bloc 2 (tests-unitaires, tests-e2e)
+# Le bloc Tests ne démarre qu'une fois lint+build passés (via `needs`).
 
 jobs:
   lint:
@@ -32,3 +33,33 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Build
         run: bun run build
+
+  tests-unitaires:
+    needs: [lint, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Installer les dépendances
+        run: bun install --frozen-lockfile
+      - name: Tests unitaires (bun test)
+        run: bun test
+
+  tests-e2e:
+    needs: [lint, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Placeholder : réserve la colonne E2E. Le vrai runner (Playwright +
+      # navigateur + secrets d'un projet Supabase de TEST) sera câblé en
+      # #32 / #33, une fois la BDD de test disponible (#17).
+      - name: Tests E2E (à venir)
+        run: |
+          if ls tests/e2e/*.spec.ts >/dev/null 2>&1; then
+            echo "Des specs E2E existent : câbler le runner Playwright ici (#32/#33)."
+            echo "Job encore en placeholder — voir .github/workflows/ci.yml."
+            exit 1
+          fi
+          echo "Aucun test E2E versionné pour le moment (à venir en #32). Rien à exécuter."
