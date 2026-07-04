@@ -27,3 +27,28 @@ export async function requireUserId(): Promise<string> {
   }
   return user.id;
 }
+
+// Profil d'affichage pour l'UI (sidebar, etc.). Le nom vient des métadonnées
+// Auth : `full_name`/`name` (comptes Google) ou `first_name`+`last_name`
+// (inscription e-mail), avec repli sur le préfixe de l'e-mail.
+export type UserProfile = { name: string; email: string; initials: string };
+
+function computeInitials(source: string): string {
+  const parts = source.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return (parts[0]?.slice(0, 2) || "U").toUpperCase();
+}
+
+export async function getCurrentUserProfile(): Promise<UserProfile | null> {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const meta = (user.user_metadata ?? {}) as Record<string, string | undefined>;
+  const email = user.email ?? "";
+  const name =
+    meta.full_name?.trim() ||
+    meta.name?.trim() ||
+    [meta.first_name, meta.last_name].filter(Boolean).join(" ").trim() ||
+    email.split("@")[0] ||
+    "Utilisateur";
+  return { name, email, initials: computeInitials(name || email) };
+}
