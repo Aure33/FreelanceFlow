@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 
 // Logo Google (couleurs de marque figées : ce n'est pas un token de thème).
 function GoogleIcon() {
@@ -24,18 +28,33 @@ function GoogleIcon() {
   );
 }
 
-// Connexion Google : décorative et DÉSACTIVÉE à ce stade (SSO non branché).
+// Connexion Google (OAuth Supabase, flux PKCE) : redirige vers Google puis
+// revient sur /auth/callback qui échange le code contre une session.
 export function GoogleButton({ label }: { label: string }) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleGoogle() {
+    setLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    // En cas de succès, le navigateur part vers Google : on ne revient pas ici.
+    // On ne relâche `loading` que si la redirection a échoué.
+    if (error) setLoading(false);
+  }
+
   return (
     <div className="flex flex-col gap-[10px]">
       <Button
         type="button"
-        disabled
-        title="Bientôt disponible"
+        onClick={handleGoogle}
+        disabled={loading}
         className="h-[44px] w-full justify-center font-semibold"
       >
         <GoogleIcon />
-        {label}
+        {loading ? "Redirection…" : label}
       </Button>
     </div>
   );
