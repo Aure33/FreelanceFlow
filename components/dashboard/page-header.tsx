@@ -4,13 +4,17 @@ import { GREETING } from "./mock-data";
 import { PeriodSegment } from "./period-segment";
 
 // En-tête du tableau de bord (`.page-head`) : salutation + outils (période, Créer).
-export function DashboardHeader() {
+// `firstName` = vrai prénom de l'utilisateur connecté ; la date reste mockée
+// (à brancher avec les vraies données du dashboard plus tard).
+export function DashboardHeader({ firstName }: { firstName: string }) {
   return (
     <div className="mb-6 flex items-end gap-[18px]">
       <div>
         <div className="text-2xl font-extrabold tracking-[-0.03em]">
-          Bonjour {GREETING.name}{" "}
-          <span className="font-semibold text-ink-3">👋</span>
+          Bonjour {firstName}{" "}
+          <span className="font-semibold text-ink-3" aria-hidden>
+            👋
+          </span>
         </div>
         <div className="mt-[3px] text-sm text-ink-3">{GREETING.date}</div>
       </div>

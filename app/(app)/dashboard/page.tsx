@@ -4,11 +4,15 @@ import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { PriorityPanel } from "@/components/dashboard/priority-panel";
 import { RecentInvoices } from "@/components/dashboard/recent-invoices";
 import { TopClients } from "@/components/dashboard/top-clients";
+import { getCurrentUserProfile } from "@/lib/auth/session";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const profile = await getCurrentUserProfile();
+  const firstName = profile?.name.split(" ")[0] ?? "";
+
   return (
     <>
-      <DashboardHeader />
+      <DashboardHeader firstName={firstName} />
 
       <KpiCards />
 
