@@ -14,8 +14,8 @@ Pour implémenter un écran : lire la maquette HTML correspondante dans `design_
 |---|---|
 | Framework | Next.js 14.2 (App Router) + TypeScript |
 | Styling | Tailwind CSS v3 + shadcn/ui (style new-york, prérequis installés, aucun composant ajouté encore) |
-| Auth & BDD | Supabase (PostgreSQL + RLS + Storage) — **pas encore branché** |
-| ORM | Prisma — **pas encore installé** |
+| Auth & BDD | Supabase (PostgreSQL + RLS + Storage) — BDD branchée (#4), auth à faire (#3) |
+| ORM | Prisma 6 — installé, client `lib/prisma.ts` (pooler 6543) |
 | PDF | Puppeteer (route API serveur) — **pas encore fait** |
 | Déploiement | Vercel |
 
@@ -44,9 +44,10 @@ bunx shadcn add <c>  # ajouter un composant shadcn
 - **#1 Tableau de bord** (mergé) : contenu dans `components/dashboard/` (KPI ×4, graphique CA 8 mois barres empilées CSS, panneau « À traiter », factures récentes, top clients) ; données mockées dans `components/dashboard/mock-data.ts`. Primitives ajoutées : `components/ui/button.tsx` (Button shadcn Slot+cva mappé sur les tokens) et `components/icons/currency-icon.tsx` (seule icône custom ; le reste via lucide-react)
 - **#2 Landing + pages légales** (mergé) : `app/(public)/page.tsx` (landing, devient `/`) + `app/(public)/legal/page.tsx` (3 docs légaux navigables par hash) ; composants `components/public/` (nav, footer, legal-docs). Bande CTA figée sombre dans les 2 thèmes. Liens `/connexion` `/inscription` en `prefetch={false}` (routes créées en #3). Texte légal : hébergement Supabase `eu-central-1 (Francfort)`
 
+- **#4 BDD** (mergé) : 5 tables Supabase (`users`, `clients`, `projects`, `documents`, `document_lines`) via migration SQL versionnée `supabase/migrations/`, **RLS `user_id = auth.uid()` active + policée sur chacune** (vérifié), trigger `on_auth_user_created` → crée le profil `public.users`. Montants en **centimes entiers**, **TVA par ligne**, `user_id` sur chaque table, unicité `(user_id, number)`, RESTRICT transitif clients←projects←documents. Schéma dans `prisma/schema.prisma`. **Rappel** : Prisma bypasse la RLS → toujours filtrer `where: { userId }` dans le code applicatif. À arbitrer en #5 : champs « Nouveau client » (forme juridique, contact, CP/ville, taux TVA défaut) non encore modélisés.
+
 ### 🔜 À faire — une issue GitHub par user story, branche liée `feat/<num>-<slug>` déjà créée
 3. **#3** Auth Supabase (4 écrans + middleware) — `feat/3-auth`
-4. **#4** BDD : Prisma + Supabase + RLS — `feat/4-db-prisma-rls`
 5. **#5** CRUD Clients — `feat/5-crud-clients` (dépend #4)
 6. **#6** CRUD Projets — `feat/6-crud-projets` (dépend #5)
 7. **#7** Listes Devis/Factures + vue Document — `feat/7-devis-factures` (dépend #4)
