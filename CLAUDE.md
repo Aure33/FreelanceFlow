@@ -78,6 +78,7 @@ Pour toute fonctionnalité/correctif, utiliser le skill **`/issue-flow <descript
 | `frontend-ui` | Écrans/composants pixel-perfect depuis les maquettes, tokens, a11y | Toute UI |
 | `backend-data` | Prisma, Supabase, RLS, auth, server actions, requêtes | Toute donnée/sécurité |
 | `invoicing-pdf` | Calculs TVA (centimes !), régimes/mentions légales, numérotation, A4, PDF Puppeteer | Tout le métier facturation |
+| `test-author` | Écrit les tests **committés** : unitaire `bun test` (métier/centimes), intégration server actions + isolation `userId`/RLS, E2E Playwright versionnés `tests/e2e/*.spec.ts` | Pendant chaque issue, après l'implémentation, avant `qa-verifier`/PR |
 | `qa-verifier` | Vérification critique (Playwright, maquettes, a11y, sécu, éco) — rapporte, ne corrige pas | Après chaque feature, avant PR |
 
 L'agent principal orchestre, garde la structure du projet et le workflow Git (issues/PR/merge).

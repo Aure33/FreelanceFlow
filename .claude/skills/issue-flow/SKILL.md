@@ -36,7 +36,8 @@ Convention de nommage : `feat/` (fonctionnalité), `fix/` (correctif), `chore/` 
 
 1. Implémente la tâche en respectant les conventions du projet (voir CLAUDE.md : tokens uniquement, maquettes `design_ref/` comme référence, UI en français, accessibilité).
 2. Vérifie que le build passe : `bun run build`. **Si le build échoue, corrige avant de continuer — jamais de PR rouge.**
-3. **Vérification navigateur obligatoire** : invoque le skill `playwright-verify` pour tester la fonctionnalité en conditions réelles (screenshots clair/sombre vs maquette, interactions des critères d'acceptation, zéro erreur console). Corrige les écarts et re-vérifie avant de passer à l'étape suivante.
+3. **Tests committés obligatoires** : invoque l'agent `test-author` pour écrire les tests **versionnés** de la feature (unitaire `bun test` pour le métier pur ; intégration server actions + isolation `where userId`/RLS ; scénario E2E Playwright dans `tests/e2e/*.spec.ts` si la feature a un parcours UI). Fais passer `bun test` avant de continuer — **une feature sans test ne part pas en PR**.
+4. **Vérification navigateur obligatoire** : invoque le skill `playwright-verify` pour tester la fonctionnalité en conditions réelles (screenshots clair/sombre vs maquette, interactions des critères d'acceptation, zéro erreur console). Corrige les écarts et re-vérifie avant de passer à l'étape suivante.
 
 ## Étape 4 — Commit et push
 
