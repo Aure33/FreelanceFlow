@@ -52,6 +52,24 @@ const updatePasswordSchema = z.object({ password: passwordSchema });
 const GENERIC_AUTH_ERROR =
   "Identifiants incorrects. Vérifiez votre e-mail et votre mot de passe.";
 
+// Traduit une erreur Supabase d'inscription en message utilisateur exact.
+function signUpErrorMessage(error: {
+  code?: string;
+  status?: number;
+  message?: string;
+}): string {
+  if (error.code === "over_email_send_rate_limit" || error.status === 429) {
+    return "Trop de tentatives pour le moment. Réessayez dans quelques minutes.";
+  }
+  if (
+    error.code === "user_already_exists" ||
+    /already registered|already been registered/i.test(error.message ?? "")
+  ) {
+    return "Cette adresse est déjà utilisée.";
+  }
+  return "Impossible de créer le compte. Réessayez dans un instant.";
+}
+
 // --- Connexion ---------------------------------------------------------------
 
 export async function signIn(input: {
@@ -101,15 +119,17 @@ export async function signUp(input: {
   });
 
   if (error) {
-    // Cas le plus courant : e-mail déjà utilisé. Message neutre.
-    return {
-      error:
-        "Impossible de créer le compte. Cette adresse est peut-être déjà utilisée.",
-    };
+    return { error: signUpErrorMessage(error) };
   }
 
-  // Confirmation e-mail désactivée : une session devrait exister. Si ce n'est
-  // pas le cas (config Supabase modifiée), on renvoie vers /connexion.
+  // Anti-énumération : quand la confirmation e-mail est ACTIVE, Supabase répond
+  // à un e-mail déjà pris par un `user` sans identités et sans erreur. On le
+  // détecte pour un message clair (sinon l'utilisateur croit s'être inscrit).
+  if (data.user && (data.user.identities?.length ?? 0) === 0) {
+    return { error: "Cette adresse est déjà utilisée." };
+  }
+
+  // Pas de session (confirmation e-mail active) : compte créé, à confirmer.
   if (!data.session) {
     redirect("/connexion?inscription=ok");
   }

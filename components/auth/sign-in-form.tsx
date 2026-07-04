@@ -18,10 +18,14 @@ export function SignInForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    // Succès : la server action redirige elle-même vers /dashboard.
+    // Sur succès, la server action redirige elle-même vers /dashboard : `res`
+    // est alors undefined → on ne fait rien. On n'affiche l'erreur que si
+    // l'action en a renvoyé une.
     const res = await signIn({ email, password });
-    setError(res.error);
-    setLoading(false);
+    if (res?.error) {
+      setError(res.error);
+      setLoading(false);
+    }
   }
 
   return (
