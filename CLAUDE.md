@@ -61,7 +61,7 @@ bunx shadcn add <c>  # ajouter un composant shadcn
 ### Mocks à remplacer plus tard par Prisma
 - Badges nav sidebar (24 clients, 8 projets, 5 devis, 12 factures)
 - Jauge freemium 4/5 (composant `UsageGauge` déjà paramétré `used/limit`)
-- User-chip « Camille Laurent »
+- ~~User-chip « Camille Laurent »~~ → **fait (#21)** : vrai utilisateur (nom/e-mail) + menu déconnexion via `components/layout/user-menu.tsx` ; salutation dashboard branchée sur le vrai prénom. La **date** de la salutation reste mockée.
 
 ## Workflow Git
 
