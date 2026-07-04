@@ -17,6 +17,10 @@ const SIZES = {
   md: "h-[38px] w-[38px] rounded-md text-[13px]",
   // fiche : 54px / rayon 14 / 18px
   lg: "h-[54px] w-[54px] rounded-lg text-[18px]",
+  // carte projet (`.proj-ico`) : 40px / rayon 10 / 13px
+  proj: "h-10 w-10 rounded-[10px] text-[13px]",
+  // carte kanban (`.kcard .ini`) : 22px / rayon 6 / 10px
+  xs: "h-[22px] w-[22px] rounded-[6px] text-[10px]",
 } as const;
 
 // Initiales à partir du nom : 2 lettres (mots 1 & 2), sinon 2 premières lettres.
