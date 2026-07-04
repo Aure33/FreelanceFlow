@@ -14,7 +14,7 @@ Pour implémenter un écran : lire la maquette HTML correspondante dans `design_
 |---|---|
 | Framework | Next.js 14.2 (App Router) + TypeScript |
 | Styling | Tailwind CSS v3 + shadcn/ui (style new-york, prérequis installés, aucun composant ajouté encore) |
-| Auth & BDD | Supabase (PostgreSQL + RLS + Storage) — BDD branchée (#4), auth à faire (#3) |
+| Auth & BDD | Supabase (PostgreSQL + RLS + Storage) — BDD + auth branchées (#4, #3) |
 | ORM | Prisma 6 — installé, client `lib/prisma.ts` (pooler 6543) |
 | PDF | Puppeteer (route API serveur) — **pas encore fait** |
 | Déploiement | Vercel |
@@ -46,8 +46,9 @@ bunx shadcn add <c>  # ajouter un composant shadcn
 
 - **#4 BDD** (mergé) : 5 tables Supabase (`users`, `clients`, `projects`, `documents`, `document_lines`) via migration SQL versionnée `supabase/migrations/`, **RLS `user_id = auth.uid()` active + policée sur chacune** (vérifié), trigger `on_auth_user_created` → crée le profil `public.users`. Montants en **centimes entiers**, **TVA par ligne**, `user_id` sur chaque table, unicité `(user_id, number)`, RESTRICT transitif clients←projects←documents. Schéma dans `prisma/schema.prisma`. **Rappel** : Prisma bypasse la RLS → toujours filtrer `where: { userId }` dans le code applicatif. À arbitrer en #5 : champs « Nouveau client » (forme juridique, contact, CP/ville, taux TVA défaut) non encore modélisés.
 
+- **#3 Auth** (mergé) : Supabase Auth (email/mot de passe) + 4 écrans `app/(public)/` (connexion, inscription, mot-de-passe-oublié, réinitialisation) ; infra `lib/supabase/` (clients SSR browser+server) + `middleware.ts` (protège le groupe app → non-auth redirigé vers /connexion, déjà-connecté hors des pages auth) + `lib/auth/` (server actions signIn/signUp/signOut/requestPasswordReset/updatePassword validées zod ; `requireUserId()` à utiliser dans les futures requêtes Prisma). Bouton Google = placeholder désactivé. Isolation RLS vérifiée en conditions réelles. **Confirmation e-mail : OFF en dev / ON en prod via 2 projets Supabase séparés (#17)** — le projet actuel = dev (mettre Confirm email OFF au dashboard).
+
 ### 🔜 À faire — une issue GitHub par user story, branche liée `feat/<num>-<slug>` déjà créée
-3. **#3** Auth Supabase (4 écrans + middleware) — `feat/3-auth`
 5. **#5** CRUD Clients — `feat/5-crud-clients` (dépend #4)
 6. **#6** CRUD Projets — `feat/6-crud-projets` (dépend #5)
 7. **#7** Listes Devis/Factures + vue Document — `feat/7-devis-factures` (dépend #4)
