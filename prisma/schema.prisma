@@ -46,7 +46,7 @@ model Client {
   id            String   @id @default(uuid()) @db.Uuid
   userId        String   @map("user_id") @db.Uuid
   name          String
-  siren         String?
+  siret         String?
   email         String?
   phone         String?
   address       String?
