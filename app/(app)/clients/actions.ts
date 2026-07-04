@@ -73,6 +73,14 @@ export type SiretLookupResult = {
   address?: string;
 };
 
+// Suggestion de recherche d'entreprise par nom (annuaire-entreprises).
+export type CompanySearchItem = {
+  siret: string;
+  name: string;
+  address?: string;
+  city?: string;
+};
+
 // --- Validation --------------------------------------------------------------
 
 // "842 519 637 00021" -> "84251963700021". Chaîne vide -> undefined.
@@ -259,6 +267,58 @@ export async function lookupSiret(siret: string): Promise<SiretLookupResult> {
   } catch {
     // Timeout / réseau / JSON invalide : dégradation silencieuse.
     return { verified: false };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// Recherche d'entreprises par NOM (ou tout texte) — même API gratuite, appel
+// SERVEUR sans clé. Renvoie jusqu'à 6 suggestions (siret du siège + nom +
+// adresse + ville). Toute erreur => liste vide (ne plante jamais).
+export async function searchCompanies(
+  query: string,
+): Promise<CompanySearchItem[]> {
+  await requireUserId();
+
+  const q = query.trim();
+  if (q.length < 3) return [];
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const res = await fetch(
+      `https://recherche-entreprises.api.gouv.fr/search?q=${encodeURIComponent(
+        q,
+      )}&page=1&per_page=6`,
+      { signal: controller.signal, headers: { Accept: "application/json" } },
+    );
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as {
+      results?: Array<{
+        nom_complet?: string;
+        nom_raison_sociale?: string;
+        siege?: { siret?: string; adresse?: string; libelle_commune?: string };
+      }>;
+    };
+
+    const items: CompanySearchItem[] = [];
+    for (const r of data.results ?? []) {
+      const siret = r.siege?.siret;
+      const name = r.nom_complet || r.nom_raison_sociale;
+      if (siret && name) {
+        items.push({
+          siret,
+          name,
+          address: r.siege?.adresse || undefined,
+          city: r.siege?.libelle_commune || undefined,
+        });
+      }
+    }
+    return items;
+  } catch {
+    return [];
   } finally {
     clearTimeout(timeout);
   }
