@@ -16,7 +16,12 @@ Vérifie que la fonctionnalité décrite dans `$ARGUMENTS` (ou les derniers chan
 ## Étape 1 — Démarrer l'app
 
 ```bash
-bun run build && (bun run start -- -p 3199 >/tmp/ff-start.log 2>&1 &) && sleep 4
+# Build PROPRE obligatoire : le cache webpack persistant de Next (warning node-fetch)
+# peut servir un module périmé après une modif → toujours rm -rf .next avant.
+fuser -k 3199/tcp 2>/dev/null; rm -rf .next
+bun run build && (bun run start -- -p 3199 >/tmp/ff-start.log 2>&1 &)
+# attendre que le serveur réponde (ne PAS se fier à un simple sleep)
+for i in $(seq 1 30); do curl -sf http://localhost:3199/connexion >/dev/null 2>&1 && break; sleep 0.5; done
 ```
 
 Port dédié **3199** pour ne pas entrer en conflit avec un éventuel `bun run dev` de l'utilisateur sur 3000.
@@ -70,7 +75,9 @@ await page.screenshot({ path: "<scratchpad>/ref.png", fullPage: true });
 ## Étape 4 — Nettoyer et conclure
 
 ```bash
-pkill -f "next-server"
+# IMPORTANT : `bun run start` tourne comme process `node` (pas « next-server »),
+# donc `pkill -f next-server` NE le tue PAS. Toujours tuer par le port :
+fuser -k 3199/tcp
 ```
 
 Rapporter : ce qui a été vérifié, écarts éventuels avec la maquette, erreurs trouvées. **Corriger les écarts avant de continuer** (re-vérifier après correction).
