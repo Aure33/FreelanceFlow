@@ -6,7 +6,13 @@ import { Check, ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/dashboard/tag";
 import { cn } from "@/lib/utils";
-import { createClient, lookupSiret } from "@/app/(app)/clients/actions";
+import { formatSiret } from "./format";
+import {
+  createClient,
+  lookupSiret,
+  searchCompanies,
+  type CompanySearchItem,
+} from "@/app/(app)/clients/actions";
 
 // Champs de saisie (reproduit `.input` / `.select` de la maquette).
 const INPUT =
@@ -30,6 +36,19 @@ export function ClientForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Recherche d'entreprise par nom (combobox de suggestions).
+  const [nameResults, setNameResults] = useState<CompanySearchItem[]>([]);
+  const [nameOpen, setNameOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const nameBoxRef = useRef<HTMLDivElement>(null);
+  const nameDebounce = useRef<ReturnType<typeof setTimeout>>();
+  const nameSeq = useRef(0);
+
+  // Dernières valeurs pré-remplies automatiquement : on n'écrase Nom / Adresse
+  // (au changement de SIRET) que s'ils sont vides OU inchangés depuis le dernier
+  // remplissage auto — ainsi une saisie manuelle n'est jamais perdue.
+  const autoFilled = useRef<{ name?: string; address?: string }>({});
+
   // Anti-course : on ignore les réponses SIRET obsolètes (frappe rapide).
   const lookupSeq = useRef(0);
   const debounce = useRef<ReturnType<typeof setTimeout>>();
@@ -37,7 +56,24 @@ export function ClientForm() {
   const siretDigits = siret.replace(/\D/g, "");
   const siretComplete = siretDigits.length === 14;
 
-  // Lance la vérification SIRENE et pré-remplit Nom / Adresse s'ils sont vides.
+  function applyAuto(next: { name?: string; address?: string }) {
+    // Capturer les valeurs auto AVANT mutation : les updaters setState sont
+    // évalués plus tard et liraient sinon la nouvelle valeur (bug de comparaison).
+    const prevAuto = autoFilled.current;
+    if (next.name) {
+      setName((prev) =>
+        !prev.trim() || prev === prevAuto.name ? next.name! : prev,
+      );
+    }
+    if (next.address) {
+      setAddress((prev) =>
+        !prev.trim() || prev === prevAuto.address ? next.address! : prev,
+      );
+    }
+    autoFilled.current = { name: next.name, address: next.address };
+  }
+
+  // Lance la vérification SIRENE et (re)pré-remplit Nom / Adresse.
   async function runLookup(digits: string) {
     const seq = ++lookupSeq.current;
     setSiretStatus("checking");
@@ -47,8 +83,7 @@ export function ClientForm() {
     if (res.verified) {
       setSiretStatus("verified");
       setFoundName(res.name ?? null);
-      if (res.name) setName((prev) => (prev.trim() ? prev : res.name!));
-      if (res.address) setAddress((prev) => (prev.trim() ? prev : res.address!));
+      applyAuto({ name: res.name, address: res.address });
     } else {
       setSiretStatus("unverified");
       setFoundName(null);
@@ -69,6 +104,67 @@ export function ClientForm() {
     return () => clearTimeout(debounce.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siretDigits, siretComplete]);
+
+  // Ferme la liste de suggestions au clic en dehors.
+  useEffect(() => {
+    if (!nameOpen) return;
+    function onDoc(e: MouseEvent) {
+      if (nameBoxRef.current && !nameBoxRef.current.contains(e.target as Node)) {
+        setNameOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [nameOpen]);
+
+  // Saisie dans le champ Nom : met à jour + lance la recherche par nom (debounce).
+  function onNameChange(value: string) {
+    setName(value);
+    clearTimeout(nameDebounce.current);
+    if (value.trim().length < 3) {
+      nameSeq.current++;
+      setNameResults([]);
+      setNameOpen(false);
+      return;
+    }
+    nameDebounce.current = setTimeout(async () => {
+      const seq = ++nameSeq.current;
+      const results = await searchCompanies(value.trim());
+      if (seq !== nameSeq.current) return;
+      setNameResults(results);
+      setNameOpen(results.length > 0);
+      setActiveIndex(-1);
+    }, 350);
+  }
+
+  // Sélection d'une entreprise dans les suggestions : remplit tout.
+  function selectCompany(c: CompanySearchItem) {
+    nameSeq.current++; // annule une recherche en vol
+    setNameOpen(false);
+    setNameResults([]);
+    setName(c.name);
+    setSiret(c.siret); // déclenche la vérif SIRET (confirme le badge)
+    if (c.address) setAddress(c.address);
+    setSiretStatus("verified");
+    setFoundName(c.name);
+    autoFilled.current = { name: c.name, address: c.address };
+  }
+
+  function onNameKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!nameOpen || nameResults.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, nameResults.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      selectCompany(nameResults[activeIndex]);
+    } else if (e.key === "Escape") {
+      setNameOpen(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -158,18 +254,67 @@ export function ClientForm() {
             )}
           </div>
 
-          <div>
+          <div ref={nameBoxRef} className="relative">
             <label htmlFor="nom" className={LABEL}>
-              Nom / raison sociale
+              Nom / raison sociale{" "}
+              <small className="font-medium text-ink-3">
+                — tapez pour rechercher une entreprise
+              </small>
             </label>
             <input
               id="nom"
               type="text"
+              role="combobox"
+              aria-expanded={nameOpen}
+              aria-controls="company-listbox"
+              aria-autocomplete="list"
+              aria-activedescendant={
+                activeIndex >= 0 ? `company-opt-${activeIndex}` : undefined
+              }
+              autoComplete="off"
               placeholder="Ex. : Nord Web"
               className={INPUT}
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => onNameChange(e.target.value)}
+              onKeyDown={onNameKeyDown}
+              onFocus={() => {
+                if (nameResults.length > 0) setNameOpen(true);
+              }}
             />
+            {nameOpen && nameResults.length > 0 && (
+              <ul
+                id="company-listbox"
+                role="listbox"
+                aria-label="Entreprises correspondantes"
+                className="absolute z-20 mt-1 max-h-[260px] w-full overflow-auto rounded-md border border-line bg-surface p-1 shadow-md"
+              >
+                {nameResults.map((c, i) => (
+                  <li
+                    key={c.siret}
+                    id={`company-opt-${i}`}
+                    role="option"
+                    aria-selected={i === activeIndex}
+                    onMouseEnter={() => setActiveIndex(i)}
+                    onMouseDown={(e) => {
+                      e.preventDefault(); // garde le focus, évite le blur
+                      selectCompany(c);
+                    }}
+                    className={cn(
+                      "cursor-pointer rounded-sm px-2.5 py-2",
+                      i === activeIndex && "bg-surface-2",
+                    )}
+                  >
+                    <div className="truncate text-sm font-semibold text-ink">
+                      {c.name}
+                    </div>
+                    <div className="num text-[12px] text-ink-3">
+                      {formatSiret(c.siret)}
+                      {c.city ? ` · ${c.city}` : ""}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
