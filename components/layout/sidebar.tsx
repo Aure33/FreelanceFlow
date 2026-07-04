@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  ChevronDown,
   CreditCard,
   FileText,
   LayoutGrid,
@@ -15,6 +14,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserMenu } from "./user-menu";
+import type { UserProfile } from "@/lib/auth/session";
 
 type NavItem = {
   label: string;
@@ -84,7 +85,7 @@ function UsageGauge({ used, limit }: { used: number; limit: number }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ user }: { user: UserProfile }) {
   const pathname = usePathname();
 
   return (
@@ -144,30 +145,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Pied de sidebar : jauge freemium + utilisateur */}
+      {/* Pied de sidebar : jauge freemium + menu utilisateur (vrai compte) */}
       <div className="border-t border-line-soft p-3">
         <UsageGauge used={4} limit={5} />
-        <button
-          type="button"
-          className="flex w-full items-center gap-[11px] rounded-md px-2.5 py-2 text-left transition-colors hover:bg-surface-2"
-        >
-          <div
-            className="grid h-[34px] w-[34px] flex-none place-items-center rounded-full text-[13px] font-bold text-white"
-            style={{
-              background:
-                "linear-gradient(135deg, oklch(0.55 0.13 264), oklch(0.5 0.12 295))",
-            }}
-          >
-            CL
-          </div>
-          <div className="min-w-0">
-            <b className="block text-[13.5px] font-semibold leading-tight">
-              Camille Laurent
-            </b>
-            <small className="text-xs text-ink-3">Studio · Régime réel</small>
-          </div>
-          <ChevronDown className="ml-auto h-4 w-4 text-ink-3" strokeWidth={2} />
-        </button>
+        <UserMenu {...user} />
       </div>
     </aside>
   );
