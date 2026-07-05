@@ -52,14 +52,48 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Placeholder : réserve la colonne E2E. Le vrai runner (Playwright +
-      # navigateur + secrets d'un projet Supabase de TEST) sera câblé en
-      # #32 / #33, une fois la BDD de test disponible (#17).
-      - name: Tests E2E (à venir)
+
+      # Secrets d'un projet Supabase de TEST (jamais la prod) — pas encore
+      # créés (#17). Tant qu'ils sont absents, le job s'auto-désactive
+      # proprement au lieu d'échouer : le jour où #17/#33 ajoutent ces 5
+      # secrets au repo, ce job se met à exécuter les specs versionnées
+      # (tests/e2e/*.spec.ts) sans aucune autre modification à apporter ici.
+      - name: Vérifier la présence des secrets Supabase de test
+        id: check-secrets
         run: |
-          if ls tests/e2e/*.spec.ts >/dev/null 2>&1; then
-            echo "Des specs E2E existent : câbler le runner Playwright ici (#32/#33)."
-            echo "Job encore en placeholder — voir .github/workflows/ci.yml."
-            exit 1
+          if [ -n "${{ secrets.TEST_NEXT_PUBLIC_SUPABASE_URL }}" ] && \
+             [ -n "${{ secrets.TEST_NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}" ] && \
+             [ -n "${{ secrets.TEST_SUPABASE_SECRET_KEY }}" ] && \
+             [ -n "${{ secrets.TEST_DATABASE_URL }}" ] && \
+             [ -n "${{ secrets.TEST_DIRECT_URL }}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "Aucun test E2E versionné pour le moment (à venir en #32). Rien à exécuter."
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.check-secrets.outputs.present == 'true'
+        with:
+          bun-version: latest
+
+      - name: Installer les dépendances
+        if: steps.check-secrets.outputs.present == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Installer Chromium (Playwright)
+        if: steps.check-secrets.outputs.present == 'true'
+        run: bunx playwright install --with-deps chromium
+
+      - name: Tests E2E (bunx playwright test)
+        if: steps.check-secrets.outputs.present == 'true'
+        run: bunx playwright test
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TEST_NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.TEST_SUPABASE_SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.TEST_DIRECT_URL }}
+
+      - name: E2E ignorés (secrets de test absents)
+        if: steps.check-secrets.outputs.present == 'false'
+        run: echo "Secrets Supabase de test absents (#17/#33) — E2E ignorés pour le moment. Spec versionnée déjà prête (ex. tests/e2e/documents-pdf.spec.ts)."
