@@ -5,14 +5,18 @@ import { PriorityPanel } from "@/components/dashboard/priority-panel";
 import { RecentInvoices } from "@/components/dashboard/recent-invoices";
 import { TopClients } from "@/components/dashboard/top-clients";
 import { getCurrentUserProfile } from "@/lib/auth/session";
+import { getUsage } from "@/app/(app)/abonnement/actions";
 
 export default async function DashboardPage() {
-  const profile = await getCurrentUserProfile();
+  const [profile, usage] = await Promise.all([
+    getCurrentUserProfile(),
+    getUsage(),
+  ]);
   const firstName = profile?.name.split(" ")[0] ?? "";
 
   return (
     <>
-      <DashboardHeader firstName={firstName} />
+      <DashboardHeader firstName={firstName} usage={usage} />
 
       <KpiCards />
 

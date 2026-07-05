@@ -1,13 +1,34 @@
-import Link from "next/link";
+"use client";
+
+import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { GatedCreateLink } from "@/components/paywall/gated-create-link";
+import { PaywallModal } from "@/components/paywall/paywall-modal";
+import { cn } from "@/lib/utils";
+import type { Usage } from "@/app/(app)/abonnement/actions";
 import { GREETING } from "./mock-data";
 import { PeriodSegment } from "./period-segment";
 
 // En-tête du tableau de bord (`.page-head`) : salutation + outils (période, Créer).
 // `firstName` = vrai prénom de l'utilisateur connecté ; la date reste mockée
-// (à brancher avec les vraies données du dashboard plus tard).
-export function DashboardHeader({ firstName }: { firstName: string }) {
+// (à brancher avec les vraies données du dashboard plus tard). `usage` sert
+// au garde-fou du bouton « Créer » (issue #10, AC #1).
+export function DashboardHeader({
+  firstName,
+  usage,
+}: {
+  firstName: string;
+  usage: Usage;
+}) {
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const triggerRef = useRef<HTMLAnchorElement | null>(null);
+
+  function closePaywall() {
+    setPaywallOpen(false);
+    triggerRef.current?.focus();
+  }
+
   return (
     <div className="mb-6 flex items-end gap-[18px]">
       <div>
@@ -21,13 +42,21 @@ export function DashboardHeader({ firstName }: { firstName: string }) {
       </div>
       <div className="ml-auto flex items-center gap-2.5">
         <PeriodSegment />
-        <Button asChild variant="primary">
-          <Link href="/documents/nouveau">
-            <Plus strokeWidth={2} />
-            Créer
-          </Link>
-        </Button>
+        <GatedCreateLink
+          usage={usage}
+          href="/documents/nouveau"
+          onBlocked={(trigger) => {
+            triggerRef.current = trigger;
+            setPaywallOpen(true);
+          }}
+          className={cn(buttonVariants({ variant: "primary" }))}
+        >
+          <Plus strokeWidth={2} />
+          Créer
+        </GatedCreateLink>
       </div>
+
+      <PaywallModal open={paywallOpen} onClose={closePaywall} usage={usage} />
     </div>
   );
 }

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "bun test",
+    "test:integration": "bun test $(find ./tests/integration -name '*.integration.ts')",
     "postinstall": "prisma generate"
   },
   "dependencies": {

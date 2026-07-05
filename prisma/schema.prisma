@@ -95,7 +95,8 @@ model Document {
   totalHtCents  Int       @default(0) @map("total_ht_cents") // centimes entiers
   totalTvaCents Int       @default(0) @map("total_tva_cents") // centimes entiers
   totalTtcCents Int       @default(0) @map("total_ttc_cents") // centimes entiers
-  issuedAt      DateTime? @map("issued_at") @db.Timestamptz(6)
+  issuedAt      DateTime? @map("issued_at") @db.Timestamptz(6) // date "métier", éditable par l'utilisateur
+  emittedAt     DateTime? @map("emitted_at") @db.Timestamptz(6) // horodatage SERVEUR, jamais éditable — quota paywall (#10)
   dueAt         DateTime? @map("due_at") @db.Timestamptz(6)
   paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)

@@ -1,10 +1,17 @@
-# Config Bun — utilisée par `bun test` (unitaire uniquement).
+# Config Bun — `bun test` ne découvre QUE l'unitaire pur (lib/invoicing/**),
+# rapide et sans I/O.
 #
-# Par défaut, `bun test` découvre aussi les fichiers `*.spec.ts`, or les
-# specs E2E Playwright de `tests/e2e/` utilisent précisément cette extension
-# (convention imposée : jamais `*.test.ts` pour l'E2E, cf. CLAUDE.md) et
-# nécessitent un vrai navigateur + `bunx playwright test` — les exécuter via
-# `bun test` échoue immédiatement (test.describe() hors du runner Playwright).
-# On exclut donc explicitement ce dossier de la découverte `bun test`.
+# - tests/e2e/**  : specs Playwright (*.spec.ts, jamais *.test.ts — cf.
+#   CLAUDE.md), nécessitent un navigateur → exclues ici, lancées via
+#   `bunx playwright test`.
+#
+# - tests/integration/** : tests qui font de VRAIES requêtes réseau (Supabase
+#   Auth API admin) + écritures Prisma réelles contre le projet Supabase de
+#   `.env.local` (~25s, contre 90ms pour l'unitaire pur). PAS nommés
+#   `*.test.ts` (extension `.integration.ts`) : `bun test` sans argument ne
+#   les découvre donc jamais nativement, pas besoin de les lister ici — les
+#   inclure dans `pathIgnorePatterns` les rendrait AUSSI inexécutables en
+#   ciblage explicite (testé : bloque même un chemin de fichier direct).
+#   Lancés explicitement via `bun run test:integration`.
 [test]
 pathIgnorePatterns = ["tests/e2e/**"]
