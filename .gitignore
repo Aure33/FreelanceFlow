@@ -1,3 +1,8 @@
+# Playwright — artefacts locaux des runs E2E (jamais committés)
+/test-results/
+/playwright-report/
+/blob-report/
+
 # Logs
 logs
 *.log

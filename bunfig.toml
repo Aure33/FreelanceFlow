@@ -1,0 +1,10 @@
+# Config Bun — utilisée par `bun test` (unitaire uniquement).
+#
+# Par défaut, `bun test` découvre aussi les fichiers `*.spec.ts`, or les
+# specs E2E Playwright de `tests/e2e/` utilisent précisément cette extension
+# (convention imposée : jamais `*.test.ts` pour l'E2E, cf. CLAUDE.md) et
+# nécessitent un vrai navigateur + `bunx playwright test` — les exécuter via
+# `bun test` échoue immédiatement (test.describe() hors du runner Playwright).
+# On exclut donc explicitement ce dossier de la découverte `bun test`.
+[test]
+pathIgnorePatterns = ["tests/e2e/**"]
