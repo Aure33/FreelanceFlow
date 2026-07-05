@@ -7,6 +7,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
+import { computeInitials } from "./initials";
 
 // Retourne l'utilisateur authentifié (token vérifié) ou null.
 export async function getCurrentUser(): Promise<User | null> {
@@ -32,12 +33,6 @@ export async function requireUserId(): Promise<string> {
 // Auth : `full_name`/`name` (comptes Google) ou `first_name`+`last_name`
 // (inscription e-mail), avec repli sur le préfixe de l'e-mail.
 export type UserProfile = { name: string; email: string; initials: string };
-
-function computeInitials(source: string): string {
-  const parts = source.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return (parts[0]?.slice(0, 2) || "U").toUpperCase();
-}
 
 export async function getCurrentUserProfile(): Promise<UserProfile | null> {
   const user = await getCurrentUser();
