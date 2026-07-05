@@ -16,7 +16,7 @@ Pour implémenter un écran : lire la maquette HTML correspondante dans `design_
 | Styling | Tailwind CSS v3 + shadcn/ui (style new-york, prérequis installés, aucun composant ajouté encore) |
 | Auth & BDD | Supabase (PostgreSQL + RLS + Storage) — BDD + auth branchées (#4, #3) |
 | ORM | Prisma 6 — installé, client `lib/prisma.ts` (pooler 6543) |
-| PDF | Puppeteer (route API serveur) — **pas encore fait** |
+| PDF | Puppeteer (route API serveur) — fait (#9) |
 | Déploiement | Vercel |
 
 ## ⚠️ Environnement : Bun, pas Node
@@ -56,8 +56,9 @@ bunx shadcn add <c>  # ajouter un composant shadcn
 
 - **#7 Listes Devis/Factures + vue Document** (mergé) : onglets `/factures` et `/devis` (bandeau synthèse, filtres par statut, table, **bouton « Nouvelle facture / Nouveau devis »** → éditeur) sur vraies données ; **vue document** `/factures/[id]` & `/devis/[id]` (A4 lecture + panneau statut/actions). Server actions `listDocuments`/`listInvoiceSummary`/`listQuoteSummary`/`getDocument`/`updateDocumentStatus` (statut `en_retard` dérivé, agrégats en BDD, filtré `userId`). Composants partagés `components/documents/` (document-list, document-paper, document-view, status-actions). « Marquer payé »/« Accepté/Refusé » fonctionnels ; PDF désactivé (#9). Émetteur = placeholders jusqu'à #12.
 
+- **#9 PDF Puppeteer** (mergé) : route `app/api/documents/[id]/pdf/route.ts` (GET, runtime nodejs). Puppeteer NAVIGUE vers la vraie page `/factures/[id]` ou `/devis/[id]` (cookie de session forwardé) — une seule source de vérité visuelle, pas de HTML dupliqué. Dimensions figées `595×842px` (définition « A4 » du projet, pas le format A4 Puppeteer). Dépendances unifiées dev+prod : `puppeteer-core` + `@sparticuz/chromium` (WSL2 et Vercel sont tous deux Linux, pas de branchement dev/prod nécessaire). Sécurité : session (`getCurrentUser`, 401), appartenance (`getDocument`, 404), refuse les brouillons (400, pas de numéro légal). Téléchargement direct (pas de Supabase Storage). Boutons câblés dans `document-status-actions.tsx` et `document-list.tsx` (actifs seulement si le document est émis). CSS `print:` ajoutée sur le shell (Sidebar/Topbar/layout) et `document-view`/`document-paper` pour ne garder que le papier A4 au rendu PDF. **Bug corrigé au passage** : navigation liste Factures utilisait `/${type}/id` avec `type="facture"` (singulier) au lieu de `/factures/id` (pluriel) → 404 systématique au clic sur une ligne facture (masqué jusqu'ici car « devis » est invariant en français). Vérifié en réel : PDF valide généré (signature `%PDF`, rendu correct), tests E2E sécurité committés (`tests/e2e/documents-pdf.spec.ts` : 401/404/400/200 + isolation 2 users).
+
 ### 🔜 À faire — une issue GitHub par user story, branche liée `feat/<num>-<slug>` déjà créée
-9. **#9** PDF serveur Puppeteer — `feat/9-pdf-puppeteer` (dépend #8)
 10. **#10** Paywall freemium + Abonnement — `feat/10-paywall-abonnement` (dépend #4)
 11. **#11** Rapports — `feat/11-rapports` (dépend #4, #10)
 12. **#12** Paramètres — `feat/12-parametres` (dépend #3, #4)
