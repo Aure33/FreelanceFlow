@@ -28,7 +28,7 @@ export function DocumentView({ view }: { view: DocumentViewData }) {
       {/* Fil d'Ariane (`.crumbs`) */}
       <nav
         aria-label="Fil d'Ariane"
-        className="mb-[22px] flex items-center gap-2 text-sm"
+        className="mb-[22px] flex items-center gap-2 text-sm print:hidden"
       >
         <Link
           href={listHref}
@@ -49,12 +49,12 @@ export function DocumentView({ view }: { view: DocumentViewData }) {
         </span>
       </nav>
 
-      <div className="grid grid-cols-[1fr_340px] items-start gap-gap max-[1180px]:grid-cols-1">
+      <div className="grid grid-cols-[1fr_340px] items-start gap-gap max-[1180px]:grid-cols-1 print:block">
         {/* Document A4 */}
         <DocumentPaper view={view} />
 
         {/* Panneau latéral */}
-        <aside className="sticky top-[calc(var(--topbar-h)_+_28px)] flex flex-col gap-gap max-[1180px]:static">
+        <aside className="sticky top-[calc(var(--topbar-h)_+_28px)] flex flex-col gap-gap max-[1180px]:static print:hidden">
           {/* Statut + infos */}
           <section className="rounded-lg border border-line bg-surface shadow-sm">
             <div className="p-pad">

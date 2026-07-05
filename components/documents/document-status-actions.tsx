@@ -95,16 +95,25 @@ export function DocumentStatusActions({
           Convertir en facture
         </Button>
       )}
-      <Button
-        type="button"
-        variant="default"
-        className={btn}
-        disabled
-        title="Bientôt disponible (#9)"
-      >
-        <Download strokeWidth={2} />
-        Télécharger le PDF
-      </Button>
+      {isDraft ? (
+        <Button
+          type="button"
+          variant="default"
+          className={btn}
+          disabled
+          title="Émettez le document pour télécharger le PDF"
+        >
+          <Download strokeWidth={2} />
+          Télécharger le PDF
+        </Button>
+      ) : (
+        <Button asChild variant="default" className={btn}>
+          <a href={`/api/documents/${id}/pdf`}>
+            <Download strokeWidth={2} />
+            Télécharger le PDF
+          </a>
+        </Button>
+      )}
       <Button type="button" variant="default" className={btn} disabled>
         <Copy strokeWidth={2} />
         Dupliquer
