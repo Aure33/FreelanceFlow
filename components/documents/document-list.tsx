@@ -84,6 +84,12 @@ type Props =
   | { type: "facture"; items: DocumentListItem[]; summary: InvoiceSummary }
   | { type: "devis"; items: DocumentListItem[]; summary: QuoteSummary };
 
+// Segment d'URL de la vue Document par type. DocType est "facture" (singulier,
+// vocabulaire métier) alors que la route est `/factures/[id]` (pluriel) — sans
+// cette table, `/${type}/${id}` produit `/facture/[id]` (404). Le devis ne
+// l'a jamais révélé : "devis" est invariant en français (identique aux deux).
+const LIST_PATH: Record<DocType, string> = { facture: "factures", devis: "devis" };
+
 export function DocumentList(props: Props) {
   const { type, items } = props;
   const router = useRouter();
@@ -276,12 +282,12 @@ export function DocumentList(props: Props) {
                   return (
                     <tr
                       key={d.id}
-                      onClick={() => router.push(`/${type}/${d.id}`)}
+                      onClick={() => router.push(`/${LIST_PATH[type]}/${d.id}`)}
                       className="cursor-pointer transition-colors hover:bg-surface-2"
                     >
                       <td className={td}>
                         <Link
-                          href={`/${type}/${d.id}`}
+                          href={`/${LIST_PATH[type]}/${d.id}`}
                           onClick={(e) => e.stopPropagation()}
                           className="num whitespace-nowrap text-[13px] font-medium text-ink-2 outline-none hover:text-accent-ink focus-visible:text-accent-ink focus-visible:underline"
                         >
@@ -328,20 +334,35 @@ export function DocumentList(props: Props) {
                       </td>
                       <td className={td}>
                         <div className="flex justify-end">
-                          <button
-                            type="button"
-                            disabled
-                            title="Bientôt disponible (#9)"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex h-[30px] items-center gap-1.5 rounded-sm border border-line bg-surface px-2.5 text-[12.5px] font-semibold text-ink-2 disabled:opacity-50"
-                          >
-                            <Download
-                              className="h-3.5 w-3.5"
-                              strokeWidth={2}
-                              aria-hidden
-                            />
-                            PDF
-                          </button>
+                          {d.number === null ? (
+                            <button
+                              type="button"
+                              disabled
+                              title="Émettez le document pour télécharger le PDF"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex h-[30px] items-center gap-1.5 rounded-sm border border-line bg-surface px-2.5 text-[12.5px] font-semibold text-ink-2 disabled:opacity-50"
+                            >
+                              <Download
+                                className="h-3.5 w-3.5"
+                                strokeWidth={2}
+                                aria-hidden
+                              />
+                              PDF
+                            </button>
+                          ) : (
+                            <a
+                              href={`/api/documents/${d.id}/pdf`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex h-[30px] items-center gap-1.5 rounded-sm border border-line bg-surface px-2.5 text-[12.5px] font-semibold text-ink-2 transition-colors hover:bg-surface-2"
+                            >
+                              <Download
+                                className="h-3.5 w-3.5"
+                                strokeWidth={2}
+                                aria-hidden
+                              />
+                              PDF
+                            </a>
+                          )}
                         </div>
                       </td>
                     </tr>
