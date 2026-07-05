@@ -16,6 +16,8 @@ import {
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./user-menu";
 import type { UserProfile } from "@/lib/auth/session";
+import type { Usage } from "@/app/(app)/abonnement/actions";
+import { nextMonthFirstLabel } from "@/lib/date-fr";
 
 type NavItem = {
   label: string;
@@ -55,13 +57,50 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-function UsageGauge({ used, limit }: { used: number; limit: number }) {
+// Jauge freemium réelle (issue #10) : "used/limit" vient de getUsage() côté
+// serveur (jamais recalculé côté client). Deux états :
+//  - free : barre warn/danger (rouge + copie dédiée à 100%, cf. maquette
+//    « Limite atteinte.html », `.side-usage.full`) ;
+//  - premium (documentsLimit === null) : pas de maquette dédiée pour cet état
+//    — parti pris (à documenter) : barre pleine accent + mention "Illimité",
+//    sobre et cohérent avec le reste des tokens, aucune fausse limite affichée.
+function UsageGauge({ usage }: { usage: Usage }) {
+  if (usage.planType === "premium" || usage.documentsLimit === null) {
+    return (
+      <Link
+        href="/abonnement"
+        title="Voir mon abonnement"
+        className="mb-2.5 block rounded-md border border-line bg-surface-2 px-3 py-[11px] transition-colors hover:border-accent"
+      >
+        <span className="mb-[7px] flex items-baseline gap-2 text-xs font-semibold text-ink-2">
+          Documents ce mois
+          <b className="num ml-auto text-[11.5px] font-semibold text-accent-ink">
+            Illimité
+          </b>
+        </span>
+        <span className="block h-[5px] overflow-hidden rounded-full bg-line-soft">
+          <i className="block h-full w-full rounded-full bg-accent" />
+        </span>
+        <small className="mt-[7px] block text-[11.5px] font-semibold text-ok-ink">
+          Forfait Premium actif
+        </small>
+      </Link>
+    );
+  }
+
+  const used = usage.documentsThisMonth;
+  const limit = usage.documentsLimit;
   const pct = Math.min(100, Math.round((used / limit) * 100));
+  const full = pct >= 100;
+
   return (
     <Link
       href="/abonnement"
       title="Voir mon abonnement"
-      className="mb-2.5 block rounded-md border border-line bg-surface-2 px-3 py-[11px] transition-colors hover:border-accent"
+      className={cn(
+        "mb-2.5 block rounded-md border bg-surface-2 px-3 py-[11px] transition-colors hover:border-accent",
+        full ? "border-danger-line" : "border-line"
+      )}
     >
       <span className="mb-[7px] flex items-baseline gap-2 text-xs font-semibold text-ink-2">
         Documents ce mois
@@ -73,19 +112,26 @@ function UsageGauge({ used, limit }: { used: number; limit: number }) {
         <i
           className={cn(
             "block h-full rounded-full",
-            pct >= 100 ? "bg-danger" : "bg-warn"
+            full ? "bg-danger" : "bg-warn"
           )}
           style={{ width: `${pct}%` }}
         />
       </span>
-      <small className="mt-[7px] block text-[11.5px] font-semibold text-accent-ink">
-        Passer en Premium →
+      <small
+        className={cn(
+          "mt-[7px] block text-[11.5px] font-semibold",
+          full ? "text-danger-ink" : "text-accent-ink"
+        )}
+      >
+        {full
+          ? `Limite atteinte — repart le ${nextMonthFirstLabel()}`
+          : "Passer en Premium →"}
       </small>
     </Link>
   );
 }
 
-export function Sidebar({ user }: { user: UserProfile }) {
+export function Sidebar({ user, usage }: { user: UserProfile; usage: Usage }) {
   const pathname = usePathname();
 
   return (
@@ -147,7 +193,7 @@ export function Sidebar({ user }: { user: UserProfile }) {
 
       {/* Pied de sidebar : jauge freemium + menu utilisateur (vrai compte) */}
       <div className="border-t border-line-soft p-3">
-        <UsageGauge used={4} limit={5} />
+        <UsageGauge usage={usage} />
         <UserMenu {...user} />
       </div>
     </aside>

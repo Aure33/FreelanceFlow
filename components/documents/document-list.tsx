@@ -1,19 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Calendar, Download, FileText, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Calendar, Download, FileText, Plus, TriangleAlert } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Tag } from "@/components/dashboard/tag";
+import { GatedCreateLink } from "@/components/paywall/gated-create-link";
+import { PaywallModal } from "@/components/paywall/paywall-modal";
 import { cn } from "@/lib/utils";
 import { formatEuros, type DocType } from "@/lib/invoicing";
+import { nextMonthFirstLabel } from "@/lib/date-fr";
 import type {
   DocumentListItem,
   DocumentStatus,
   InvoiceSummary,
   QuoteSummary,
 } from "@/app/(app)/documents/actions";
+import type { Usage } from "@/app/(app)/abonnement/actions";
 import { statusMeta } from "./status";
 import { formatListDate } from "./format";
 
@@ -81,8 +85,18 @@ const FILTERS: Record<DocType, { id: FilterId; label: string }[]> = {
 };
 
 type Props =
-  | { type: "facture"; items: DocumentListItem[]; summary: InvoiceSummary }
-  | { type: "devis"; items: DocumentListItem[]; summary: QuoteSummary };
+  | {
+      type: "facture";
+      items: DocumentListItem[];
+      summary: InvoiceSummary;
+      usage: Usage;
+    }
+  | {
+      type: "devis";
+      items: DocumentListItem[];
+      summary: QuoteSummary;
+      usage: Usage;
+    };
 
 // Segment d'URL de la vue Document par type. DocType est "facture" (singulier,
 // vocabulaire métier) alors que la route est `/factures/[id]` (pluriel) — sans
@@ -91,9 +105,38 @@ type Props =
 const LIST_PATH: Record<DocType, string> = { facture: "factures", devis: "devis" };
 
 export function DocumentList(props: Props) {
-  const { type, items } = props;
+  const { type, items, usage } = props;
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState<FilterId>("all");
+
+  // Modale paywall (issue #10) : partagée par les 2 boutons de création de
+  // cette page ET par l'accès direct à l'URL de l'éditeur (redirigé ici avec
+  // `?limite=1` par app/(app)/documents/nouveau/page.tsx).
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const paywallTriggerRef = useRef<HTMLAnchorElement | null>(null);
+  const limitReached =
+    usage.planType === "free" &&
+    usage.documentsLimit !== null &&
+    usage.documentsThisMonth >= usage.documentsLimit;
+
+  useEffect(() => {
+    if (searchParams.get("limite") === "1") {
+      setPaywallOpen(true);
+    }
+    // Ouverture une seule fois au montage : searchParams volontairement
+    // absent des dépendances.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function openPaywall(trigger: HTMLAnchorElement) {
+    paywallTriggerRef.current = trigger;
+    setPaywallOpen(true);
+  }
+  function closePaywall() {
+    setPaywallOpen(false);
+    paywallTriggerRef.current?.focus();
+  }
 
   const copy = COPY[type];
   const createHref = `/documents/nouveau?type=${type}`;
@@ -149,14 +192,48 @@ export function DocumentList(props: Props) {
               Exporter
             </Button>
           )}
-          <Button asChild variant="primary">
-            <Link href={createHref}>
-              <Plus strokeWidth={2} />
-              {copy.createLabel}
-            </Link>
-          </Button>
+          <GatedCreateLink
+            usage={usage}
+            href={createHref}
+            onBlocked={openPaywall}
+            className={cn(buttonVariants({ variant: "primary" }))}
+          >
+            <Plus strokeWidth={2} />
+            {copy.createLabel}
+          </GatedCreateLink>
         </div>
       </div>
+
+      {/* Bannière limite atteinte (`.limit-banner`, AC #3) — visible dès 5/5,
+          quel que soit le nombre de documents de CE type précis (le quota
+          porte sur devis + factures confondus). */}
+      {limitReached && (
+        <div className="mb-gap flex items-center gap-[13px] rounded-md bg-warn-soft px-[18px] py-[13px] text-[13.5px] leading-[1.55] text-warn-ink">
+          <TriangleAlert
+            className="h-[18px] w-[18px] flex-none"
+            strokeWidth={2.2}
+            aria-hidden
+          />
+          <div>
+            Vous avez émis{" "}
+            <b className="font-bold">
+              {usage.documentsThisMonth} documents sur {usage.documentsLimit}
+            </b>{" "}
+            ce mois-ci. La création est bloquée jusqu&apos;au{" "}
+            <b className="font-bold">{nextMonthFirstLabel()}</b> sur le
+            forfait Gratuit.
+          </div>
+          <Link
+            href="/abonnement"
+            className={cn(
+              buttonVariants({ variant: "primary", size: "sm" }),
+              "ml-auto flex-none",
+            )}
+          >
+            Passer en Premium
+          </Link>
+        </div>
+      )}
 
       {items.length === 0 ? (
         // État vide engageant
@@ -170,12 +247,15 @@ export function DocumentList(props: Props) {
           <p className="mt-1.5 max-w-[380px] text-sm text-ink-3">
             {copy.emptyText}
           </p>
-          <Button asChild variant="primary" className="mt-5">
-            <Link href={createHref}>
-              <Plus strokeWidth={2} />
-              {copy.createLabel}
-            </Link>
-          </Button>
+          <GatedCreateLink
+            usage={usage}
+            href={createHref}
+            onBlocked={openPaywall}
+            className={cn(buttonVariants({ variant: "primary" }), "mt-5")}
+          >
+            <Plus strokeWidth={2} />
+            {copy.createLabel}
+          </GatedCreateLink>
         </div>
       ) : (
         <>
@@ -381,6 +461,8 @@ export function DocumentList(props: Props) {
           </section>
         </>
       )}
+
+      <PaywallModal open={paywallOpen} onClose={closePaywall} usage={usage} />
     </>
   );
 }
