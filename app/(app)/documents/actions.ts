@@ -624,6 +624,38 @@ export async function emitDocument(input: DocumentInput): Promise<EmitResult> {
   });
   if (!project) return { error: "Projet introuvable." };
 
+  // Paywall (#10) : le forfait Gratuit autorise 5 documents ÉMIS par mois
+  // calendaire (devis + factures confondus). Le compteur s'appuie sur
+  // `emittedAt`, un horodatage SERVEUR posé uniquement ici (jamais sur
+  // `issuedAt`, éditable par l'utilisateur — contournable en antidatant).
+  // Vérifié AVANT toute écriture : aucun numéro n'est consommé si le quota
+  // est atteint.
+  const me = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { planType: true, tvaRegime: true },
+  });
+  if (me?.planType !== "premium") {
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    const monthEnd = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    );
+    const emittedThisMonth = await prisma.document.count({
+      where: {
+        userId,
+        emittedAt: { gte: monthStart, lt: monthEnd },
+      },
+    });
+    if (emittedThisMonth >= 5) {
+      return {
+        error:
+          "Vous avez atteint la limite de 5 documents pour ce mois-ci sur le forfait Gratuit.",
+      };
+    }
+  }
+
   // Un document déjà émis ne se ré-émet pas (numéro figé).
   if (id) {
     const existing = await prisma.document.findFirst({
@@ -636,14 +668,11 @@ export async function emitDocument(input: DocumentInput): Promise<EmitResult> {
     }
   }
 
-  const me = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { tvaRegime: true },
-  });
   const regime = normalizeRegime(me?.tvaRegime);
   const lns = normalizedLines(lines, regime);
   const totals = computeTotals(lns);
   const issued = issuedAt ?? new Date();
+  const emitted = new Date(); // horodatage SERVEUR de l'émission — jamais rejoué
   const dueAt = computeDueDate(issued, paymentTerms);
   const year = issued.getUTCFullYear();
   const prefix = documentPrefix(type);
@@ -680,6 +709,7 @@ export async function emitDocument(input: DocumentInput): Promise<EmitResult> {
               totalTvaCents: totals.totalTvaCents,
               totalTtcCents: totals.totalTtcCents,
               issuedAt: issued,
+              emittedAt: emitted,
               dueAt,
               lines: {
                 create: lns.map((l) => ({
@@ -707,6 +737,7 @@ export async function emitDocument(input: DocumentInput): Promise<EmitResult> {
               totalTvaCents: totals.totalTvaCents,
               totalTtcCents: totals.totalTtcCents,
               issuedAt: issued,
+              emittedAt: emitted,
               dueAt,
               lines: {
                 create: lns.map((l) => ({
