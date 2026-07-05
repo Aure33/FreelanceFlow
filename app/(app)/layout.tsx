@@ -13,11 +13,13 @@ export default async function AppLayout({
     ({ name: "Utilisateur", email: "", initials: "U" } as const);
 
   return (
-    <div className="grid min-h-screen grid-cols-[var(--sidebar-w)_1fr]">
+    <div className="grid min-h-screen grid-cols-[var(--sidebar-w)_1fr] print:block">
       <Sidebar user={user} />
       <div className="flex min-w-0 flex-col">
         <Topbar />
-        <main className="mx-auto w-full max-w-content p-7">{children}</main>
+        <main className="mx-auto w-full max-w-content p-7 print:max-w-none print:p-0">
+          {children}
+        </main>
       </div>
     </div>
   );

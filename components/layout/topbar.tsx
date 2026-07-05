@@ -22,7 +22,7 @@ export function Topbar() {
   const title = SEGMENT_TITLES[segment] ?? "Freelance Flow";
 
   return (
-    <header className="sticky top-0 z-20 flex h-topbar items-center gap-[18px] border-b border-line bg-topbar px-7 backdrop-blur-[8px]">
+    <header className="sticky top-0 z-20 flex h-topbar items-center gap-[18px] border-b border-line bg-topbar px-7 backdrop-blur-[8px] print:hidden">
       <h1 className="text-lg font-bold tracking-[-0.02em]">{title}</h1>
 
       <div className="ml-auto flex w-[280px] items-center gap-[9px] rounded-md border border-line bg-surface px-[13px] py-2 text-ink-3">

@@ -89,7 +89,7 @@ export function Sidebar({ user }: { user: UserProfile }) {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 flex h-screen flex-col border-r border-line bg-surface">
+    <aside className="sticky top-0 flex h-screen flex-col border-r border-line bg-surface print:hidden">
       {/* Brand */}
       <div className="flex h-topbar items-center gap-[11px] border-b border-line-soft px-pad">
         <div className="grid h-[30px] w-[30px] flex-none place-items-center rounded-[8px] bg-accent text-base font-extrabold text-on-accent shadow-sm">

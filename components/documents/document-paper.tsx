@@ -20,8 +20,8 @@ export function DocumentPaper({ view }: { view: DocumentView }) {
   const bic = view.emitter.bic;
 
   return (
-    <div className="flex justify-center rounded-lg border border-line bg-[oklch(0.93_0.008_95)] p-[34px] max-[1180px]:p-[18px]">
-      <div className="flex h-fit w-[595px] min-h-[842px] max-w-full flex-none flex-col rounded-[4px] bg-white p-[48px_52px] text-[11.5px] leading-[1.5] text-[oklch(0.25_0.01_75)] shadow-lg">
+    <div className="flex justify-center rounded-lg border border-line bg-[oklch(0.93_0.008_95)] p-[34px] max-[1180px]:p-[18px] print:justify-normal print:rounded-none print:border-none print:bg-white print:p-0">
+      <div className="flex h-fit w-[595px] min-h-[842px] max-w-full flex-none flex-col rounded-[4px] bg-white p-[48px_52px] text-[11.5px] leading-[1.5] text-[oklch(0.25_0.01_75)] shadow-lg print:shadow-none">
         {/* En-tête : émetteur + badge */}
         <div className="mb-[38px] flex items-start justify-between">
           <div className="text-[oklch(0.42_0.012_75)]">
