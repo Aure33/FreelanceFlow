@@ -17,13 +17,15 @@ import { cn } from "@/lib/utils";
 import { UserMenu } from "./user-menu";
 import type { UserProfile } from "@/lib/auth/session";
 import type { Usage } from "@/app/(app)/abonnement/actions";
+import type { NavCounts } from "@/app/(app)/nav-counts";
 import { nextMonthFirstLabel } from "@/lib/date-fr";
 
 type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
-  badge?: number;
+  // Clé du compteur à afficher en badge (les items sans compteur l'omettent).
+  countKey?: keyof NavCounts;
 };
 
 type NavSection = {
@@ -31,20 +33,19 @@ type NavSection = {
   items: NavItem[];
 };
 
-// Compteurs mockés (maquette) — à remplacer par les données Prisma.
 const NAV_SECTIONS: NavSection[] = [
   {
     items: [
       { label: "Tableau de bord", href: "/dashboard", icon: LayoutGrid },
-      { label: "Clients", href: "/clients", icon: Users, badge: 24 },
-      { label: "Projets", href: "/projets", icon: Layers, badge: 8 },
+      { label: "Clients", href: "/clients", icon: Users, countKey: "clients" },
+      { label: "Projets", href: "/projets", icon: Layers, countKey: "projets" },
     ],
   },
   {
     label: "Facturation",
     items: [
-      { label: "Devis", href: "/devis", icon: FileText, badge: 5 },
-      { label: "Factures", href: "/factures", icon: Receipt, badge: 12 },
+      { label: "Devis", href: "/devis", icon: FileText, countKey: "devis" },
+      { label: "Factures", href: "/factures", icon: Receipt, countKey: "factures" },
     ],
   },
   {
@@ -131,7 +132,15 @@ function UsageGauge({ usage }: { usage: Usage }) {
   );
 }
 
-export function Sidebar({ user, usage }: { user: UserProfile; usage: Usage }) {
+export function Sidebar({
+  user,
+  usage,
+  counts,
+}: {
+  user: UserProfile;
+  usage: Usage;
+  counts: NavCounts;
+}) {
   const pathname = usePathname();
 
   return (
@@ -158,6 +167,8 @@ export function Sidebar({ user, usage }: { user: UserProfile; usage: Usage }) {
             {section.items.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
+              // Compteur réel (Prisma) ; badge masqué à 0 pour ne pas surcharger.
+              const badge = item.countKey ? counts[item.countKey] : undefined;
               return (
                 <Link
                   key={item.href}
@@ -172,7 +183,7 @@ export function Sidebar({ user, usage }: { user: UserProfile; usage: Usage }) {
                 >
                   <item.icon className="h-[18px] w-[18px] flex-none" strokeWidth={1.9} />
                   {item.label}
-                  {item.badge !== undefined && (
+                  {badge !== undefined && badge > 0 && (
                     <span
                       className={cn(
                         "num ml-auto rounded-full px-[7px] py-px text-[11px] font-semibold",
@@ -181,7 +192,7 @@ export function Sidebar({ user, usage }: { user: UserProfile; usage: Usage }) {
                           : "bg-surface-2 text-ink-2"
                       )}
                     >
-                      {item.badge}
+                      {badge}
                     </span>
                   )}
                 </Link>

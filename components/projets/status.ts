@@ -1,5 +1,5 @@
 import type { ProjectStatus } from "@/app/(app)/projets/actions";
-import type { TagTone } from "@/components/dashboard/mock-data";
+import type { TagTone } from "@/components/dashboard/tag";
 
 // Métadonnées d'affichage d'un statut de projet : libellé exact, teinte du tag
 // (`components/dashboard/tag.tsx`) et couleur de la pastille des colonnes Kanban.
