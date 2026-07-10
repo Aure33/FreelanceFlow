@@ -6,8 +6,15 @@ on:
     branches: [main]
 
 # Un seul workflow, deux blocs reliés dans la vue graphe de l'onglet Actions :
-#   Bloc 1 (lint, build) → Bloc 2 (tests-unitaires, tests-e2e)
+#   Bloc 1 (lint, build) → Bloc 2 (tests-unitaires, tests-integration, tests-e2e)
 # Le bloc Tests ne démarre qu'une fois lint+build passés (via `needs`).
+#
+# tests-unitaires  : cœur métier pur (lib/invoicing), rapide, sans I/O ni secret.
+# tests-integration: server actions + isolation RLS/userId contre un VRAI projet
+#                    Supabase de test (réseau) → gated sur les secrets TEST_*.
+# tests-e2e        : parcours navigateur Playwright, même gating.
+# Les deux jobs « réseau » s'auto-désactivent proprement tant que les 5 secrets
+# de test ne sont pas ajoutés au repo (#17) — jamais un faux vert silencieux.
 
 jobs:
   lint:
@@ -46,6 +53,50 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Tests unitaires (bun test)
         run: bun test
+
+  tests-integration:
+    needs: [lint, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Mêmes secrets de projet Supabase de TEST que l'E2E (jamais la prod).
+      # Ces tests écrivent en base réelle et prouvent l'isolation `userId`/RLS
+      # au niveau des server actions. Tant que les secrets sont absents (#17),
+      # le job s'auto-désactive proprement au lieu d'échouer.
+      - name: Vérifier la présence des secrets Supabase de test
+        id: check-secrets
+        run: |
+          if [ -n "${{ secrets.TEST_NEXT_PUBLIC_SUPABASE_URL }}" ] && \
+             [ -n "${{ secrets.TEST_SUPABASE_SECRET_KEY }}" ] && \
+             [ -n "${{ secrets.TEST_DATABASE_URL }}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.check-secrets.outputs.present == 'true'
+        with:
+          bun-version: latest
+
+      - name: Installer les dépendances
+        if: steps.check-secrets.outputs.present == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Tests d'intégration (server actions + isolation)
+        if: steps.check-secrets.outputs.present == 'true'
+        run: bun run test:integration
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.TEST_NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.TEST_SUPABASE_SECRET_KEY }}
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.TEST_DIRECT_URL }}
+
+      - name: Intégration ignorée (secrets de test absents)
+        if: steps.check-secrets.outputs.present == 'false'
+        run: echo "Secrets Supabase de test absents (#17) — tests d'intégration ignorés pour le moment. Suites versionnées déjà prêtes (tests/integration/*.integration.ts)."
 
   tests-e2e:
     needs: [lint, build]
