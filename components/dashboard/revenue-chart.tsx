@@ -1,10 +1,25 @@
-import { REVENUE_DATA } from "./mock-data";
+import { formatEuros } from "@/lib/invoicing";
+import type { DashboardData } from "@/app/(app)/dashboard/actions";
 
 // Graphe CA en barres empilées, HTML/CSS pur (aucune librairie de charts).
 // Hauteurs proportionnelles au cumul max du dataset. Le dernier mois est mis
 // en avant (`.peak`). Accessible : conteneur role="img" + aria-label descriptif.
-export function RevenueChart() {
-  const max = Math.max(...REVENUE_DATA.map((d) => d.paid + d.pending));
+export function RevenueChart({
+  data,
+}: {
+  data: DashboardData["monthlyRevenue"];
+}) {
+  const totals = data.map((d) => d.paidCents + d.pendingCents);
+  // max peut être 0 (compte vide) → on protège la division (barres à 0).
+  const max = Math.max(1, ...totals);
+
+  // aria-label généré depuis les vrais mois : période + mois du pic (dernier).
+  const peakIndex = data.length - 1;
+  const peak = data[peakIndex];
+  const ariaLabel =
+    data.length === 0
+      ? "Évolution du chiffre d'affaires : aucune donnée."
+      : `Évolution du chiffre d'affaires sur ${data.length} mois, de ${data[0].month} à ${peak.month}. Le mois de ${peak.month} totalise ${formatEuros(peak.paidCents)} encaissés et ${formatEuros(peak.pendingCents)} en attente.`;
 
   return (
     <section className="rounded-lg border border-line bg-surface shadow-sm">
@@ -31,21 +46,22 @@ export function RevenueChart() {
       <div className="p-pad">
         <div
           role="img"
-          aria-label="Évolution du chiffre d'affaires sur 8 mois, de novembre à juin. Le mois de juin culmine à 8 420 € encaissés et 3 150 € en attente."
+          aria-label={ariaLabel}
           className="flex h-[240px] items-end gap-[14px] px-1 pt-2"
         >
-          {REVENUE_DATA.map((d, i) => {
-            const peak = i === REVENUE_DATA.length - 1;
-            const paidH = ((d.paid / max) * 100).toFixed(1);
-            const pendingH = ((d.pending / max) * 100).toFixed(1);
+          {data.map((d, i) => {
+            const isPeak = i === peakIndex;
+            const totalCents = d.paidCents + d.pendingCents;
+            const paidH = ((d.paidCents / max) * 100).toFixed(1);
+            const pendingH = ((d.pendingCents / max) * 100).toFixed(1);
             return (
               <div
-                key={d.m}
+                key={`${d.month}-${i}`}
                 className="group flex h-full flex-1 flex-col items-center justify-end gap-[10px]"
-                title={`${d.m} · ${(d.paid + d.pending).toLocaleString("fr-FR")} €`}
+                title={`${d.month} · ${formatEuros(totalCents)}`}
               >
                 <div className="flex h-full w-full max-w-[44px] flex-col justify-end gap-[3px]">
-                  {d.pending > 0 && (
+                  {d.pendingCents > 0 && (
                     <div
                       className="w-full rounded-[5px_5px_3px_3px] border border-accent-line bg-accent-soft"
                       style={{ height: `${pendingH}%` }}
@@ -54,7 +70,7 @@ export function RevenueChart() {
                   <div
                     className="w-full rounded-[5px_5px_3px_3px] bg-accent transition-[filter] duration-150 group-hover:brightness-[1.08]"
                     style={
-                      peak
+                      isPeak
                         ? {
                             height: `${paidH}%`,
                             boxShadow: "0 0 0 3px var(--accent-soft)",
@@ -65,10 +81,10 @@ export function RevenueChart() {
                 </div>
                 <div
                   className={`text-[12px] font-semibold ${
-                    peak ? "text-accent-ink" : "text-ink-3"
+                    isPeak ? "text-accent-ink" : "text-ink-3"
                   }`}
                 >
-                  {d.m}
+                  {d.month}
                 </div>
               </div>
             );

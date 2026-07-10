@@ -1,5 +1,8 @@
 import { cn } from "@/lib/utils";
-import type { TagTone } from "./mock-data";
+
+// Teintes possibles d'un tag (pastille de statut). Co-localisé avec le composant
+// Tag qui les consomme ; réutilisé par les métadonnées de statut documents/projets.
+export type TagTone = "ok" | "warn" | "danger" | "neutral" | "accent";
 
 // Badge de statut (pastille + libellé) — reproduit `.tag` de freelance-flow.css.
 const TONE_CLASSES: Record<TagTone, string> = {

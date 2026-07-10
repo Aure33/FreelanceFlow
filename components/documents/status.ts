@@ -1,5 +1,5 @@
 import type { DocType } from "@/lib/invoicing";
-import type { TagTone } from "@/components/dashboard/mock-data";
+import type { TagTone } from "@/components/dashboard/tag";
 import type { DocumentStatus } from "@/app/(app)/documents/actions";
 
 // Statut effectif d'un document → pastille (ton + libellé), aligné sur le tableau
