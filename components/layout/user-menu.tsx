@@ -43,7 +43,7 @@ export function UserMenu({ name, email, initials }: UserProfile) {
               ref={logoutRef}
               role="menuitem"
               type="submit"
-              className="flex w-full items-center gap-2.5 rounded-sm px-2.5 py-2 text-left text-sm font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+              className="flex w-full items-center gap-2.5 rounded-sm px-2.5 py-2 text-left text-sm font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               <LogOut className="h-4 w-4 flex-none" strokeWidth={2} aria-hidden />
               Déconnexion
@@ -57,7 +57,7 @@ export function UserMenu({ name, email, initials }: UserProfile) {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex w-full items-center gap-[11px] rounded-md px-2.5 py-2 text-left transition-colors hover:bg-surface-2"
+        className="flex w-full items-center gap-[11px] rounded-md px-2.5 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
       >
         <div
           className="grid h-[34px] w-[34px] flex-none place-items-center rounded-full text-[13px] font-bold text-white"

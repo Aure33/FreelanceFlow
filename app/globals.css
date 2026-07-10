@@ -123,3 +123,21 @@
     letter-spacing: -0.01em;
   }
 }
+
+/* =========================================================================
+   Accessibilité — prefers-reduced-motion (RGAA / WCAG 2.3.3)
+   Neutralise animations, transitions et défilement fluide pour les
+   utilisateurs qui demandent moins de mouvement. Règle globale de sécurité,
+   en complément des `motion-reduce:animate-none` déjà posés sur les modales.
+   Hors @layer (après-tout) + !important pour primer sur les utilitaires.
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -71,7 +71,7 @@ function UsageGauge({ usage }: { usage: Usage }) {
       <Link
         href="/abonnement"
         title="Voir mon abonnement"
-        className="mb-2.5 block rounded-md border border-line bg-surface-2 px-3 py-[11px] transition-colors hover:border-accent"
+        className="mb-2.5 block rounded-md border border-line bg-surface-2 px-3 py-[11px] transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
       >
         <span className="mb-[7px] flex items-baseline gap-2 text-xs font-semibold text-ink-2">
           Documents ce mois
@@ -99,7 +99,7 @@ function UsageGauge({ usage }: { usage: Usage }) {
       href="/abonnement"
       title="Voir mon abonnement"
       className={cn(
-        "mb-2.5 block rounded-md border bg-surface-2 px-3 py-[11px] transition-colors hover:border-accent",
+        "mb-2.5 block rounded-md border bg-surface-2 px-3 py-[11px] transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
         full ? "border-danger-line" : "border-line"
       )}
     >
@@ -175,13 +175,17 @@ export function Sidebar({
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-[11px] rounded-sm px-3 py-[9px] text-sm font-medium transition-colors",
+                    "flex items-center gap-[11px] rounded-sm px-3 py-[9px] text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
                     active
                       ? "bg-accent-soft font-semibold text-accent-ink"
                       : "text-ink-2 hover:bg-surface-2 hover:text-ink"
                   )}
                 >
-                  <item.icon className="h-[18px] w-[18px] flex-none" strokeWidth={1.9} />
+                  <item.icon
+                    className="h-[18px] w-[18px] flex-none"
+                    strokeWidth={1.9}
+                    aria-hidden
+                  />
                   {item.label}
                   {badge !== undefined && badge > 0 && (
                     <span
