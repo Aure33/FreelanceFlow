@@ -131,7 +131,7 @@ export function LegalDocs() {
             Les données (base de données, authentification, fichiers) sont hébergées
             par <b className="font-[650] text-ink">Supabase</b>, sur une
             infrastructure localisée dans l&apos;Union européenne — région{" "}
-            <b className="font-[650] text-ink">eu-central-1 (Francfort, Allemagne)</b>.
+            <b className="font-[650] text-ink">eu-west-1 (Dublin, Irlande)</b>.
             Aucune donnée métier n&apos;est stockée hors de l&apos;Union européenne.
           </p>
 
@@ -363,7 +363,7 @@ export function LegalDocs() {
           </h2>
           <p className="mb-3 text-[14.5px] leading-[1.7] text-ink-2 [text-wrap:pretty]">
             Les données sont hébergées dans l&apos;Union européenne (Supabase — région
-            Francfort, Allemagne). Le rendu de l&apos;interface transite par le CDN de
+            Dublin, Irlande). Le rendu de l&apos;interface transite par le CDN de
             Vercel.
             La liste complète des sous-traitants est disponible sur demande auprès du
             DPO.
