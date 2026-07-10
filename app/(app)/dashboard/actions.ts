@@ -19,6 +19,15 @@
 //  - montants par document (panneau « À traiter », factures récentes) en TTC
 //    (totalTtcCents), comme les listes /factures /devis ;
 //  - bornes de mois/trimestre en UTC (comme abonnement/rapports).
+//
+// NOMBRE DE REQUÊTES (important) : cette page est la plus gourmande de l'app.
+// Le layout charge déjà getUsage() + getNavCounts() ; tout part en parallèle
+// sur le pool Prisma. Avec le pooler Supabase, un `connection_limit` trop bas
+// sérialise ces requêtes et fait dépasser le `pool_timeout` (erreur « Timed out
+// fetching a new connection from the connection pool »). On garde donc le
+// nombre d'allers-retours au minimum : les deux CA du KPI 1 se dérivent des
+// seaux du graphe, et `overdueCount` réutilise le `_count` de l'agrégat KPI 3
+// (mêmes clauses `where`). Ne pas rajouter de requête sans nécessité.
 
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
@@ -116,11 +125,12 @@ export async function getDashboardData(): Promise<DashboardData> {
   const curY = now.getUTCFullYear();
   const curM = now.getUTCMonth();
 
-  // Bornes du mois calendaire en cours et du précédent (UTC).
-  const monthStart = new Date(Date.UTC(curY, curM, 1));
+  // Borne haute du mois calendaire en cours (UTC), qui est aussi la borne haute
+  // de la fenêtre du graphe. Le CA encaissé du mois en cours et celui du mois
+  // précédent ne font PAS l'objet de requêtes dédiées : ils se DÉRIVENT des deux
+  // derniers seaux du graphe (même filtre exactement : facture « paye », paidAt
+  // dans le mois). Voir la note sur le nombre de requêtes en tête de fichier.
   const monthEnd = new Date(Date.UTC(curY, curM + 1, 1));
-  const prevMonthStart = new Date(Date.UTC(curY, curM - 1, 1));
-  const prevMonthEnd = monthStart;
 
   // Fenêtre de 8 mois glissants finissant au mois en cours (le plus ancien au
   // plus récent). monthsMeta[i] = année + mois de chaque colonne du graphe.
@@ -137,38 +147,15 @@ export async function getDashboardData(): Promise<DashboardData> {
   const quarterEnd = new Date(Date.UTC(curY, quarterStartMonth + 3, 1));
 
   const [
-    caEncaisse,
-    caEncaissePrevMonth,
     enAttente,
     enRetard,
     devisEnvoye,
     monthlyRows,
-    overdueCount,
     overdueRows,
     devisRows,
     recentRows,
     quarterRows,
   ] = await Promise.all([
-    // KPI 1 : CA encaissé (HT) ce mois-ci.
-    prisma.document.aggregate({
-      where: {
-        userId,
-        type: "facture",
-        status: "paye",
-        paidAt: { gte: monthStart, lt: monthEnd },
-      },
-      _sum: { totalHtCents: true },
-    }),
-    // KPI 1 (delta) : CA encaissé (HT) le mois précédent complet.
-    prisma.document.aggregate({
-      where: {
-        userId,
-        type: "facture",
-        status: "paye",
-        paidAt: { gte: prevMonthStart, lt: prevMonthEnd },
-      },
-      _sum: { totalHtCents: true },
-    }),
     // KPI 2 : factures en attente (HT) — « envoye » non échues.
     prisma.document.aggregate({
       where: {
@@ -182,6 +169,8 @@ export async function getDashboardData(): Promise<DashboardData> {
       _count: true,
     }),
     // KPI 3 : factures en retard (HT) — « envoye » échues non payées.
+    // Son `_count` sert AUSSI de `overdueCount` au panneau priorité (même
+    // clause where) : pas de requête `count` séparée.
     prisma.document.aggregate({
       where: {
         userId,
@@ -215,16 +204,6 @@ export async function getDashboardData(): Promise<DashboardData> {
         paidAt: true,
         issuedAt: true,
         totalHtCents: true,
-      },
-    }),
-    // Panneau priorité — badge : nb TOTAL de factures en retard.
-    prisma.document.count({
-      where: {
-        userId,
-        type: "facture",
-        status: "envoye",
-        paidAt: null,
-        dueAt: { lt: now },
       },
     }),
     // Panneau priorité — factures en retard, la plus en retard en tête
@@ -303,15 +282,9 @@ export async function getDashboardData(): Promise<DashboardData> {
   }).format(now);
   const todayLabel = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1);
 
-  // --- KPI --------------------------------------------------------------------
-  const caEncaisseCents = caEncaisse._sum.totalHtCents ?? 0;
-  const caPrevMonth = caEncaissePrevMonth._sum.totalHtCents ?? 0;
-  const caEncaisseDeltaPct =
-    caPrevMonth === 0
-      ? null
-      : Math.round(((caEncaisseCents - caPrevMonth) / caPrevMonth) * 100);
-
   // --- Graphe CA (8 mois glissants) ------------------------------------------
+  // Calculé AVANT les KPI : les deux derniers seaux fournissent le CA encaissé
+  // du mois en cours et du mois précédent (cf. note plus haut).
   const buckets = Array.from({ length: 8 }, () => ({
     paidCents: 0,
     pendingCents: 0,
@@ -333,6 +306,18 @@ export async function getDashboardData(): Promise<DashboardData> {
     paidCents: b.paidCents,
     pendingCents: b.pendingCents,
   }));
+
+  // --- KPI 1 : CA encaissé + delta vs mois dernier ----------------------------
+  // Dérivés des seaux : buckets[7] = mois en cours, buckets[6] = mois précédent
+  // (monthsMeta[k] vaut curM + (k - 7)). Le filtre du graphe (« paye » + paidAt
+  // dans la fenêtre) est exactement celui qu'auraient eu deux agrégats dédiés —
+  // on économise 2 allers-retours BDD sans changer le résultat.
+  const caEncaisseCents = buckets[7].paidCents;
+  const caPrevMonth = buckets[6].paidCents;
+  const caEncaisseDeltaPct =
+    caPrevMonth === 0
+      ? null
+      : Math.round(((caEncaisseCents - caPrevMonth) / caPrevMonth) * 100);
 
   // --- Panneau priorité ------------------------------------------------------
   const overdueItems: DashboardPriorityItem[] = overdueRows.map((r) => ({
@@ -409,7 +394,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     },
     monthlyRevenue,
     priority: {
-      overdueCount,
+      // Même clause where que l'agrégat KPI 3 : on réutilise son _count.
+      overdueCount: enRetard._count,
       items: priorityItems,
     },
     recentInvoices,

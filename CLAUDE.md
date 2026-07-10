@@ -15,7 +15,7 @@ Pour implémenter un écran : lire la maquette HTML correspondante dans `design_
 | Framework | Next.js 14.2 (App Router) + TypeScript |
 | Styling | Tailwind CSS v3 + shadcn/ui (style new-york, prérequis installés, aucun composant ajouté encore) |
 | Auth & BDD | Supabase (PostgreSQL + RLS + Storage) — BDD + auth branchées (#4, #3) |
-| ORM | Prisma 6 — installé, client `lib/prisma.ts` (pooler 6543) |
+| ORM | Prisma 6 — installé, client `lib/prisma.ts` (pooler 6543, `connection_limit=5` — voir ⚠️ ci-dessous) |
 | PDF | Puppeteer (route API serveur) — fait (#9) |
 | Déploiement | Vercel |
 
@@ -29,6 +29,12 @@ bun run dev          # serveur de dev
 bun run build        # build de prod
 bunx shadcn add <c>  # ajouter un composant shadcn
 ```
+
+## ⚠️ Pool de connexions Prisma
+
+`DATABASE_URL` doit garder **`connection_limit=5&pool_timeout=20`** (cf. `.env.example`). Avec `connection_limit=1`, les pages qui lancent plusieurs requêtes **en parallèle** (le tableau de bord : `layout` → `getUsage()` + `getNavCounts()`, puis `getDashboardData()`) se sérialisent sur une seule connexion et dépassent le `pool_timeout` → `Timed out fetching a new connection from the connection pool`. **À reporter aussi dans les variables d'environnement Vercel.**
+
+Corollaire (éco-conception) : garder le nombre d'allers-retours BDD au minimum par page. Dans `getDashboardData()`, les 2 CA du KPI 1 sont **dérivés des seaux du graphe** et `overdueCount` réutilise le `_count` de l'agrégat « en retard » (mêmes clauses `where`) — ne pas rajouter de requête sans nécessité.
 
 ## État d'avancement
 
