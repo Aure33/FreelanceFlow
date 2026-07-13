@@ -29,8 +29,11 @@
 // seaux du graphe, et `overdueCount` réutilise le `_count` de l'agrégat KPI 3
 // (mêmes clauses `where`). Ne pas rajouter de requête sans nécessité.
 
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
+import type { OnboardingCounts } from "@/lib/onboarding";
 
 // --- Types exposés à l'UI ----------------------------------------------------
 
@@ -401,4 +404,52 @@ export async function getDashboardData(): Promise<DashboardData> {
     recentInvoices,
     topClients,
   };
+}
+
+// --- Premier lancement (issue #60) --------------------------------------------
+
+// Cookie posé quand l'utilisateur ignore le guide « Premiers pas » : lu par la
+// page dashboard AVANT toute requête d'onboarding, il évite aussi le re-calcul
+// à chaque visite. Per-appareil (pas de colonne en base) : compromis assumé,
+// l'écran disparaît de toute façon partout dès le premier document.
+const ONBOARDING_DISMISSED_COOKIE = "ff-onboarding-dismissed";
+
+export async function isOnboardingDismissed(): Promise<boolean> {
+  return cookies().get(ONBOARDING_DISMISSED_COOKIE)?.value === "1";
+}
+
+// Compteurs nécessaires au calcul des étapes (computeOnboarding, lib/onboarding).
+// 3 requêtes légères en parallèle ; findUnique sur id = userId (l'id EST la
+// clé d'isolation), counts filtrés userId comme partout.
+export async function getOnboardingStatus(): Promise<OnboardingCounts> {
+  const userId = await requireUserId();
+
+  const [user, clientCount, documentCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { siret: true },
+    }),
+    prisma.client.count({ where: { userId } }),
+    prisma.document.count({ where: { userId } }),
+  ]);
+
+  return {
+    hasSiret: Boolean(user?.siret && user.siret.trim().length > 0),
+    clientCount,
+    documentCount,
+  };
+}
+
+// « Ignorer ce guide » : pose le cookie (1 an) puis revalide le dashboard —
+// l'utilisateur retrouve le tableau de bord classique (états vides propres #47).
+export async function dismissOnboarding(): Promise<void> {
+  await requireUserId();
+
+  cookies().set(ONBOARDING_DISMISSED_COOKIE, "1", {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+    httpOnly: true,
+  });
+  revalidatePath("/dashboard");
 }
