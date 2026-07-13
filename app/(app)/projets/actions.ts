@@ -90,6 +90,17 @@ const createProjectSchema = z.object({
   notes: optionalText,
 });
 
+// Édition (#58) : titre, notes et statut. PAS de clientId — le rattachement
+// d'un projet à son client est structurel (les documents émis du projet
+// affichent ce client : le re-parenter réécrirait leur historique).
+const updateProjectSchema = z.object({
+  name: z.string().trim().min(1, "Le titre de la mission est requis."),
+  notes: optionalText,
+  status: z.enum(["en_cours", "termine", "en_pause"], {
+    error: "Statut invalide.",
+  }),
+});
+
 // Normalise un statut inconnu vers la valeur par défaut (sécurité de typage
 // côté lecture : la base ne contraint pas l'enum, on garantit le type exposé).
 function normalizeStatus(value: string): ProjectStatus {
@@ -230,4 +241,91 @@ export async function createProject(
   revalidatePath("/projets");
   // redirect() lève NEXT_REDIRECT : à placer HORS du try/catch.
   redirect(`/projets/${created.id}`);
+}
+
+export type UpdateProjectInput = {
+  name: string;
+  notes?: string;
+  status: ProjectStatus;
+};
+
+// Met à jour un projet de l'utilisateur courant (issue #58).
+// updateMany + filtre { id, userId } : si l'id n'existe pas OU appartient à un
+// autre utilisateur, 0 ligne est touchée → « Projet introuvable. » sans jamais
+// révéler si l'id existe chez autrui (même réponse dans les deux cas).
+export async function updateProject(
+  id: string,
+  input: UpdateProjectInput,
+): Promise<ActionState | undefined> {
+  const userId = await requireUserId();
+
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "Projet introuvable." };
+  }
+
+  const parsed = updateProjectSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+  }
+
+  let count = 0;
+  try {
+    ({ count } = await prisma.project.updateMany({
+      where: { id, userId },
+      data: {
+        name: parsed.data.name,
+        notes: parsed.data.notes ?? null,
+        status: parsed.data.status,
+      },
+    }));
+  } catch {
+    return {
+      error: "Impossible d'enregistrer les modifications. Réessayez dans un instant.",
+    };
+  }
+  if (count === 0) {
+    return { error: "Projet introuvable." };
+  }
+
+  revalidatePath("/projets");
+  revalidatePath(`/projets/${id}`);
+  return undefined;
+}
+
+// Supprime un projet de l'utilisateur courant (issue #58) puis redirige vers
+// la liste. Garde d'intégrité : la contrainte RESTRICT (projects ← documents)
+// interdit de supprimer un projet qui a des documents (des pièces émises ont
+// une valeur légale) — pré-vérification pour un message clair + rattrapage de
+// l'erreur de contrainte (course possible).
+export async function deleteProject(id: string): Promise<ActionState> {
+  const userId = await requireUserId();
+
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "Projet introuvable." };
+  }
+
+  const documentsCount = await prisma.document.count({
+    where: { projectId: id, userId },
+  });
+  if (documentsCount > 0) {
+    return {
+      error: `Ce projet a ${documentsCount} document${documentsCount > 1 ? "s" : ""} rattaché${documentsCount > 1 ? "s" : ""} (devis ou factures) — il ne peut pas être supprimé.`,
+    };
+  }
+
+  let count = 0;
+  try {
+    ({ count } = await prisma.project.deleteMany({ where: { id, userId } }));
+  } catch {
+    return {
+      error: "Ce projet a des documents rattachés — il ne peut pas être supprimé.",
+    };
+  }
+  if (count === 0) {
+    return { error: "Projet introuvable." };
+  }
+
+  revalidatePath("/projets");
+  // redirect() lève NEXT_REDIRECT : à placer HORS du try/catch.
+  redirect("/projets");
 }

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EditProjectButton } from "@/components/projets/edit-project-modal";
 import { Tag } from "@/components/dashboard/tag";
 import { ClientAvatar } from "@/components/clients/client-avatar";
 import { ProjectBreadcrumb } from "@/components/projets/project-breadcrumb";
@@ -40,13 +41,11 @@ export default async function ProjetDetailPage({
             <Tag tone={meta.tone}>{meta.label}</Tag>
           </div>
         </div>
-        {/* « Modifier » (drawer d'édition) reste à faire ; « Créer un devis /
-            une facture » ouvrent l'éditeur (#8) avec ce projet + le type pré-sélectionnés. */}
+        {/* « Modifier » ouvre la modale d'édition/suppression (#58) ; « Créer un
+            devis / une facture » ouvrent l'éditeur (#8) avec ce projet + le type
+            pré-sélectionnés. */}
         <div className="ml-auto flex items-center gap-2.5">
-          <Button type="button" variant="default" disabled title="Bientôt disponible">
-            <Pencil strokeWidth={2} />
-            Modifier
-          </Button>
+          <EditProjectButton project={project} />
           <Button asChild variant="default">
             <Link href={`/documents/nouveau?projet=${project.id}&type=devis`}>
               Créer un devis
