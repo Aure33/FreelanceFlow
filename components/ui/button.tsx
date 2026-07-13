@@ -16,6 +16,10 @@ const buttonVariants = cva(
         primary:
           "border border-accent bg-accent text-on-accent shadow-sm hover:border-accent-hover hover:bg-accent-hover",
         ghost: "border border-transparent hover:bg-surface-2",
+        // Action destructive (#58) : tokens danger (contrastes ≥ 4.5:1 vérifiés
+        // dans les deux thèmes, cf. #14).
+        danger:
+          "border border-danger-line bg-danger-soft text-danger-ink hover:border-danger",
       },
       size: {
         default: "h-10 rounded-md px-4 text-sm",

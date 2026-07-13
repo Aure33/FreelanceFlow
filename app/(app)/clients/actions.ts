@@ -213,6 +213,95 @@ export async function createClient(
   redirect(`/clients/${created.id}`);
 }
 
+// Met à jour un client de l'utilisateur courant (issue #58).
+// updateMany + filtre { id, userId } : si l'id n'existe pas OU appartient à un
+// autre utilisateur, 0 ligne est touchée → « Client introuvable. » sans jamais
+// révéler si l'id existe chez autrui (même réponse dans les deux cas).
+// Succès : revalide liste + fiche, renvoie undefined (la modale se ferme et
+// rafraîchit côté client).
+export async function updateClient(
+  id: string,
+  input: CreateClientInput,
+): Promise<ActionState | undefined> {
+  const userId = await requireUserId();
+
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "Client introuvable." };
+  }
+
+  // Même schéma que la création : mêmes règles, mêmes messages.
+  const parsed = createClientSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+  }
+
+  let count = 0;
+  try {
+    ({ count } = await prisma.client.updateMany({
+      where: { id, userId },
+      data: {
+        name: parsed.data.name,
+        siret: parsed.data.siret ?? null,
+        email: parsed.data.email ?? null,
+        phone: parsed.data.phone ?? null,
+        address: parsed.data.address ?? null,
+        paymentTerms: parsed.data.paymentTerms ?? null,
+      },
+    }));
+  } catch {
+    return {
+      error: "Impossible d'enregistrer les modifications. Réessayez dans un instant.",
+    };
+  }
+  if (count === 0) {
+    return { error: "Client introuvable." };
+  }
+
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${id}`);
+  return undefined;
+}
+
+// Supprime un client de l'utilisateur courant (issue #58) puis redirige vers
+// la liste. Garde d'intégrité : la contrainte RESTRICT (clients ← projects)
+// interdit de supprimer un client qui a des projets — on pré-vérifie pour un
+// message clair, et on rattrape aussi l'erreur de contrainte (course possible
+// entre la vérification et la suppression).
+export async function deleteClient(id: string): Promise<ActionState> {
+  const userId = await requireUserId();
+
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "Client introuvable." };
+  }
+
+  const projectsCount = await prisma.project.count({
+    where: { clientId: id, userId },
+  });
+  if (projectsCount > 0) {
+    return {
+      error: `Ce client a ${projectsCount} projet${projectsCount > 1 ? "s" : ""} rattaché${projectsCount > 1 ? "s" : ""} — supprimez-les d'abord.`,
+    };
+  }
+
+  let count = 0;
+  try {
+    ({ count } = await prisma.client.deleteMany({ where: { id, userId } }));
+  } catch {
+    // Contrainte RESTRICT levée malgré la pré-vérification (course) ou autre
+    // erreur : même message d'intégrité, jamais le détail SQL.
+    return {
+      error: "Ce client a des projets rattachés — supprimez-les d'abord.",
+    };
+  }
+  if (count === 0) {
+    return { error: "Client introuvable." };
+  }
+
+  revalidatePath("/clients");
+  // redirect() lève NEXT_REDIRECT : à placer HORS du try/catch.
+  redirect("/clients");
+}
+
 // --- Vérification SIRET (API publique gratuite de l'État) ---------------------
 
 // Recherche d'entreprises (annuaire-entreprises) — appel SERVEUR, sans clé.

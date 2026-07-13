@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EditClientButton } from "@/components/clients/edit-client-modal";
 import { ClientBreadcrumb } from "@/components/clients/client-breadcrumb";
 import { ClientAvatar } from "@/components/clients/client-avatar";
 import { formatSiret } from "@/components/clients/format";
@@ -30,14 +31,12 @@ export default async function ClientDetailPage({
             {client.sector ?? "Client professionnel"}
           </div>
         </div>
-        {/* « Modifier » (drawer d'édition) reste à faire. « Nouveau devis /
-            facture » ouvrent l'éditeur (#8) — le projet (qui porte le client)
-            se choisit dans l'éditeur, un client pouvant avoir plusieurs projets. */}
+        {/* « Modifier » ouvre la modale d'édition/suppression (#58). « Nouveau
+            devis / facture » ouvrent l'éditeur (#8) — le projet (qui porte le
+            client) se choisit dans l'éditeur, un client pouvant avoir
+            plusieurs projets. */}
         <div className="ml-auto flex items-center gap-2.5">
-          <Button type="button" variant="default" disabled title="Bientôt disponible">
-            <Pencil strokeWidth={2} />
-            Modifier
-          </Button>
+          <EditClientButton client={client} />
           <Button asChild variant="default">
             <Link href="/documents/nouveau?type=devis">Nouveau devis</Link>
           </Button>
