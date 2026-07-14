@@ -98,6 +98,8 @@ export function DocumentView({ view }: { view: DocumentViewData }) {
                 type={view.type}
                 id={view.id}
                 status={view.status}
+                sourceQuote={view.sourceQuote}
+                convertedInvoice={view.convertedInvoice}
               />
             </div>
           </section>

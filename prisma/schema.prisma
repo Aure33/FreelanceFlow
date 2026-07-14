@@ -97,6 +97,7 @@ model Document {
   totalTtcCents Int       @default(0) @map("total_ttc_cents") // centimes entiers
   issuedAt      DateTime? @map("issued_at") @db.Timestamptz(6) // date "métier", éditable par l'utilisateur
   emittedAt     DateTime? @map("emitted_at") @db.Timestamptz(6) // horodatage SERVEUR, jamais éditable — quota paywall (#10)
+  sourceQuoteId String?   @unique(map: "documents_source_quote_id_key") @map("source_quote_id") @db.Uuid // devis d'origine si conversion (#61) — UNIQUE : un devis → une seule facture
   dueAt         DateTime? @map("due_at") @db.Timestamptz(6)
   paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -105,6 +106,10 @@ model Document {
   // ON DELETE RESTRICT : impossible de supprimer un projet portant des documents
   project Project        @relation(fields: [projectId], references: [id], onDelete: Restrict)
   lines   DocumentLine[]
+  // Traçabilité devis → facture (#61). SET NULL : supprimer le devis ne casse
+  // jamais la facture (la trace disparaît, la pièce reste).
+  sourceQuote      Document? @relation("QuoteConversion", fields: [sourceQuoteId], references: [id], onDelete: SetNull)
+  convertedInvoice Document? @relation("QuoteConversion")
 
   @@unique([userId, number], map: "documents_user_number_key") // numérotation unique par utilisateur
   @@index([userId])
