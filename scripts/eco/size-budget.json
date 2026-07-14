@@ -1,0 +1,7 @@
+{
+  "defaultKb": 130,
+  "routes": {
+    "/connexion": 190,
+    "/inscription": 190
+  }
+}
