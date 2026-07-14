@@ -1,29 +1,47 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, Copy, Download, Send, X } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  Copy,
+  Download,
+  Pencil,
+  Send,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DocType } from "@/lib/invoicing";
 import {
+  convertQuoteToInvoice,
   updateDocumentStatus,
   type DocumentStatus,
+  type DocumentView,
 } from "@/app/(app)/documents/actions";
 
 // Actions de statut du panneau latéral de la vue Document. Client, car elles
-// appellent la server action updateDocumentStatus ({ok}|{error}, pas de redirect)
-// puis rafraîchissent la page (router.refresh) pour relire le statut effectif.
+// appellent les server actions ({ok}|{error}, pas de redirect) puis
+// rafraîchissent/naviguent selon le résultat.
 //
-// Les actions non branchées à ce stade (relance, conversion, dupliquer, PDF) sont
-// désactivées : aucune n'a de comportement spécifié / implémenté (PDF = #9).
+// « Convertir en facture » (#61) : actif uniquement sur un devis ACCEPTÉ non
+// encore converti — crée un brouillon de facture (lignes copiées, traçabilité
+// sourceQuoteId) puis ouvre l'éditeur dessus pour relecture et émission (le
+// quota freemium reste du ressort d'emitDocument). Les actions restantes sans
+// comportement spécifié (relance, dupliquer #66) restent désactivées.
 export function DocumentStatusActions({
   type,
   id,
   status,
+  sourceQuote = null,
+  convertedInvoice = null,
 }: {
   type: DocType;
   id: string;
   status: DocumentStatus;
+  sourceQuote?: DocumentView["sourceQuote"];
+  convertedInvoice?: DocumentView["convertedInvoice"];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -39,6 +57,18 @@ export function DocumentStatusActions({
         setError(res.error);
       } else {
         router.refresh();
+      }
+    });
+  }
+
+  function convert() {
+    setError(null);
+    startTransition(async () => {
+      const res = await convertQuoteToInvoice(id);
+      if ("error" in res) {
+        setError(res.error);
+      } else {
+        router.push(`/documents/nouveau?document=${res.id}`);
       }
     });
   }
@@ -83,16 +113,53 @@ export function DocumentStatusActions({
         </>
       )}
 
-      {/* Actions non branchées — désactivées (aucune spec / dépendent de #9). */}
       {type === "facture" ? (
+        // Non branchée — désactivée (aucune automatisation d'envoi, cf. #69).
         <Button type="button" variant="default" className={btn} disabled>
           <Send strokeWidth={2} />
           Envoyer une relance
         </Button>
+      ) : convertedInvoice ? (
+        // Devis déjà converti : lien vers la facture (éditeur si brouillon).
+        <Button asChild variant="default" className={btn}>
+          <Link
+            href={
+              convertedInvoice.isDraft
+                ? `/documents/nouveau?document=${convertedInvoice.id}`
+                : `/factures/${convertedInvoice.id}`
+            }
+          >
+            <ArrowRight strokeWidth={2} />
+            {convertedInvoice.isDraft
+              ? "Voir le brouillon de facture"
+              : `Voir la facture ${convertedInvoice.number ?? ""}`.trim()}
+          </Link>
+        </Button>
       ) : (
-        <Button type="button" variant="default" className={btn} disabled>
+        <Button
+          type="button"
+          variant="default"
+          className={btn}
+          disabled={pending || status !== "accepte"}
+          title={
+            status !== "accepte"
+              ? "Disponible quand le devis est accepté"
+              : undefined
+          }
+          onClick={convert}
+        >
           <ArrowRight strokeWidth={2} />
           Convertir en facture
+        </Button>
+      )}
+      {isDraft && (
+        // Reprise d'un brouillon dans l'éditeur (#61) — un brouillon n'a pas de
+        // numéro : il reste entièrement modifiable et émissible.
+        <Button asChild variant="primary" className={btn}>
+          <Link href={`/documents/nouveau?document=${id}`}>
+            <Pencil strokeWidth={2} />
+            Reprendre dans l&apos;éditeur
+          </Link>
         </Button>
       )}
       {isDraft ? (
@@ -121,7 +188,21 @@ export function DocumentStatusActions({
 
       {isDraft && (
         <p className="text-[12.5px] leading-[1.5] text-ink-3">
-          Ce document est un brouillon : émettez-le pour en suivre le statut.
+          Ce document est un brouillon : reprenez-le dans l&apos;éditeur pour
+          l&apos;émettre et en suivre le statut.
+        </p>
+      )}
+      {sourceQuote && (
+        // Traçabilité (#61) : cette facture est issue d'un devis converti.
+        <p className="text-[12.5px] leading-[1.5] text-ink-3">
+          Créée à partir du devis{" "}
+          <Link
+            href={`/devis/${sourceQuote.id}`}
+            className="num font-semibold text-accent-ink hover:underline"
+          >
+            {sourceQuote.number ?? "brouillon"}
+          </Link>
+          .
         </p>
       )}
       {error && (

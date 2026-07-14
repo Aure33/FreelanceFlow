@@ -111,12 +111,35 @@ function makeLine(): EditorLine {
   return { id: ++lineSeq, label: "", quantity: "1", unitPriceEuros: "", tvaRate: 20 };
 }
 
+// Centimes entiers → saisie euros FR (« 1200 » ou « 1200,50 »), inverse
+// d'eurosToCents pour recharger un brouillon existant.
+function centsToEurosInput(cents: number): string {
+  const euros = cents / 100;
+  return Number.isInteger(euros)
+    ? String(euros)
+    : euros.toFixed(2).replace(".", ",");
+}
+
+// Brouillon existant rechargé dans l'éditeur (reprise / conversion, #61).
+export type EditorInitialDocument = {
+  id: string;
+  object: string | null;
+  sourceQuoteNumber: string | null; // devis d'origine si issu d'une conversion
+  lines: {
+    label: string;
+    quantity: number;
+    unitPriceCents: number;
+    tvaRate: number;
+  }[];
+};
+
 export function DocumentEditor({
   projects,
   emitterName,
   regime,
   initialType = "facture",
   initialProjectId = "",
+  initialDocument = null,
 }: {
   projects: ProjectPickerOption[];
   emitterName: string;
@@ -124,6 +147,8 @@ export function DocumentEditor({
   // Présélection depuis un point d'entrée (fiche projet) — validés côté page.
   initialType?: DocType;
   initialProjectId?: string;
+  // Brouillon à reprendre (validé côté page : appartenance + statut brouillon).
+  initialDocument?: EditorInitialDocument | null;
 }) {
   const hasProjects = projects.length > 0;
 
@@ -131,10 +156,24 @@ export function DocumentEditor({
   const [projectId, setProjectId] = useState(initialProjectId);
   const [issuedAt, setIssuedAt] = useState(todayInputValue());
   const [paymentTerms, setPaymentTerms] = useState<PaymentTerm>("net30");
-  const [object, setObject] = useState("");
-  const [lines, setLines] = useState<EditorLine[]>(() => [makeLine()]);
+  const [object, setObject] = useState(initialDocument?.object ?? "");
+  const [lines, setLines] = useState<EditorLine[]>(() =>
+    initialDocument && initialDocument.lines.length > 0
+      ? initialDocument.lines.map((l) => ({
+          id: ++lineSeq,
+          label: l.label,
+          quantity: String(l.quantity).replace(".", ","),
+          unitPriceEuros: centsToEurosInput(l.unitPriceCents),
+          // Un taux hors liste (donnée ancienne) retombe sur 20 % — le serveur
+          // revalide de toute façon à l'enregistrement/émission.
+          tvaRate: (ALLOWED_TVA_RATES as readonly number[]).includes(l.tvaRate)
+            ? l.tvaRate
+            : 20,
+        }))
+      : [makeLine()],
+  );
 
-  const [docId, setDocId] = useState<string | null>(null);
+  const [docId, setDocId] = useState<string | null>(initialDocument?.id ?? null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -331,8 +370,17 @@ export function DocumentEditor({
             <div className="truncate text-base font-bold tracking-[-0.01em]">
               {type === "facture" ? "Nouvelle facture" : "Nouveau devis"}
             </div>
-            <small className="block text-[12px] font-medium text-ink-3">
-              Brouillon
+            <small className="block truncate text-[12px] font-medium text-ink-3">
+              {initialDocument?.sourceQuoteNumber ? (
+                <>
+                  Brouillon · créé depuis le devis{" "}
+                  <span className="num">
+                    {initialDocument.sourceQuoteNumber}
+                  </span>
+                </>
+              ) : (
+                "Brouillon"
+              )}
             </small>
           </div>
           <div className="ml-auto flex items-center gap-2.5">

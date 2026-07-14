@@ -148,6 +148,14 @@ export type DocumentView = {
   totalTvaCents: number;
   totalTtcCents: number;
   legalMentions: string[]; // mentions légales déduites (type + régime)
+  // Traçabilité conversion (#61) : devis d'origine (sur une facture convertie)
+  // et facture issue de ce devis (sur un devis converti).
+  sourceQuote: { id: string; number: string | null } | null;
+  convertedInvoice: {
+    id: string;
+    number: string | null;
+    isDraft: boolean;
+  } | null;
 };
 
 // Résultat d'une transition de statut (le succès revalide et ne renvoie rien).
@@ -439,6 +447,13 @@ export async function getDocument(id: string): Promise<DocumentView | null> {
         },
         orderBy: { position: "asc" },
       },
+      // Traçabilité conversion (#61). Relations internes à la ligne (déjà
+      // filtrée userId) : un devis ne peut référencer que des documents du
+      // même utilisateur (convertQuoteToInvoice l'impose à l'écriture).
+      sourceQuote: { select: { id: true, number: true } },
+      convertedInvoice: {
+        select: { id: true, number: true, status: true },
+      },
     },
   });
 
@@ -460,6 +475,8 @@ export async function getDocument(id: string): Promise<DocumentView | null> {
       htCents: lineHtCents(quantity, l.unitPriceCents),
     };
   });
+
+  const converted = doc.convertedInvoice;
 
   return {
     id: doc.id,
@@ -489,6 +506,16 @@ export async function getDocument(id: string): Promise<DocumentView | null> {
     totalTvaCents: doc.totalTvaCents,
     totalTtcCents: doc.totalTtcCents,
     legalMentions: legalMentions({ type, regime }),
+    sourceQuote: doc.sourceQuote
+      ? { id: doc.sourceQuote.id, number: doc.sourceQuote.number }
+      : null,
+    convertedInvoice: converted
+      ? {
+          id: converted.id,
+          number: converted.number,
+          isDraft: converted.status === "brouillon",
+        }
+      : null,
   };
 }
 
@@ -834,4 +861,173 @@ export async function updateDocumentStatus(
   revalidatePath("/factures");
   revalidatePath("/devis");
   return { ok: true };
+}
+
+// --- Conversion devis → facture (issue #61) -----------------------------------
+
+export type ConvertQuoteResult = { id: string } | { error: string };
+
+// Convertit un devis ACCEPTÉ en BROUILLON de facture : reprend projet, objet et
+// lignes (libellés, quantités, PU, taux TVA — copie exacte en centimes) + pose
+// la traçabilité `sourceQuoteId`. AUCUN numéro n'est attribué ici et le quota
+// freemium n'est pas consommé : les deux restent du ressort d'emitDocument(),
+// appelé depuis l'éditeur où le brouillon s'ouvre pour relecture.
+// Un devis ne se convertit qu'UNE fois (le même travail ne se facture pas deux
+// fois par ce raccourci — dupliquer un document reste possible plus tard, #66).
+export async function convertQuoteToInvoice(
+  id: string,
+): Promise<ConvertQuoteResult> {
+  const userId = await requireUserId();
+
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "Devis introuvable." };
+  }
+
+  // Appartenance + type vérifiés en une requête (même réponse qu'un id
+  // inexistant si le devis est à autrui — aucune fuite d'existence).
+  const quote = await prisma.document.findFirst({
+    where: { id, userId, type: "devis" },
+    select: {
+      id: true,
+      status: true,
+      projectId: true,
+      object: true,
+      totalHtCents: true,
+      totalTvaCents: true,
+      totalTtcCents: true,
+      lines: {
+        select: {
+          label: true,
+          quantity: true,
+          unitPriceCents: true,
+          tvaRate: true,
+          position: true,
+        },
+        orderBy: { position: "asc" },
+      },
+    },
+  });
+  if (!quote) return { error: "Devis introuvable." };
+
+  if (quote.status !== "accepte") {
+    return { error: "Seul un devis accepté peut être converti en facture." };
+  }
+
+  const existing = await prisma.document.findFirst({
+    where: { sourceQuoteId: quote.id, userId },
+    select: { number: true },
+  });
+  if (existing) {
+    return {
+      error: existing.number
+        ? `Ce devis a déjà été converti (facture ${existing.number}).`
+        : "Ce devis a déjà été converti — un brouillon de facture existe.",
+    };
+  }
+
+  let created;
+  try {
+    created = await prisma.document.create({
+      data: {
+        userId,
+        projectId: quote.projectId,
+        type: "facture",
+        status: "brouillon",
+        object: quote.object,
+        issuedAt: new Date(),
+        // Totaux copiés du devis (calculés à partir des MÊMES lignes) ; ils
+        // seront de toute façon recalculés côté serveur à l'émission.
+        totalHtCents: quote.totalHtCents,
+        totalTvaCents: quote.totalTvaCents,
+        totalTtcCents: quote.totalTtcCents,
+        sourceQuoteId: quote.id,
+        lines: {
+          create: quote.lines.map((l) => ({
+            userId,
+            label: l.label,
+            quantity: l.quantity,
+            unitPriceCents: l.unitPriceCents,
+            tvaRate: l.tvaRate,
+            position: l.position,
+          })),
+        },
+      },
+      select: { id: true },
+    });
+  } catch (e) {
+    // Course entre deux conversions simultanées : l'index UNIQUE sur
+    // source_quote_id garantit qu'une seule gagne — l'autre atterrit ici.
+    if (isUniqueViolation(e)) {
+      return { error: "Ce devis a déjà été converti en facture." };
+    }
+    return {
+      error: "Impossible de convertir ce devis. Réessayez dans un instant.",
+    };
+  }
+
+  revalidatePath("/factures");
+  revalidatePath("/devis");
+  return { id: created.id };
+}
+
+// --- Reprise d'un brouillon dans l'éditeur (issue #61) -------------------------
+
+export type DraftForEditor = {
+  id: string;
+  type: DocType;
+  projectId: string;
+  object: string | null;
+  sourceQuoteNumber: string | null; // devis d'origine si issu d'une conversion
+  lines: {
+    label: string;
+    quantity: number;
+    unitPriceCents: number;
+    tvaRate: number;
+  }[];
+};
+
+// Charge un BROUILLON de l'utilisateur courant pour l'ouvrir dans l'éditeur
+// (`/documents/nouveau?document=<id>`). Un document émis n'est jamais rechargé
+// ici (numéro figé) : null, comme un id inconnu ou celui d'autrui.
+export async function getDraftForEditor(
+  id: string,
+): Promise<DraftForEditor | null> {
+  const userId = await requireUserId();
+
+  if (!z.string().uuid().safeParse(id).success) return null;
+
+  const doc = await prisma.document.findFirst({
+    where: { id, userId, status: "brouillon" },
+    select: {
+      id: true,
+      type: true,
+      projectId: true,
+      object: true,
+      sourceQuote: { select: { number: true } },
+      lines: {
+        select: {
+          label: true,
+          quantity: true,
+          unitPriceCents: true,
+          tvaRate: true,
+        },
+        orderBy: { position: "asc" },
+      },
+    },
+  });
+  if (!doc) return null;
+
+  return {
+    id: doc.id,
+    type: doc.type as DocType,
+    projectId: doc.projectId,
+    object: doc.object,
+    sourceQuoteNumber: doc.sourceQuote?.number ?? null,
+    lines: doc.lines.map((l) => ({
+      label: l.label,
+      quantity: Number(l.quantity),
+      unitPriceCents: l.unitPriceCents,
+      tvaRate: Number(l.tvaRate),
+    })),
+  };
 }

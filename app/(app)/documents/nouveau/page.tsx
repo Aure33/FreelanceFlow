@@ -1,6 +1,9 @@
 import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
-import { listProjectsForPicker } from "@/app/(app)/documents/actions";
+import {
+  getDraftForEditor,
+  listProjectsForPicker,
+} from "@/app/(app)/documents/actions";
 import { getUsage } from "@/app/(app)/abonnement/actions";
 import { getCurrentUserProfile, requireUserId } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -23,11 +26,15 @@ function normalizeRegime(value: string | null | undefined): TvaRegime {
 export default async function NouveauDocumentPage({
   searchParams,
 }: {
-  searchParams: { projet?: string; type?: string };
+  searchParams: { projet?: string; type?: string; document?: string };
 }) {
   const userId = await requireUserId();
 
-  const [projects, profile, me, usage] = await Promise.all([
+  // Reprise d'un brouillon existant (#61 : conversion devis → facture, reprise
+  // d'un brouillon depuis sa vue). getDraftForEditor est filtré userId + statut
+  // « brouillon » : un id d'autrui, inconnu ou déjà émis → null → éditeur vierge
+  // impossible à confondre avec le document demandé, on redirige vers la liste.
+  const [projects, profile, me, usage, draft] = await Promise.all([
     listProjectsForPicker(),
     getCurrentUserProfile(),
     prisma.user.findUnique({
@@ -35,7 +42,13 @@ export default async function NouveauDocumentPage({
       select: { tvaRegime: true },
     }),
     getUsage(),
+    searchParams.document
+      ? getDraftForEditor(searchParams.document)
+      : Promise.resolve(null),
   ]);
+  if (searchParams.document && !draft) {
+    redirect("/factures");
+  }
 
   // Garde-fou d'accès direct à l'URL (issue #10, AC #2) : la vraie garde de
   // sécurité reste emitDocument() côté serveur — ceci évite juste de rendre
@@ -52,12 +65,16 @@ export default async function NouveauDocumentPage({
   }
 
   // Présélection depuis un point d'entrée. On ne garde le projet que s'il
-  // appartient bien au user (présent dans la liste filtrée `userId`).
-  const initialProjectId = projects.some((p) => p.id === searchParams.projet)
-    ? searchParams.projet
-    : undefined;
-  const initialType =
-    searchParams.type === "devis" || searchParams.type === "facture"
+  // appartient bien au user (présent dans la liste filtrée `userId`). Un
+  // brouillon rechargé impose son projet et son type.
+  const initialProjectId = draft
+    ? draft.projectId
+    : projects.some((p) => p.id === searchParams.projet)
+      ? searchParams.projet
+      : undefined;
+  const initialType = draft
+    ? draft.type
+    : searchParams.type === "devis" || searchParams.type === "facture"
       ? searchParams.type
       : undefined;
 
@@ -68,6 +85,7 @@ export default async function NouveauDocumentPage({
       regime={normalizeRegime(me?.tvaRegime)}
       initialProjectId={initialProjectId}
       initialType={initialType}
+      initialDocument={draft}
     />
   );
 }
