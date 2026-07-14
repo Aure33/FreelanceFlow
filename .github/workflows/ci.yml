@@ -41,6 +41,12 @@ jobs:
       - name: Build
         run: bun run build
 
+      # Garde-fou éco-conception (#62) : JS gzippé de premier chargement par
+      # route vs scripts/eco/size-budget.json — échoue si dépassement (voir
+      # docs/ecoindex.md).
+      - name: Budget JS par route (éco-conception)
+        run: bun scripts/eco/check-size-budget.ts
+
   tests-unitaires:
     needs: [lint, build]
     runs-on: ubuntu-latest
