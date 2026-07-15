@@ -34,9 +34,12 @@
 //     (relu via Prisma). Prouve que la migration est bien appliquée sur dev.
 //
 // MOCKS (contexte requête HTTP uniquement, posés AVANT l'import dynamique) :
-//   - @/lib/auth/session : ces actions utilisent getCurrentUser() (objet
-//     { id, email }), pas requireUserId — `activeUser` est muté entre les
-//     tests (y compris à null pour « session expirée »).
+//   - @/lib/auth/session : les actions utilisent requireUserId() (comme TOUT
+//     le reste du projet) puis lisent l'e-mail sur public.users via Prisma.
+//     `activeUserId` est muté entre les tests ; vide -> requireUserId redirige
+//     (RedirectSignal, comme le vrai). Mock volontairement identique à celui
+//     des autres fichiers d'intégration (requireUserId seul) : aucune fuite de
+//     mock partiel entre fichiers dans le même process `bun test`.
 //   - @/lib/supabase/server : createClient() (SSR, cookies) est inutilisable
 //     hors requête. Remplacé par `currentSsrClient` mutable : un STUB dont
 //     updateUser THROW (pour prouver que les tests de validation échouent
@@ -96,20 +99,32 @@ if (!hasEnv) {
 } else {
   // --- Mocks du contexte requête HTTP, AVANT tout import des actions --------
 
-  // Session : les actions du Compte lisent getCurrentUser() (id + email).
-  // Muté entre les tests ; null = session expirée.
-  let activeUser: { id: string; email: string } | null = null;
+  // redirect() (succès de deleteAccount + requireUserId sans session) lève
+  // NEXT_REDIRECT en vrai : remplacé par une erreur typée portant le chemin.
+  class RedirectSignal extends Error {
+    constructor(public path: string) {
+      super(`NEXT_REDIRECT ${path}`);
+    }
+  }
+  mock.module("next/navigation", () => ({
+    redirect: (path: string) => {
+      throw new RedirectSignal(path);
+    },
+  }));
+
+  // Session : requireUserId (comme tout le projet). `activeUserId` muté entre
+  // les tests ; vide -> redirige vers /connexion (comportement réel).
+  let activeUserId = "";
   mock.module("@/lib/auth/session", () => ({
-    getCurrentUser: async () => activeUser,
     requireUserId: async () => {
-      if (!activeUser) throw new Error("requireUserId sans session (test)");
-      return activeUser.id;
+      if (!activeUserId) throw new RedirectSignal("/connexion");
+      return activeUserId;
     },
   }));
 
   // Client SSR : stub par défaut. updateUser THROW volontairement — si un test
-  // de validation atteignait le client SSR, il échouerait BRUYAMMENT au lieu
-  // de passer par accident (un test qui ne peut pas échouer ne prouve rien).
+  // de validation atteignait le client SSR, il échouerait BRUYAMMENT au lieu de
+  // passer par accident (un test qui ne peut pas échouer ne prouve rien).
   function ssrStub() {
     return {
       auth: {
@@ -125,19 +140,6 @@ if (!hasEnv) {
   let currentSsrClient: unknown = ssrStub();
   mock.module("@/lib/supabase/server", () => ({
     createClient: async () => currentSsrClient,
-  }));
-
-  // redirect() (succès de deleteAccount) lève NEXT_REDIRECT en vrai : remplacé
-  // par une erreur typée portant le chemin de destination.
-  class RedirectSignal extends Error {
-    constructor(public path: string) {
-      super(`NEXT_REDIRECT ${path}`);
-    }
-  }
-  mock.module("next/navigation", () => ({
-    redirect: (path: string) => {
-      throw new RedirectSignal(path);
-    },
   }));
 
   // Import DYNAMIQUE (après les mocks — un import statique serait hoisté).
@@ -318,22 +320,32 @@ if (!hasEnv) {
     // ------------------------------------------------------------------------
     // Garde de session commune
     // ------------------------------------------------------------------------
-    test("sans session : les 3 actions répondent « Session expirée. Reconnectez-vous. »", async () => {
-      activeUser = null;
+    test("sans session : les 3 actions redirigent vers /connexion (requireUserId)", async () => {
+      activeUserId = "";
       currentSsrClient = ssrStub();
 
-      expect(
-        await accountActions.changePassword({
+      // requireUserId (mocké) lève RedirectSignal("/connexion") comme le vrai
+      // redirect() de Next : aucune action ne renvoie de résultat.
+      const expectRedirect = async (p: Promise<unknown>) => {
+        try {
+          const r = await p;
+          throw new Error(`devait rediriger mais a renvoyé ${JSON.stringify(r)}`);
+        } catch (e) {
+          if (!(e instanceof RedirectSignal)) throw e;
+          expect(e.path).toBe("/connexion");
+        }
+      };
+
+      await expectRedirect(
+        accountActions.changePassword({
           currentPassword: "x",
           newPassword: "Valide-123",
         }),
-      ).toEqual({ error: "Session expirée. Reconnectez-vous." });
-      expect(
-        await accountActions.changeEmail({ newEmail: "a@b.fr" }),
-      ).toEqual({ error: "Session expirée. Reconnectez-vous." });
-      expect(
-        await accountActions.deleteAccount({ confirmEmail: "a@b.fr" }),
-      ).toEqual({ error: "Session expirée. Reconnectez-vous." });
+      );
+      await expectRedirect(accountActions.changeEmail({ newEmail: "a@b.fr" }));
+      await expectRedirect(
+        accountActions.deleteAccount({ confirmEmail: "a@b.fr" }),
+      );
     });
 
     // ------------------------------------------------------------------------
@@ -341,7 +353,7 @@ if (!hasEnv) {
     // ------------------------------------------------------------------------
     describe("changePassword", () => {
       test("validation zod : trop court / sans chiffre / actuel vide -> messages exacts, AVANT tout réseau", async () => {
-        activeUser = userA;
+        activeUserId = userA.id;
         // Stub SSR qui THROW : si l'action atteignait updateUser, le test
         // échouerait — preuve que la validation coupe avant le réseau.
         currentSsrClient = ssrStub();
@@ -375,7 +387,7 @@ if (!hasEnv) {
       test(
         "mauvais mot de passe actuel -> « Mot de passe actuel incorrect. » (re-vérification par client jetable)",
         async () => {
-          activeUser = userA;
+          activeUserId = userA.id;
           currentSsrClient = ssrStub(); // l'action doit s'arrêter AVANT le SSR
 
           expect(
@@ -399,7 +411,7 @@ if (!hasEnv) {
       test(
         "nouveau mot de passe identique à l'actuel -> branche same_password (message FR)",
         async () => {
-          activeUser = userA;
+          activeUserId = userA.id;
           // Client SSR = client supabase-js porteur de la VRAIE session de A.
           const authed = bareClient();
           const { error: signInError } = await authed.auth.signInWithPassword({
@@ -424,7 +436,7 @@ if (!hasEnv) {
       test(
         "happy path : nouveau mot de passe accepté -> reconnexion avec le NOUVEAU ok, l'ANCIEN refusé",
         async () => {
-          activeUser = userA;
+          activeUserId = userA.id;
           const oldPassword = passwordA;
           const newPassword = `Rgpd-A-${RUN_ID}-2!`;
 
@@ -471,7 +483,7 @@ if (!hasEnv) {
     // ------------------------------------------------------------------------
     describe("changeEmail — validation", () => {
       test("adresse vide / invalide / identique (même à la casse près) -> messages exacts, AVANT tout réseau", async () => {
-        activeUser = userA;
+        activeUserId = userA.id;
         currentSsrClient = ssrStub(); // updateUser THROW si atteint
 
         expect(await accountActions.changeEmail({ newEmail: "   " })).toEqual({
@@ -539,7 +551,7 @@ if (!hasEnv) {
       test(
         "confirmation forte : mauvaise adresse -> erreur exacte, AUCUNE donnée supprimée",
         async () => {
-          activeUser = userA;
+          activeUserId = userA.id;
           currentSsrClient = ssrStub();
           const before = await countAllTables(userA.id);
           // Sanity : la fixture est bien en place (le test peut échouer).
@@ -576,7 +588,7 @@ if (!hasEnv) {
           expect(snapshotB.user).not.toBeNull(); // sanity
           expect(snapshotB.lines.length).toBeGreaterThan(0); // sanity
 
-          activeUser = userA;
+          activeUserId = userA.id;
           currentSsrClient = ssrStub(); // signOut no-op suffit ici
 
           // Adresse EXACTE mais en MAJUSCULES : prouve la comparaison

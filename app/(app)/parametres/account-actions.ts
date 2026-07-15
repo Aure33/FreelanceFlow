@@ -5,8 +5,9 @@
 // (droit à l'effacement RGPD — promis par la politique de confidentialité).
 //
 // SÉCURITÉ :
-//  - toutes les actions repartent de la SESSION (getCurrentUser — token
-//    validé serveur), jamais d'un id fourni par le client ;
+//  - toutes les actions repartent de la SESSION (requireUserId — token validé
+//    serveur, redirige vers /connexion sinon), jamais d'un id fourni par le
+//    client ; l'e-mail vient du profil public.users (cf. currentAccount) ;
 //  - changement de mot de passe : le mot de passe ACTUEL est re-vérifié via
 //    un client Supabase jetable (sans persistance de session — il ne touche
 //    pas aux cookies de la vraie session) avant tout updateUser ;
@@ -21,9 +22,23 @@ import { z } from "zod";
 import { createClient as createBareClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireUserId } from "@/lib/auth/session";
 
 export type AccountActionResult = { error?: string; success?: boolean };
+
+// Identité courante : requireUserId (redirige vers /connexion si pas de
+// session, comme toutes les server actions du projet) + l'e-mail lu sur le
+// profil public.users (colonne synchronisée avec auth.users par les triggers
+// handle_new_user / on_auth_user_email_updated). On évite ainsi getCurrentUser
+// pour rester homogène avec le reste du code (requireUserId + Prisma partout).
+async function currentAccount(): Promise<{ userId: string; email: string }> {
+  const userId = await requireUserId();
+  const profile = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  return { userId, email: profile?.email ?? "" };
+}
 
 // Mêmes règles que lib/auth/actions.ts (inscription/réinitialisation).
 const newPasswordSchema = z
@@ -50,8 +65,8 @@ export async function changePassword(input: {
   currentPassword: string;
   newPassword: string;
 }): Promise<AccountActionResult> {
-  const user = await getCurrentUser();
-  if (!user?.email) return { error: "Session expirée. Reconnectez-vous." };
+  const { email } = await currentAccount();
+  if (!email) return { error: "Session expirée. Reconnectez-vous." };
 
   const parsed = changePasswordSchema.safeParse(input);
   if (!parsed.success) {
@@ -67,7 +82,7 @@ export async function changePassword(input: {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
   const { error: verifyError } = await bare.auth.signInWithPassword({
-    email: user.email,
+    email,
     password: parsed.data.currentPassword,
   });
   if (verifyError) {
@@ -103,14 +118,14 @@ export async function changePassword(input: {
 export async function changeEmail(input: {
   newEmail: string;
 }): Promise<AccountActionResult> {
-  const user = await getCurrentUser();
-  if (!user?.email) return { error: "Session expirée. Reconnectez-vous." };
+  const { email } = await currentAccount();
+  if (!email) return { error: "Session expirée. Reconnectez-vous." };
 
   const parsed = changeEmailSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Adresse invalide." };
   }
-  if (parsed.data.newEmail.toLowerCase() === user.email.toLowerCase()) {
+  if (parsed.data.newEmail.toLowerCase() === email.toLowerCase()) {
     return { error: "C'est déjà l'adresse de votre compte." };
   }
 
@@ -138,13 +153,11 @@ export async function changeEmail(input: {
 export async function deleteAccount(input: {
   confirmEmail: string;
 }): Promise<AccountActionResult> {
-  const user = await getCurrentUser();
-  if (!user?.email) return { error: "Session expirée. Reconnectez-vous." };
+  const { userId, email } = await currentAccount();
+  if (!email) return { error: "Session expirée. Reconnectez-vous." };
 
   // Confirmation forte : l'utilisateur doit retaper l'adresse de SON compte.
-  if (
-    input.confirmEmail.trim().toLowerCase() !== user.email.toLowerCase()
-  ) {
+  if (input.confirmEmail.trim().toLowerCase() !== email.toLowerCase()) {
     return { error: "L'adresse saisie ne correspond pas à celle du compte." };
   }
 
@@ -155,11 +168,11 @@ export async function deleteAccount(input: {
     // dernier. (Les FK sont déjà en cascade — la transaction explicite rend
     // l'effacement RGPD indépendant de la config des contraintes.)
     await prisma.$transaction([
-      prisma.documentLine.deleteMany({ where: { userId: user.id } }),
-      prisma.document.deleteMany({ where: { userId: user.id } }),
-      prisma.project.deleteMany({ where: { userId: user.id } }),
-      prisma.client.deleteMany({ where: { userId: user.id } }),
-      prisma.user.deleteMany({ where: { id: user.id } }),
+      prisma.documentLine.deleteMany({ where: { userId } }),
+      prisma.document.deleteMany({ where: { userId } }),
+      prisma.project.deleteMany({ where: { userId } }),
+      prisma.client.deleteMany({ where: { userId } }),
+      prisma.user.deleteMany({ where: { id: userId } }),
     ]);
 
     // Compte Auth (auth.users) via l'API admin — clé secrète SERVEUR.
@@ -168,7 +181,7 @@ export async function deleteAccount(input: {
       process.env.SUPABASE_SECRET_KEY!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
-    const { error } = await admin.auth.admin.deleteUser(user.id);
+    const { error } = await admin.auth.admin.deleteUser(userId);
     if (error) throw error;
   } catch {
     return {
