@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import type { DocType } from "@/lib/invoicing";
 import {
   convertQuoteToInvoice,
+  duplicateDocument,
   updateDocumentStatus,
   type DocumentStatus,
   type DocumentView,
@@ -65,6 +66,20 @@ export function DocumentStatusActions({
     setError(null);
     startTransition(async () => {
       const res = await convertQuoteToInvoice(id);
+      if ("error" in res) {
+        setError(res.error);
+      } else {
+        router.push(`/documents/nouveau?document=${res.id}`);
+      }
+    });
+  }
+
+  // Dupliquer (#66) : nouveau brouillon identique (même type), ouvert dans
+  // l'éditeur — numérotation et quota restent du ressort de l'émission.
+  function duplicate() {
+    setError(null);
+    startTransition(async () => {
+      const res = await duplicateDocument(id);
       if ("error" in res) {
         setError(res.error);
       } else {
@@ -181,7 +196,13 @@ export function DocumentStatusActions({
           </a>
         </Button>
       )}
-      <Button type="button" variant="default" className={btn} disabled>
+      <Button
+        type="button"
+        variant="default"
+        className={btn}
+        disabled={pending}
+        onClick={duplicate}
+      >
         <Copy strokeWidth={2} />
         Dupliquer
       </Button>
