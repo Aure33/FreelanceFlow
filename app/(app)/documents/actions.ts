@@ -22,6 +22,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
+import { PAGE_SIZE, paginate, type Paginated } from "@/lib/pagination";
 import {
   computeTotals,
   computeDueDate,
@@ -91,6 +92,24 @@ export type DocumentListItem = {
   issuedAt: Date | null;
   dueAt: Date | null;
   totalTtcCents: number;
+};
+
+// Filtre de statut d'une liste (issue #70) : « all » ou un statut EFFECTIF.
+export type DocumentFilter = "all" | DocumentStatus;
+
+// Ids de filtres autorisés par type (usage SERVEUR uniquement — un fichier
+// "use server" ne peut exporter que des fonctions async, donc pas d'export).
+// « en_retard » n'existe que pour les factures (statut dérivé).
+const DOCUMENT_FILTERS: Record<DocType, DocumentFilter[]> = {
+  facture: ["all", "paye", "envoye", "en_retard", "brouillon"],
+  devis: ["all", "brouillon", "envoye", "accepte", "refuse"],
+};
+
+// Compteurs par filtre (chips + notes du bandeau) + méta d'en-tête. Calculés
+// CÔTÉ BASE (count par clause), jamais en chargeant les lignes.
+export type DocumentCounts = {
+  counts: Record<DocumentFilter, number>; // « all » = total tous statuts
+  lastIssuedAt: Date | null; // dernière pièce émise (numéro attribué)
 };
 
 // Bandeau de synthèse des factures (montants en CENTIMES entiers).
@@ -182,6 +201,46 @@ function effectiveStatus(
     return "en_retard";
   }
   return row.status as DocumentStatus;
+}
+
+// Clause `where` d'un filtre de statut EFFECTIF (issue #70) — source unique
+// partagée par la liste paginée ET les compteurs, pour qu'ils restent cohérents.
+// « en_retard » et « en attente » se traduisent en clauses sur (status, dueAt)
+// exactement comme effectiveStatus() / les agrégats du bandeau.
+function statusFilterWhere(
+  type: DocType,
+  filter: DocumentFilter,
+  now: Date,
+): Prisma.DocumentWhereInput {
+  if (filter === "all") return {};
+  if (type === "facture") {
+    switch (filter) {
+      case "en_retard":
+        return { status: "envoye", paidAt: null, dueAt: { lt: now } };
+      case "envoye": // « En attente » : envoyée NON échue
+        return {
+          status: "envoye",
+          paidAt: null,
+          OR: [{ dueAt: null }, { dueAt: { gte: now } }],
+        };
+      default: // paye | brouillon (accepte/refuse impossibles sur facture)
+        return { status: filter };
+    }
+  }
+  // Devis : pas de dérivation, correspondance directe de statut.
+  return { status: filter };
+}
+
+// Normalise le paramètre `?statut=` d'URL vers un filtre autorisé (défaut all).
+function parseDocumentFilter(
+  type: DocType,
+  raw: string | string[] | undefined,
+): DocumentFilter {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  const allowed = DOCUMENT_FILTERS[type];
+  return (allowed as string[]).includes(value ?? "")
+    ? (value as DocumentFilter)
+    : "all";
 }
 
 // --- Validation --------------------------------------------------------------
@@ -283,11 +342,23 @@ export async function listProjectsForPicker(): Promise<ProjectPickerOption[]> {
 // Le statut « en_retard » est DÉRIVÉ à la lecture (jamais stocké).
 export async function listDocuments(
   type: DocType,
-): Promise<DocumentListItem[]> {
+  opts: { page?: string | string[]; status?: string | string[] } = {},
+): Promise<Paginated<DocumentListItem>> {
   const userId = await requireUserId();
+  const now = new Date();
+
+  const filter = parseDocumentFilter(type, opts.status);
+  const where: Prisma.DocumentWhereInput = {
+    userId,
+    type,
+    ...statusFilterWhere(type, filter, now),
+  };
+
+  const total = await prisma.document.count({ where });
+  const pagination = paginate(opts.page, total, PAGE_SIZE.documents);
 
   const rows = await prisma.document.findMany({
-    where: { userId, type },
+    where,
     select: {
       id: true,
       number: true,
@@ -304,10 +375,11 @@ export async function listDocuments(
       { issuedAt: { sort: "desc", nulls: "last" } },
       { createdAt: "desc" },
     ],
+    skip: pagination.skip,
+    take: pagination.pageSize,
   });
 
-  const now = new Date();
-  return rows.map((d) => ({
+  const items = rows.map((d) => ({
     id: d.id,
     number: d.number,
     clientName: d.project.client.name,
@@ -317,6 +389,42 @@ export async function listDocuments(
     dueAt: d.dueAt,
     totalTtcCents: d.totalTtcCents,
   }));
+
+  return { items, pagination };
+}
+
+// Compteurs par filtre (chips + notes du bandeau) + dernière pièce émise.
+// Un count() par filtre, en parallèle, avec les MÊMES clauses que la liste
+// (statusFilterWhere) → chips et liste toujours d'accord. Éco : des count()
+// indexés, jamais de chargement de lignes.
+export async function getDocumentCounts(
+  type: DocType,
+): Promise<DocumentCounts> {
+  const userId = await requireUserId();
+  const now = new Date();
+  const filters = DOCUMENT_FILTERS[type];
+
+  const [countsByFilter, lastEmitted] = await Promise.all([
+    Promise.all(
+      filters.map((f) =>
+        prisma.document.count({
+          where: { userId, type, ...statusFilterWhere(type, f, now) },
+        }),
+      ),
+    ),
+    prisma.document.findFirst({
+      where: { userId, type, number: { not: null }, issuedAt: { not: null } },
+      orderBy: { issuedAt: "desc" },
+      select: { issuedAt: true },
+    }),
+  ]);
+
+  const counts = {} as Record<DocumentFilter, number>;
+  filters.forEach((f, i) => {
+    counts[f] = countsByFilter[i];
+  });
+
+  return { counts, lastIssuedAt: lastEmitted?.issuedAt ?? null };
 }
 
 // Bandeau de synthèse des factures. Agrégations CÔTÉ BASE (_sum), pas en JS :

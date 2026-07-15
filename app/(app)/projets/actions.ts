@@ -12,8 +12,8 @@
 // création, on VÉRIFIE que le clientId visé appartient bien à l'utilisateur
 // courant AVANT d'insérer : on n'attache jamais un projet au client d'autrui.
 //
-// ÉCO-CONCEPTION : select explicites (jamais l'objet entier), tri en base.
-// La pagination sera branchée quand le volume le justifiera.
+// ÉCO-CONCEPTION : select explicites (jamais l'objet entier), tri en base,
+// pagination serveur skip/take + tri/filtre paramétrés (issue #70).
 //
 // Les messages d'erreur renvoyés sont en français et NE contiennent jamais de
 // détail technique (stack, SQL).
@@ -21,8 +21,10 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
+import { PAGE_SIZE, paginate, type Paginated } from "@/lib/pagination";
 
 // --- Types exposés à l'UI ----------------------------------------------------
 
@@ -109,13 +111,57 @@ function normalizeStatus(value: string): ProjectStatus {
 
 // --- Lectures ----------------------------------------------------------------
 
-// Projets de l'utilisateur courant, du plus récent au plus ancien.
+// Tri exposé par la liste Projets (maquette : chip « Trier »). « recent » =
+// activité récente (createdAt desc, défaut) ; « nom » = alphabétique.
+export type ProjectSort = "recent" | "nom";
+
+// Filtre de statut de la liste Projets (chips de la vue grille).
+export type ProjectFilter = "all" | "en_cours" | "termine";
+
+// Compteurs par statut (chips grille + badges des colonnes Kanban), tous
+// statuts confondus — calculés côté base (groupBy), jamais en chargeant tout.
+export type ProjectCounts = {
+  all: number;
+  en_cours: number;
+  termine: number;
+  en_pause: number;
+};
+
+function parseProjectSort(raw: string | string[] | undefined): ProjectSort {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  return v === "nom" ? "nom" : "recent";
+}
+
+function parseProjectFilter(raw: string | string[] | undefined): ProjectFilter {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  return v === "en_cours" || v === "termine" ? v : "all";
+}
+
+// Projets de l'utilisateur courant, PAGINÉS / TRIÉS / FILTRÉS (issue #70).
 // Le nom du client est récupéré via la relation (select imbriqué minimal).
-export async function listProjects(): Promise<ProjectListItem[]> {
+export async function listProjects(
+  opts: {
+    page?: string | string[];
+    status?: string | string[];
+    sort?: string | string[];
+  } = {},
+): Promise<Paginated<ProjectListItem>> {
   const userId = await requireUserId();
 
+  const filter = parseProjectFilter(opts.status);
+  const sort = parseProjectSort(opts.sort);
+  const where: Prisma.ProjectWhereInput = {
+    userId,
+    ...(filter === "all" ? {} : { status: filter }),
+  };
+  const orderBy: Prisma.ProjectOrderByWithRelationInput =
+    sort === "nom" ? { name: "asc" } : { createdAt: "desc" };
+
+  const total = await prisma.project.count({ where });
+  const pagination = paginate(opts.page, total, PAGE_SIZE.projects);
+
   const rows = await prisma.project.findMany({
-    where: { userId },
+    where,
     select: {
       id: true,
       name: true,
@@ -124,20 +170,43 @@ export async function listProjects(): Promise<ProjectListItem[]> {
       createdAt: true,
       client: { select: { name: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy,
+    skip: pagination.skip,
+    take: pagination.pageSize,
   });
 
-  return rows.map((p) => ({
+  const items = rows.map((p) => ({
     id: p.id,
     name: p.name,
     status: normalizeStatus(p.status),
     progress: p.progress,
     clientName: p.client.name,
     createdAt: p.createdAt,
-    documentsCount: 0,
-    invoicedCents: 0,
-    budgetCents: 0,
+    documentsCount: 0 as const,
+    invoicedCents: 0 as const,
+    budgetCents: 0 as const,
   }));
+
+  return { items, pagination };
+}
+
+// Compteurs par statut (tous, en cours, terminés, en pause) via un seul
+// groupBy — nourrit les chips de la grille ET les badges du Kanban.
+export async function getProjectCounts(): Promise<ProjectCounts> {
+  const userId = await requireUserId();
+  const groups = await prisma.project.groupBy({
+    by: ["status"],
+    where: { userId },
+    _count: { _all: true },
+  });
+  const byStatus = (s: ProjectStatus) =>
+    groups
+      .filter((g) => normalizeStatus(g.status) === s)
+      .reduce((n, g) => n + g._count._all, 0);
+  const en_cours = byStatus("en_cours");
+  const termine = byStatus("termine");
+  const en_pause = byStatus("en_pause");
+  return { all: en_cours + termine + en_pause, en_cours, termine, en_pause };
 }
 
 // Fiche d'un projet. findFirst + filtre userId (JAMAIS findUnique sans userId) :

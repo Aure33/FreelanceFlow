@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Calendar,
   Copy,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tag } from "@/components/dashboard/tag";
+import { Pagination } from "@/components/ui/pagination";
 import { GatedCreateLink } from "@/components/paywall/gated-create-link";
 import { PaywallModal } from "@/components/paywall/paywall-modal";
 import { cn } from "@/lib/utils";
@@ -21,16 +22,19 @@ import { nextMonthFirstLabel } from "@/lib/date-fr";
 import {
   duplicateDocument,
   type DocumentListItem,
-  type DocumentStatus,
+  type DocumentFilter,
+  type DocumentCounts,
   type InvoiceSummary,
   type QuoteSummary,
 } from "@/app/(app)/documents/actions";
 import type { Usage } from "@/app/(app)/abonnement/actions";
+import type { Pagination as PaginationState } from "@/lib/pagination";
 import { statusMeta } from "./status";
 import { formatListDate } from "./format";
 
-// Filtre appliqué à la liste : « all » ou un statut effectif précis.
-type FilterId = "all" | DocumentStatus;
+// Filtre appliqué à la liste : « all » ou un statut effectif précis (issue #70,
+// désormais porté par l'URL `?statut=`).
+type FilterId = DocumentFilter;
 
 // Libellés dépendant du type de document (colonnes, titres, textes).
 const COPY: Record<
@@ -96,12 +100,16 @@ type Props =
   | {
       type: "facture";
       items: DocumentListItem[];
+      pagination: PaginationState;
+      counts: DocumentCounts;
       summary: InvoiceSummary;
       usage: Usage;
     }
   | {
       type: "devis";
       items: DocumentListItem[];
+      pagination: PaginationState;
+      counts: DocumentCounts;
       summary: QuoteSummary;
       usage: Usage;
     };
@@ -113,10 +121,28 @@ type Props =
 const LIST_PATH: Record<DocType, string> = { facture: "factures", devis: "devis" };
 
 export function DocumentList(props: Props) {
-  const { type, items, usage } = props;
+  const { type, items, pagination, counts, usage } = props;
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [filter, setFilter] = useState<FilterId>("all");
+
+  // Filtre courant lu depuis l'URL (`?statut=`) — validé côté serveur, on se
+  // contente ici de refléter la valeur pour l'état actif des chips.
+  const rawFilter = searchParams.get("statut") ?? "all";
+  const filter: FilterId = (
+    FILTERS[type].some((c) => c.id === rawFilter) ? rawFilter : "all"
+  ) as FilterId;
+
+  // Lien d'un chip de filtre : pose `?statut=` (ou l'enlève pour « all ») et
+  // RÉINITIALISE la page (nouveau filtre = page 1).
+  const filterHref = (id: FilterId) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (id === "all") params.delete("statut");
+    else params.set("statut", id);
+    params.delete("page");
+    const qs = params.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  };
 
   // Dupliquer (#66) : crée un brouillon identique puis ouvre l'éditeur dessus.
   // `duplicatingId` désactive les boutons pendant l'action (anti double-clic).
@@ -165,23 +191,10 @@ export function DocumentList(props: Props) {
   const copy = COPY[type];
   const createHref = `/documents/nouveau?type=${type}`;
 
-  const countOf = (status: DocumentStatus) =>
-    items.filter((d) => d.status === status).length;
-
-  const filtered =
-    filter === "all" ? items : items.filter((d) => d.status === filter);
-  const filteredTotalCents = filtered.reduce(
-    (sum, d) => sum + d.totalTtcCents,
-    0,
-  );
-
-  // Dernière pièce émise (numéro attribué + date d'émission) pour la sous-ligne.
-  const lastIssued = items
-    .filter((d) => d.number !== null && d.issuedAt !== null)
-    .reduce<Date | null>((latest, d) => {
-      const at = d.issuedAt as Date;
-      return latest === null || at.getTime() > latest.getTime() ? at : latest;
-    }, null);
+  // Compteurs réels (tous statuts, toutes pages) fournis par le serveur.
+  const countOf = (id: FilterId) => counts.counts[id] ?? 0;
+  const totalCount = countOf("all");
+  const lastIssued = counts.lastIssuedAt;
 
   const chipBase =
     "inline-flex h-[34px] items-center gap-[7px] rounded-full border px-3.5 text-[13px] font-semibold transition-colors";
@@ -198,7 +211,7 @@ export function DocumentList(props: Props) {
             {copy.title}
           </div>
           <div className="mt-[3px] text-sm text-ink-3">
-            {items.length} {items.length > 1 ? copy.wordPlural : copy.word}
+            {totalCount} {totalCount > 1 ? copy.wordPlural : copy.word}
             {lastIssued
               ? ` · dernière émise le ${formatListDate(lastIssued)}`
               : ""}
@@ -259,7 +272,7 @@ export function DocumentList(props: Props) {
         </div>
       )}
 
-      {items.length === 0 ? (
+      {totalCount === 0 ? (
         // État vide engageant
         <div className="flex flex-col items-center justify-center rounded-lg border border-line bg-surface px-6 py-16 text-center shadow-sm">
           <div className="grid h-14 w-14 place-items-center rounded-xl bg-accent-soft text-accent-ink">
@@ -330,26 +343,28 @@ export function DocumentList(props: Props) {
             )}
           </div>
 
-          {/* Filtres (`.filters`) */}
+          {/* Filtres (`.filters`) — chips = liens `?statut=` (issue #70). */}
           <div className="mb-4 flex items-center gap-2.5">
             {FILTERS[type].map((c) => {
-              const n = c.id === "all" ? items.length : countOf(c.id);
+              const active = filter === c.id;
               return (
-                <button
+                <Link
                   key={c.id}
-                  type="button"
-                  onClick={() => setFilter(c.id)}
-                  aria-pressed={filter === c.id}
+                  href={filterHref(c.id)}
+                  scroll={false}
+                  aria-current={active ? "true" : undefined}
                   className={cn(
                     chipBase,
-                    filter === c.id
+                    active
                       ? "border-ink bg-ink text-bg"
                       : "border-line bg-surface text-ink-2 hover:bg-surface-2",
                   )}
                 >
                   {c.label}{" "}
-                  <span className="num text-[11.5px] opacity-70">{n}</span>
-                </button>
+                  <span className="num text-[11.5px] opacity-70">
+                    {countOf(c.id)}
+                  </span>
+                </Link>
               );
             })}
             {/* Sélecteur d'année : décoratif (aucune spec de comportement). */}
@@ -389,7 +404,7 @@ export function DocumentList(props: Props) {
                 </tr>
               </thead>
               <tbody className="[&>tr:last-child>td]:border-b-0">
-                {filtered.map((d) => {
+                {items.map((d) => {
                   const meta = statusMeta(type, d.status);
                   const late = d.status === "en_retard";
                   return (
@@ -505,13 +520,21 @@ export function DocumentList(props: Props) {
             </table>
             <div className="flex items-center gap-3 px-pad py-3.5 text-[13px] text-ink-3">
               <span>
-                {filtered.length}{" "}
-                {filtered.length > 1 ? copy.wordPlural : copy.word} · total :{" "}
-                <b className="num text-ink">{formatEuros(filteredTotalCents)}</b>{" "}
-                TTC
+                <b className="num text-ink">{countOf(filter)}</b>{" "}
+                {countOf(filter) > 1 ? copy.wordPlural : copy.word}
+                {filter !== "all"
+                  ? ` ${FILTERS[type].find((c) => c.id === filter)?.label.toLowerCase()}`
+                  : " au total"}
               </span>
             </div>
           </section>
+
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            total={pagination.total}
+            label={copy.wordPlural}
+          />
         </>
       )}
 

@@ -7,8 +7,8 @@
 // n'est exécutée qu'après requireUserId() (session vérifiée côté serveur).
 // Aucune requête globale. Toutes les entrées sont validées avec zod.
 //
-// ÉCO-CONCEPTION : select explicites (jamais l'objet entier), tri en base.
-// La pagination sera branchée quand le volume le justifiera (issue liste).
+// ÉCO-CONCEPTION : select explicites (jamais l'objet entier), tri en base,
+// pagination serveur skip/take (issue #70 — on ne charge qu'un écran).
 //
 // Les messages d'erreur renvoyés sont en français et NE contiennent jamais de
 // détail technique (stack, SQL).
@@ -18,6 +18,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
+import { PAGE_SIZE, paginate, type Paginated } from "@/lib/pagination";
 
 // --- Types exposés à l'UI ----------------------------------------------------
 
@@ -118,9 +119,15 @@ const createClientSchema = z.object({
 
 // --- Lectures ----------------------------------------------------------------
 
-// Clients de l'utilisateur courant, triés par nom (insensible à la casse).
-export async function listClients(): Promise<ClientListItem[]> {
+// Clients de l'utilisateur courant, triés par nom, PAGINÉS (issue #70).
+// `count` + `findMany(skip/take)` en parallèle : on ne charge qu'un écran.
+export async function listClients(
+  rawPage?: string | string[],
+): Promise<Paginated<ClientListItem>> {
   const userId = await requireUserId();
+
+  const total = await prisma.client.count({ where: { userId } });
+  const pagination = paginate(rawPage, total, PAGE_SIZE.clients);
 
   const rows = await prisma.client.findMany({
     where: { userId },
@@ -134,14 +141,18 @@ export async function listClients(): Promise<ClientListItem[]> {
       createdAt: true,
     },
     orderBy: { name: "asc" },
+    skip: pagination.skip,
+    take: pagination.pageSize,
   });
 
-  return rows.map((c) => ({
+  const items = rows.map((c) => ({
     ...c,
-    lastDocumentAt: null,
-    caTotalCents: 0,
-    pendingCents: 0,
+    lastDocumentAt: null as null,
+    caTotalCents: 0 as const,
+    pendingCents: 0 as const,
   }));
+
+  return { items, pagination };
 }
 
 // Fiche d'un client. findFirst + filtre userId (JAMAIS findUnique sans userId) :

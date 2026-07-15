@@ -1,15 +1,40 @@
 import { ProjectBoard } from "@/components/projets/project-board";
-import { listProjects, listClientOptions } from "./actions";
+import {
+  listProjects,
+  listClientOptions,
+  getProjectCounts,
+} from "./actions";
 
-// Liste des projets (server component) : données réelles filtrées `where { userId }`
-// via les server actions. La bascule de vue, les filtres et la modale de création
-// sont délégués au composant client ProjectBoard. Les clients sont chargés ici
-// pour peupler le sélecteur de la modale.
-export default async function ProjetsPage() {
-  const [projects, clients] = await Promise.all([
-    listProjects(),
+// Liste des projets (server component) : données réelles filtrées `where { userId }`.
+// Tri, filtre de statut et pagination portés par l'URL (`?tri=`, `?statut=`,
+// `?page=`, issue #70). La bascule de vue et la modale de création restent
+// gérées par le composant client ProjectBoard. Les clients peuplent le
+// sélecteur de la modale ; les compteurs alimentent chips et badges Kanban.
+export default async function ProjetsPage({
+  searchParams,
+}: {
+  searchParams: {
+    page?: string | string[];
+    statut?: string | string[];
+    tri?: string | string[];
+  };
+}) {
+  const [list, clients, counts] = await Promise.all([
+    listProjects({
+      page: searchParams.page,
+      status: searchParams.statut,
+      sort: searchParams.tri,
+    }),
     listClientOptions(),
+    getProjectCounts(),
   ]);
 
-  return <ProjectBoard projects={projects} clients={clients} />;
+  return (
+    <ProjectBoard
+      projects={list.items}
+      pagination={list.pagination}
+      counts={counts}
+      clients={clients}
+    />
+  );
 }
