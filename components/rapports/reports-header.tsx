@@ -2,10 +2,10 @@ import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // En-tête de page (`.page-head`) + outils (segment période, export PDF).
-// Aucun des deux outils n'est implémenté (pas de filtrage par période, pas
-// d'export PDF de rapport) : reproduits visuellement à l'identique de la
-// maquette, mais désactivés proprement (même pattern que le bouton
-// « Exporter » de la liste Factures — `disabled` + `title`).
+// « Exporter en PDF » est branché (#64) sur GET /api/rapports/pdf (même infra
+// Puppeteer que le PDF document #9). Le segment de période reste désactivé
+// proprement (pas de filtrage par période : issue #65). Les outils sont
+// masqués à l'impression (le PDF est la page imprimée par Puppeteer).
 export function ReportsHeader({ year }: { year: number }) {
   return (
     <div className="mb-[22px] flex items-end gap-[18px]">
@@ -17,7 +17,7 @@ export function ReportsHeader({ year }: { year: number }) {
           Votre activité en chiffres — année {year}.
         </div>
       </div>
-      <div className="ml-auto flex items-center gap-2.5">
+      <div className="ml-auto flex items-center gap-2.5 print:hidden">
         <div
           role="group"
           aria-label="Période (bientôt disponible)"
@@ -48,9 +48,11 @@ export function ReportsHeader({ year }: { year: number }) {
             Trimestre
           </button>
         </div>
-        <Button type="button" variant="default" disabled title="Bientôt disponible">
-          <Download strokeWidth={2} />
-          Exporter en PDF
+        <Button asChild variant="default">
+          <a href="/api/rapports/pdf" title="Télécharger le rapport en PDF">
+            <Download strokeWidth={2} />
+            Exporter en PDF
+          </a>
         </Button>
       </div>
     </div>
