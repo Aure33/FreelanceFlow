@@ -325,9 +325,9 @@ if (!hasEnv) {
     }) => {
       await loginAs(page, userB.email, PASSWORD);
       await page.goto(`/clients/${clientAId}`);
-      // L'UI not-found de Next doit s'afficher…
+      // La page 404 française du groupe (app) doit s'afficher (#67)…
       await expect(
-        page.getByText(/could not be found|introuvable/i),
+        page.getByText(/introuvable/i).first(),
       ).toBeVisible();
       // …et le nom du client de A ne doit JAMAIS apparaître pour B.
       await expect(page.getByText(clientAName)).toHaveCount(0);
@@ -339,7 +339,7 @@ if (!hasEnv) {
       await loginAs(page, userB.email, PASSWORD);
       await page.goto(`/projets/${projectAId}`);
       await expect(
-        page.getByText(/could not be found|introuvable/i),
+        page.getByText(/introuvable/i).first(),
       ).toBeVisible();
       await expect(page.getByText(projectAName)).toHaveCount(0);
     });
