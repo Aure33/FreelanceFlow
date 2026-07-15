@@ -970,6 +970,89 @@ export async function convertQuoteToInvoice(
   return { id: created.id };
 }
 
+// --- Duplication (issue #66) ----------------------------------------------------
+
+export type DuplicateResult = { id: string } | { error: string };
+
+// Duplique N'IMPORTE QUEL document de l'utilisateur (devis ou facture, émis ou
+// brouillon) en un nouveau BROUILLON du même type : projet, objet, totaux et
+// lignes copiés à l'identique en centimes. PAS de numéro (attribué à
+// l'émission), pas de dates d'échéance/paiement, pas de traçabilité
+// sourceQuoteId (la duplication n'est pas une conversion) — et le quota
+// freemium est intact : un brouillon n'a pas d'emittedAt, seule l'émission
+// compte (#10). Contrairement à la conversion, on peut dupliquer sans limite
+// (facturation récurrente : la même prestation chaque mois).
+export async function duplicateDocument(id: string): Promise<DuplicateResult> {
+  const userId = await requireUserId();
+
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "Document introuvable." };
+  }
+
+  // Appartenance vérifiée en une requête — même réponse qu'un id inexistant
+  // si le document est à autrui (aucune fuite d'existence).
+  const source = await prisma.document.findFirst({
+    where: { id, userId },
+    select: {
+      type: true,
+      projectId: true,
+      object: true,
+      totalHtCents: true,
+      totalTvaCents: true,
+      totalTtcCents: true,
+      lines: {
+        select: {
+          label: true,
+          quantity: true,
+          unitPriceCents: true,
+          tvaRate: true,
+          position: true,
+        },
+        orderBy: { position: "asc" },
+      },
+    },
+  });
+  if (!source) return { error: "Document introuvable." };
+
+  let created;
+  try {
+    created = await prisma.document.create({
+      data: {
+        userId,
+        projectId: source.projectId,
+        type: source.type,
+        status: "brouillon",
+        object: source.object,
+        issuedAt: new Date(),
+        // Totaux copiés (calculés à partir des MÊMES lignes) ; recalculés de
+        // toute façon côté serveur à l'enregistrement/émission.
+        totalHtCents: source.totalHtCents,
+        totalTvaCents: source.totalTvaCents,
+        totalTtcCents: source.totalTtcCents,
+        lines: {
+          create: source.lines.map((l) => ({
+            userId,
+            label: l.label,
+            quantity: l.quantity,
+            unitPriceCents: l.unitPriceCents,
+            tvaRate: l.tvaRate,
+            position: l.position,
+          })),
+        },
+      },
+      select: { id: true },
+    });
+  } catch {
+    return {
+      error: "Impossible de dupliquer ce document. Réessayez dans un instant.",
+    };
+  }
+
+  revalidatePath("/factures");
+  revalidatePath("/devis");
+  return { id: created.id };
+}
+
 // --- Reprise d'un brouillon dans l'éditeur (issue #61) -------------------------
 
 export type DraftForEditor = {

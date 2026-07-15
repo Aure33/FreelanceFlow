@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Calendar, Download, FileText, Plus, TriangleAlert } from "lucide-react";
+import {
+  Calendar,
+  Copy,
+  Download,
+  FileText,
+  Plus,
+  TriangleAlert,
+} from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tag } from "@/components/dashboard/tag";
 import { GatedCreateLink } from "@/components/paywall/gated-create-link";
@@ -11,11 +18,12 @@ import { PaywallModal } from "@/components/paywall/paywall-modal";
 import { cn } from "@/lib/utils";
 import { formatEuros, type DocType } from "@/lib/invoicing";
 import { nextMonthFirstLabel } from "@/lib/date-fr";
-import type {
-  DocumentListItem,
-  DocumentStatus,
-  InvoiceSummary,
-  QuoteSummary,
+import {
+  duplicateDocument,
+  type DocumentListItem,
+  type DocumentStatus,
+  type InvoiceSummary,
+  type QuoteSummary,
 } from "@/app/(app)/documents/actions";
 import type { Usage } from "@/app/(app)/abonnement/actions";
 import { statusMeta } from "./status";
@@ -109,6 +117,22 @@ export function DocumentList(props: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState<FilterId>("all");
+
+  // Dupliquer (#66) : crée un brouillon identique puis ouvre l'éditeur dessus.
+  // `duplicatingId` désactive les boutons pendant l'action (anti double-clic).
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  async function handleDuplicate(id: string) {
+    setDuplicatingId(id);
+    setDuplicateError(null);
+    const res = await duplicateDocument(id);
+    if ("error" in res) {
+      setDuplicatingId(null);
+      setDuplicateError(res.error);
+      return;
+    }
+    router.push(`/documents/nouveau?document=${res.id}`);
+  }
 
   // Modale paywall (issue #10) : partagée par les 2 boutons de création de
   // cette page ET par l'accès direct à l'URL de l'éditeur (redirigé ici avec
@@ -341,6 +365,15 @@ export function DocumentList(props: Props) {
           </div>
 
           {/* Tableau (`.card` + `.tbl`) */}
+          {duplicateError && (
+            <p
+              role="alert"
+              className="mb-3 rounded-md bg-danger-soft px-3.5 py-2.5 text-[13px] font-medium text-danger-ink"
+            >
+              {duplicateError}
+            </p>
+          )}
+
           <section className="overflow-x-auto rounded-lg border border-line bg-surface shadow-sm">
             <table className="w-full border-collapse">
               <thead>
@@ -352,7 +385,7 @@ export function DocumentList(props: Props) {
                   <th className={th}>{copy.dueHeader}</th>
                   <th className={th}>Statut</th>
                   <th className={cn(th, "text-right")}>Montant TTC</th>
-                  <th className={cn(th, "w-[130px]")} aria-label="Actions" />
+                  <th className={cn(th, "w-[218px]")} aria-label="Actions" />
                 </tr>
               </thead>
               <tbody className="[&>tr:last-child>td]:border-b-0">
@@ -413,7 +446,27 @@ export function DocumentList(props: Props) {
                         {formatEuros(d.totalTtcCents)}
                       </td>
                       <td className={td}>
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-1.5">
+                          {/* Dupliquer (#66) : nouveau brouillon identique,
+                              ouvert dans l'éditeur. */}
+                          <button
+                            type="button"
+                            title={`Dupliquer ${d.number ?? "ce brouillon"}`}
+                            aria-label={`Dupliquer ${d.number ?? "ce brouillon"}`}
+                            disabled={duplicatingId !== null}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDuplicate(d.id);
+                            }}
+                            className="inline-flex h-[30px] items-center gap-1.5 rounded-sm border border-line bg-surface px-2.5 text-[12.5px] font-semibold text-ink-2 transition-colors hover:bg-surface-2 disabled:opacity-50"
+                          >
+                            <Copy
+                              className="h-3.5 w-3.5"
+                              strokeWidth={2}
+                              aria-hidden
+                            />
+                            {duplicatingId === d.id ? "…" : "Dupliquer"}
+                          </button>
                           {d.number === null ? (
                             <button
                               type="button"
