@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 // Coquille de modale accessible réutilisable (issue #58) — même contrat a11y
@@ -65,7 +66,11 @@ export function ModalShell({
 
   if (!open) return null;
 
-  return (
+  // PORTAL vers <body> (#63) : un ancêtre avec `transform`/`backdrop-filter`
+  // (ex. la topbar en backdrop-blur) devient le containing block des
+  // descendants `position: fixed` — la modale se calerait dessus au lieu du
+  // viewport. Rendue seulement à l'ouverture (côté client), document existe.
+  return createPortal(
     <>
       {/* Fond assombri — clic pour fermer */}
       <div
@@ -101,6 +106,7 @@ export function ModalShell({
 
         {children}
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
