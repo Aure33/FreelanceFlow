@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Search } from "lucide-react";
+import { Bell } from "lucide-react";
+import { SearchPalette } from "./search-palette";
 
 // Titre affiché dans la topbar selon le premier segment de route.
 const SEGMENT_TITLES: Record<string, string> = {
@@ -25,17 +26,8 @@ export function Topbar() {
     <header className="sticky top-0 z-20 flex h-topbar items-center gap-[18px] border-b border-line bg-topbar px-7 backdrop-blur-[8px] print:hidden">
       <h1 className="text-lg font-bold tracking-[-0.02em]">{title}</h1>
 
-      <div className="ml-auto flex w-[280px] items-center gap-[9px] rounded-md border border-line bg-surface px-[13px] py-2 text-ink-3 transition-shadow focus-within:border-accent focus-within:ring-[3px] focus-within:ring-accent-soft">
-        <Search className="h-4 w-4 flex-none" strokeWidth={2} aria-hidden />
-        <input
-          type="search"
-          placeholder="Rechercher un client, une facture…"
-          className="w-full border-none bg-transparent text-sm text-ink outline-none placeholder:text-ink-3"
-        />
-        <span className="num rounded-[5px] border border-line px-[5px] py-px text-[11px] text-ink-3">
-          ⌘K
-        </span>
-      </div>
+      {/* Recherche globale (#63) : palette ⌘K, déclencheur fidèle à la maquette. */}
+      <SearchPalette />
 
       <button
         type="button"

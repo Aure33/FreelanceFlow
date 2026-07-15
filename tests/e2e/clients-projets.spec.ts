@@ -201,7 +201,9 @@ if (!hasEnv) {
 
       await page.locator("#siret").fill(KNOWN_SIRET);
       // Force la vérification sans attendre le debounce (bouton « Rechercher »).
-      await page.getByRole("button", { name: /rechercher/i }).click();
+      // `exact` : depuis #63, la topbar porte aussi un bouton « Rechercher
+      // (raccourci Cmd+K ou Ctrl+K) » qu'un /rechercher/i attraperait.
+      await page.getByRole("button", { name: "Rechercher", exact: true }).click();
 
       const verified = page.getByText("Vérifié", { exact: true });
       const unverified = page.getByText("Non reconnu", { exact: true });
