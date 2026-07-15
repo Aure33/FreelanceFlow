@@ -6,25 +6,24 @@ import { eurosAmount, formatDaysDelta, formatPctDelta, plural } from "./format";
 // tableau de bord, ces cartes n'ont PAS de pastille d'icône (absente de la
 // maquette Rapports — vérifié : `.kpi` n'y définit aucune classe `.ic`).
 export function KpiCards({ data }: { data: ReportsData }) {
-  const { year, kpis } = data;
-  const prevYear = year - 1;
+  const { kpis, labels } = data;
 
   return (
     <section className="mb-gap grid grid-cols-4 gap-gap max-[1100px]:grid-cols-2 print:break-inside-avoid">
       {/* CA encaissé */}
       <KpiCard
-        label={`CA encaissé en ${year}`}
+        label={labels.caTitle}
         value={eurosAmount(kpis.caEncaisseCents)}
         unit="€ HT"
         foot={
           kpis.caEncaisseDeltaPct === null ? (
-            <span>Aucune donnée à comparer sur {prevYear}</span>
+            <span>Aucune donnée à comparer sur la période précédente</span>
           ) : (
             <>
               <Delta positive={kpis.caEncaisseDeltaPct >= 0}>
                 {formatPctDelta(kpis.caEncaisseDeltaPct)}
               </Delta>{" "}
-              <span>vs {prevYear} à date</span>
+              <span>{labels.caComparison}</span>
             </>
           )
         }
@@ -54,15 +53,15 @@ export function KpiCards({ data }: { data: ReportsData }) {
         unit={kpis.delaiMoyenPaiementJours === null ? "" : "jours"}
         foot={
           kpis.delaiMoyenPaiementJours === null ? (
-            <span>Aucune facture payée cette année</span>
+            <span>Aucune facture payée sur la période</span>
           ) : kpis.delaiMoyenPaiementDeltaJours === null ? (
-            <span>Aucune donnée à comparer sur {prevYear}</span>
+            <span>Aucune donnée à comparer sur la période précédente</span>
           ) : (
             <>
               <Delta positive={kpis.delaiMoyenPaiementDeltaJours <= 0}>
                 {formatDaysDelta(kpis.delaiMoyenPaiementDeltaJours)}
               </Delta>{" "}
-              <span>vs {prevYear}</span>
+              <span>{labels.delayComparison}</span>
             </>
           )
         }
@@ -75,7 +74,7 @@ export function KpiCards({ data }: { data: ReportsData }) {
         unit={kpis.devisDecidesCount === 0 ? "" : "%"}
         foot={
           kpis.devisDecidesCount === 0 ? (
-            <span>Aucun devis décidé cette année</span>
+            <span>Aucun devis décidé {labels.quotesFoot}</span>
           ) : (
             <span>
               {kpis.devisAcceptesCount} devis accepté

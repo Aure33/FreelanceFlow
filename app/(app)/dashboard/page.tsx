@@ -7,13 +7,21 @@ import { TopClients } from "@/components/dashboard/top-clients";
 import { OnboardingView } from "@/components/onboarding/onboarding-view";
 import { getCurrentUserProfile } from "@/lib/auth/session";
 import { getUsage } from "@/app/(app)/abonnement/actions";
+import { parseDashboardPeriod } from "@/lib/periods";
 import {
   getDashboardData,
   getOnboardingStatus,
   isOnboardingDismissed,
 } from "./actions";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { periode?: string };
+}) {
+  // Segment de période (#65) : la sélection vit dans l'URL (?periode=),
+  // whitelist stricte côté serveur (défaut « mois »).
+  const period = parseDashboardPeriod(searchParams.periode);
   // Premier lancement (#60) : un compte sans AUCUN document voit le guide
   // « Premiers pas » à la place du tableau de bord (sauf s'il l'a ignoré —
   // cookie lu en premier, gratuit). Tout part en parallèle pour ne pas ajouter
@@ -24,7 +32,7 @@ export default async function DashboardPage() {
   const [profile, usage, data, onboarding] = await Promise.all([
     getCurrentUserProfile(),
     getUsage(),
-    getDashboardData(),
+    getDashboardData(period),
     dismissed.then((d) => (d ? null : getOnboardingStatus())),
   ]);
   const firstName = profile?.name.split(" ")[0] ?? "";
@@ -41,7 +49,7 @@ export default async function DashboardPage() {
         usage={usage}
       />
 
-      <KpiCards kpis={data.kpis} />
+      <KpiCards kpis={data.kpis} comparisonLabel={data.comparisonLabel} />
 
       {/* Grille principale : graphe CA (1fr) + panneau prioritaire (380px) */}
       <div className="grid grid-cols-[1fr_380px] items-start gap-gap max-[1100px]:grid-cols-1">
@@ -52,7 +60,7 @@ export default async function DashboardPage() {
       {/* Bandeau bas : factures récentes (2 col) + top clients */}
       <div className="mt-gap grid grid-cols-3 gap-gap max-[1100px]:grid-cols-1">
         <RecentInvoices invoices={data.recentInvoices} />
-        <TopClients topClients={data.topClients} />
+        <TopClients topClients={data.topClients} rangeLabel={data.rangeLabel} />
       </div>
     </>
   );
