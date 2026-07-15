@@ -5,14 +5,26 @@ import {
   ClientRevenueCard,
   PaymentDelaysCard,
 } from "@/components/rapports/premium-cards";
+import { parseReportsPeriod } from "@/lib/periods";
 import { getReportsData } from "./actions";
 
-export default async function RapportsPage() {
-  const data = await getReportsData();
+export default async function RapportsPage({
+  searchParams,
+}: {
+  searchParams: { periode?: string };
+}) {
+  // Segment de période (#65) : sélection dans l'URL, whitelist stricte côté
+  // serveur (défaut « annee »).
+  const period = parseReportsPeriod(searchParams.periode);
+  const data = await getReportsData(period);
 
   return (
     <>
-      <ReportsHeader year={data.year} />
+      <ReportsHeader
+        year={data.year}
+        period={data.period}
+        subtitle={data.labels.subtitle}
+      />
 
       <KpiCards data={data} />
 

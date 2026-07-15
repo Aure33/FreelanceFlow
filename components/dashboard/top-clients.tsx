@@ -1,12 +1,15 @@
 import { Users } from "lucide-react";
 import type { DashboardData } from "@/app/(app)/dashboard/actions";
 
-// Mini-carte « Top clients · ce trimestre » (barres de répartition).
+// Mini-carte « Top clients · <période> » (barres de répartition).
 // Largeur des barres proportionnelle au client le plus haut (1er = 100 %).
+// `rangeLabel` = libellé serveur de la période sélectionnée (#65).
 export function TopClients({
   topClients,
+  rangeLabel,
 }: {
   topClients: DashboardData["topClients"];
+  rangeLabel: string;
 }) {
   const items = topClients?.items ?? [];
   const empty = topClients === null || items.length === 0;
@@ -19,12 +22,12 @@ export function TopClients({
     <div className="rounded-lg border border-line bg-surface px-5 py-[18px] shadow-sm">
       <div className="mb-3 flex items-center gap-[7px] text-[13px] font-semibold text-ink-3">
         <Users className="h-[15px] w-[15px]" strokeWidth={2} aria-hidden />
-        Top clients · ce trimestre
+        Top clients · {rangeLabel}
       </div>
 
       {empty ? (
         <div className="py-[18px] text-center text-[13px] text-ink-3">
-          Aucun chiffre d&apos;affaires ce trimestre
+          Aucun chiffre d&apos;affaires {rangeLabel}
         </div>
       ) : (
         <>

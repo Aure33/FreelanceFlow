@@ -31,7 +31,14 @@ const KPI_ICON: Record<KpiIcon, LucideIcon | typeof CurrencyIcon> = {
   quote: FileText,
 };
 
-export function KpiCards({ kpis }: { kpis: DashboardData["kpis"] }) {
+export function KpiCards({
+  kpis,
+  comparisonLabel,
+}: {
+  kpis: DashboardData["kpis"];
+  // « vs mois dernier » / « vs trimestre dernier » / « vs année dernière » (#65).
+  comparisonLabel: string;
+}) {
   return (
     <section className="mb-gap grid grid-cols-4 gap-gap max-[1100px]:grid-cols-2">
       {/* CA encaissé (HT) — accent */}
@@ -43,13 +50,13 @@ export function KpiCards({ kpis }: { kpis: DashboardData["kpis"] }) {
         unit="€"
         foot={
           kpis.caEncaisseDeltaPct === null ? (
-            <span>Aucune donnée le mois dernier</span>
+            <span>Aucune donnée sur la période précédente</span>
           ) : (
             <>
               <Delta positive={kpis.caEncaisseDeltaPct >= 0}>
                 {formatPctDelta(kpis.caEncaisseDeltaPct)}
               </Delta>{" "}
-              <span>vs mois dernier</span>
+              <span>{comparisonLabel}</span>
             </>
           )
         }

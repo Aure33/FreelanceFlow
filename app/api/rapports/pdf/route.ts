@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 import { getCurrentUser } from "@/lib/auth/session";
+import { parseReportsPeriod } from "@/lib/periods";
 
 // Export PDF de la page Rapports (issue #64) — même architecture que le PDF
 // document (#9) : génération côté SERVEUR uniquement, Puppeteer NAVIGUE vers
@@ -21,8 +22,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   }
 
-  const origin = new URL(request.url).origin;
+  const url = new URL(request.url);
+  const origin = url.origin;
   const cookie = request.headers.get("cookie") ?? "";
+  // Le PDF emporte la période sélectionnée (#65) — whitelist stricte, jamais
+  // de paramètre arbitraire réinjecté dans la navigation.
+  const period = parseReportsPeriod(
+    url.searchParams.get("periode") ?? undefined,
+  );
+  const reportPath =
+    period === "annee" ? "/rapports" : `/rapports?periode=${period}`;
 
   let browser: import("puppeteer-core").Browser | null = null;
   try {
@@ -34,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     const page = await browser.newPage();
     await page.setExtraHTTPHeaders({ cookie });
-    await page.goto(`${origin}/rapports`, { waitUntil: "networkidle0" });
+    await page.goto(`${origin}${reportPath}`, { waitUntil: "networkidle0" });
 
     // Contrairement au document (A4 figé 595×842, une page), le rapport est un
     // flux : format A4 standard multi-pages, marges modestes, fonds imprimés

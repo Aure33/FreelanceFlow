@@ -19,14 +19,30 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
+import {
+  monthIndex,
+  reportsLabels,
+  reportsWindow,
+  type ReportsPeriod,
+} from "@/lib/periods";
 
 // --- Types exposés à l'UI ----------------------------------------------------
 
 export type ReportsData = {
   year: number; // année calendaire en cours (serveur, pas côté client)
+  // Période sélectionnée (#65) + libellés serveur correspondants (l'UI les
+  // affiche tels quels : « année 2026 », « vs 2025 à date », …).
+  period: ReportsPeriod;
+  labels: {
+    subtitle: string;
+    caTitle: string;
+    caComparison: string;
+    delayComparison: string;
+    quotesFoot: string;
+  };
   kpis: {
     caEncaisseCents: number;
-    caEncaisseDeltaPct: number | null; // vs même période l'année précédente (year-to-date) ; null si rien à comparer l'an dernier
+    caEncaisseDeltaPct: number | null; // vs période précédente équivalente ; null si rien à comparer
     enAttenteCents: number;
     enAttenteCount: number;
     delaiMoyenPaiementJours: number | null; // null si aucune facture payée cette année
@@ -35,7 +51,7 @@ export type ReportsData = {
     devisAcceptesCount: number;
     devisDecidesCount: number; // accepté + refusé (dénominateur du taux)
   };
-  monthlyRevenue: { month: string; paidCents: number; pendingCents: number }[]; // 12 entrées Jan->Déc de l'année en cours
+  monthlyRevenue: { month: string; paidCents: number; pendingCents: number }[]; // 1 entrée par mois de la période (12 en année/12mois, 3 en trimestre)
   premium: {
     clientRevenueBreakdown: {
       items: { clientName: string; cents: number }[];
@@ -81,20 +97,19 @@ function average(values: number[]): number | null {
 // mois de l'année en cours) et — uniquement pour un compte "premium" — les 2
 // blocs avancés (répartition CA par client, délais de paiement par client).
 // Pour un compte "free", ces 2 blocs sont `null` : ni calculés, ni renvoyés.
-export async function getReportsData(): Promise<ReportsData> {
+export async function getReportsData(
+  period: ReportsPeriod = "annee",
+): Promise<ReportsData> {
   const userId = await requireUserId();
 
   const now = new Date();
   const year = now.getUTCFullYear();
-  const yearStart = new Date(Date.UTC(year, 0, 1));
-  const yearEnd = new Date(Date.UTC(year + 1, 0, 1));
-  const prevYearStart = new Date(Date.UTC(year - 1, 0, 1));
-  const prevYearEnd = yearStart;
-  // Borne "à date" de l'année précédente : même jour calendaire, l'an
-  // dernier, journée incluse (borne exclusive = lendemain à 00:00 UTC).
-  const prevYearToDateEnd = new Date(
-    Date.UTC(year - 1, now.getUTCMonth(), now.getUTCDate() + 1),
-  );
+  // Bornes de la période sélectionnée (#65, lib/periods) : [start, end) pour
+  // la période courante ; [prevStart, prevEnd) pour la comparaison du CA
+  // (année précédente À DATE en mode « annee », fenêtre précédente complète
+  // sinon) ; [prevStart, start) = période précédente COMPLÈTE (délais).
+  const win = reportsWindow(period, now);
+  const labels = reportsLabels(period, now);
 
   const [
     me,
@@ -116,7 +131,7 @@ export async function getReportsData(): Promise<ReportsData> {
         userId,
         type: "facture",
         status: "paye",
-        paidAt: { gte: yearStart, lt: yearEnd },
+        paidAt: { gte: win.start, lt: win.end },
       },
       _sum: { totalHtCents: true },
     }),
@@ -125,7 +140,7 @@ export async function getReportsData(): Promise<ReportsData> {
         userId,
         type: "facture",
         status: "paye",
-        paidAt: { gte: prevYearStart, lt: prevYearToDateEnd },
+        paidAt: { gte: win.prevStart, lt: win.prevEnd },
       },
       _sum: { totalHtCents: true },
     }),
@@ -134,7 +149,7 @@ export async function getReportsData(): Promise<ReportsData> {
       _sum: { totalHtCents: true },
       _count: true,
     }),
-    // Factures payées cette année (délai de paiement + blocs premium par
+    // Factures payées sur la période (délai de paiement + blocs premium par
     // client) : select explicite, on remonte le client via project pour
     // pouvoir réutiliser ces mêmes lignes pour le bloc premium (pas de
     // second aller-retour BDD).
@@ -143,7 +158,7 @@ export async function getReportsData(): Promise<ReportsData> {
         userId,
         type: "facture",
         status: "paye",
-        paidAt: { gte: yearStart, lt: yearEnd },
+        paidAt: { gte: win.start, lt: win.end },
       },
       select: {
         issuedAt: true,
@@ -151,14 +166,14 @@ export async function getReportsData(): Promise<ReportsData> {
         project: { select: { client: { select: { name: true } } } },
       },
     }),
-    // Même délai, année précédente COMPLÈTE (pour le delta du KPI) — pas
+    // Même délai, période précédente COMPLÈTE (pour le delta du KPI) — pas
     // besoin du client ici.
     prisma.document.findMany({
       where: {
         userId,
         type: "facture",
         status: "paye",
-        paidAt: { gte: prevYearStart, lt: prevYearEnd },
+        paidAt: { gte: win.prevStart, lt: win.start },
       },
       select: { issuedAt: true, paidAt: true },
     }),
@@ -167,7 +182,7 @@ export async function getReportsData(): Promise<ReportsData> {
         userId,
         type: "devis",
         status: "accepte",
-        issuedAt: { gte: yearStart, lt: yearEnd },
+        issuedAt: { gte: win.start, lt: win.end },
       },
     }),
     prisma.document.count({
@@ -175,18 +190,18 @@ export async function getReportsData(): Promise<ReportsData> {
         userId,
         type: "devis",
         status: "refuse",
-        issuedAt: { gte: yearStart, lt: yearEnd },
+        issuedAt: { gte: win.start, lt: win.end },
       },
     }),
-    // Graphe mensuel : une seule requête pour l'année, bucket par mois en JS
-    // (volume d'un freelance faible — cf. note en tête de fichier).
+    // Graphe mensuel : une seule requête pour la période, bucket par mois en
+    // JS (volume d'un freelance faible — cf. note en tête de fichier).
     prisma.document.findMany({
       where: {
         userId,
         type: "facture",
         OR: [
-          { status: "paye", paidAt: { gte: yearStart, lt: yearEnd } },
-          { status: "envoye", issuedAt: { gte: yearStart, lt: yearEnd } },
+          { status: "paye", paidAt: { gte: win.start, lt: win.end } },
+          { status: "envoye", issuedAt: { gte: win.start, lt: win.end } },
         ],
       },
       select: {
@@ -200,7 +215,7 @@ export async function getReportsData(): Promise<ReportsData> {
 
   const planType = me?.planType === "premium" ? "premium" : "free";
 
-  // --- KPI 1 : CA encaissé + delta vs même période l'an dernier -------------
+  // --- KPI 1 : CA encaissé + delta vs période précédente équivalente ----------
   const caEncaisseCents = caEncaisse._sum.totalHtCents ?? 0;
   const caPrevYtd = caEncaissePrevYearToDate._sum.totalHtCents ?? 0;
   const caEncaisseDeltaPct =
@@ -212,7 +227,7 @@ export async function getReportsData(): Promise<ReportsData> {
   const enAttenteCents = enAttente._sum.totalHtCents ?? 0;
   const enAttenteCount = enAttente._count;
 
-  // --- KPI 3 : délai moyen de paiement + delta vs année précédente ----------
+  // --- KPI 3 : délai moyen de paiement + delta vs période précédente ---------
   const thisYearDelays = paidThisYearRows
     .filter((r): r is typeof r & { issuedAt: Date; paidAt: Date } =>
       Boolean(r.issuedAt && r.paidAt),
@@ -241,20 +256,23 @@ export async function getReportsData(): Promise<ReportsData> {
       ? 0
       : Math.round((devisAcceptesCount / devisDecidesCount) * 100);
 
-  // --- Graphe CA mensuel -------------------------------------------------------
-  const buckets = Array.from({ length: 12 }, () => ({
+  // --- Graphe CA mensuel (un seau par mois de la période) -----------------------
+  const buckets = win.months.map(() => ({
     paidCents: 0,
     pendingCents: 0,
   }));
   for (const row of monthlyRows) {
     if (row.status === "paye" && row.paidAt) {
-      buckets[row.paidAt.getUTCMonth()].paidCents += row.totalHtCents;
+      const i = monthIndex(win.months, row.paidAt);
+      if (i >= 0 && i < buckets.length) buckets[i].paidCents += row.totalHtCents;
     } else if (row.status === "envoye" && row.issuedAt) {
-      buckets[row.issuedAt.getUTCMonth()].pendingCents += row.totalHtCents;
+      const i = monthIndex(win.months, row.issuedAt);
+      if (i >= 0 && i < buckets.length)
+        buckets[i].pendingCents += row.totalHtCents;
     }
   }
   const monthlyRevenue = buckets.map((b, i) => ({
-    month: MONTH_LABELS[i],
+    month: MONTH_LABELS[win.months[i].m],
     paidCents: b.paidCents,
     pendingCents: b.pendingCents,
   }));
@@ -269,12 +287,12 @@ export async function getReportsData(): Promise<ReportsData> {
 
   if (planType === "premium") {
     // Répartition du CA par client : tous les documents ÉMIS (devis +
-    // factures, hors brouillon) de l'année en cours, groupés par client.
+    // factures, hors brouillon) de la période, groupés par client.
     const emittedDocs = await prisma.document.findMany({
       where: {
         userId,
         status: { not: "brouillon" },
-        issuedAt: { gte: yearStart, lt: yearEnd },
+        issuedAt: { gte: win.start, lt: win.end },
       },
       select: {
         totalHtCents: true,
@@ -303,7 +321,7 @@ export async function getReportsData(): Promise<ReportsData> {
     clientRevenueBreakdown = { items: topClients, othersCents };
 
     // Délais de paiement par client : réutilise les lignes déjà chargées
-    // pour le KPI (factures "paye", paidAt dans l'année en cours).
+    // pour le KPI (factures "paye", paidAt dans la période).
     const delaysByClient = new Map<string, number[]>();
     for (const row of paidThisYearRows) {
       if (!row.issuedAt || !row.paidAt) continue;
@@ -331,6 +349,8 @@ export async function getReportsData(): Promise<ReportsData> {
 
   return {
     year,
+    period,
+    labels,
     kpis: {
       caEncaisseCents,
       caEncaisseDeltaPct,

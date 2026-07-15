@@ -1,30 +1,12 @@
 import type { ReportsData } from "@/app/(app)/rapports/actions";
 import { formatEuros } from "@/lib/invoicing";
 
-// Noms complets FR des mois, dans l'ordre de `monthlyRevenue` (index 0 =
-// janvier), pour l'aria-label — les libellés courts (Jan, Fév…) restent pour
-// l'axe visuel.
-const MONTH_FULL_NAMES = [
-  "janvier",
-  "février",
-  "mars",
-  "avril",
-  "mai",
-  "juin",
-  "juillet",
-  "août",
-  "septembre",
-  "octobre",
-  "novembre",
-  "décembre",
-] as const;
-
 // Graphe CA en barres empilées, HTML/CSS pur (aucune librairie de charts) —
-// même technique que `components/dashboard/revenue-chart.tsx`, adapté aux 12
-// mois (janvier -> décembre) de l'année en cours plutôt qu'aux 8 derniers
-// mois glissants. Visible sur tous les plans (pas de verrou Premium).
+// même technique que `components/dashboard/revenue-chart.tsx`, adapté aux
+// mois de la PÉRIODE sélectionnée (12 en année/12 mois glissants, 3 en
+// trimestre — #65). Visible sur tous les plans (pas de verrou Premium).
 export function RevenueChart({ data }: { data: ReportsData }) {
-  const { year, monthlyRevenue } = data;
+  const { labels, monthlyRevenue } = data;
   const totals = monthlyRevenue.map((d) => d.paidCents + d.pendingCents);
   const max = Math.max(1, ...totals);
 
@@ -36,8 +18,8 @@ export function RevenueChart({ data }: { data: ReportsData }) {
   const hasData = totals.some((t) => t > 0);
 
   const ariaLabel = hasData
-    ? `Chiffre d'affaires mensuel de janvier à décembre ${year}, point haut en ${MONTH_FULL_NAMES[peakIndex]} à ${formatEuros(totals[peakIndex])}.`
-    : `Chiffre d'affaires mensuel de janvier à décembre ${year}, aucune donnée pour l'instant.`;
+    ? `Chiffre d'affaires mensuel — ${labels.subtitle}, point haut en ${monthlyRevenue[peakIndex].month} à ${formatEuros(totals[peakIndex])}.`
+    : `Chiffre d'affaires mensuel — ${labels.subtitle}, aucune donnée pour l'instant.`;
 
   return (
     <section className="rounded-lg border border-line bg-surface shadow-sm print:break-inside-avoid">

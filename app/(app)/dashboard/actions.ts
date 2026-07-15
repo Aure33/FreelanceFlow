@@ -34,6 +34,14 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import type { OnboardingCounts } from "@/lib/onboarding";
+import {
+  dashboardWindow,
+  monthsBetween,
+  monthIndex,
+  DASHBOARD_COMPARISON_LABEL,
+  DASHBOARD_RANGE_LABEL,
+  type DashboardPeriod,
+} from "@/lib/periods";
 
 // --- Types exposés à l'UI ----------------------------------------------------
 
@@ -56,9 +64,13 @@ export type DashboardRecentInvoice = {
 
 export type DashboardData = {
   todayLabel: string; // date du jour FR, 1ʳᵉ lettre en majuscule, calculée SERVEUR
+  // Période sélectionnée (#65) + libellés serveur correspondants.
+  period: DashboardPeriod;
+  comparisonLabel: string; // « vs mois dernier » / « vs trimestre dernier » / …
+  rangeLabel: string; // « ce mois-ci » / « ce trimestre » / « cette année »
   kpis: {
-    caEncaisseCents: number; // HT, factures payées, paidAt dans le mois en cours
-    caEncaisseDeltaPct: number | null; // vs mois précédent complet ; null si 0
+    caEncaisseCents: number; // HT, factures payées, paidAt dans la PÉRIODE
+    caEncaisseDeltaPct: number | null; // vs période précédente complète ; null si 0
     enAttenteCents: number; // HT, factures « envoye » non échues
     enAttenteCount: number;
     enRetardCents: number; // HT, factures « envoye » échues non payées
@@ -121,7 +133,9 @@ function effectiveStatus(
 
 // --- Lecture -----------------------------------------------------------------
 
-export async function getDashboardData(): Promise<DashboardData> {
+export async function getDashboardData(
+  period: DashboardPeriod = "mois",
+): Promise<DashboardData> {
   const userId = await requireUserId();
 
   const now = new Date();
@@ -129,25 +143,24 @@ export async function getDashboardData(): Promise<DashboardData> {
   const curM = now.getUTCMonth();
 
   // Borne haute du mois calendaire en cours (UTC), qui est aussi la borne haute
-  // de la fenêtre du graphe. Le CA encaissé du mois en cours et celui du mois
-  // précédent ne font PAS l'objet de requêtes dédiées : ils se DÉRIVENT des deux
-  // derniers seaux du graphe (même filtre exactement : facture « paye », paidAt
+  // de la fenêtre du graphe. Le CA encaissé de la période et celui de la période
+  // précédente ne font PAS l'objet de requêtes dédiées : ils se DÉRIVENT des
+  // seaux mensuels du graphe (même filtre exactement : facture « paye », paidAt
   // dans le mois). Voir la note sur le nombre de requêtes en tête de fichier.
   const monthEnd = new Date(Date.UTC(curY, curM + 1, 1));
 
-  // Fenêtre de 8 mois glissants finissant au mois en cours (le plus ancien au
-  // plus récent). monthsMeta[i] = année + mois de chaque colonne du graphe.
-  const monthsMeta = Array.from({ length: 8 }, (_, k) => {
-    const dt = new Date(Date.UTC(curY, curM + (k - 7), 1));
-    return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() };
-  });
-  const windowStart = new Date(Date.UTC(monthsMeta[0].y, monthsMeta[0].m, 1));
-  const windowEnd = monthEnd;
+  // Période sélectionnée (#65) : bornes UTC de la période courante et de la
+  // période précédente complète (comparaison du KPI 1 + fenêtre top clients).
+  const win = dashboardWindow(period, now);
 
-  // Bornes du trimestre calendaire en cours (UTC).
-  const quarterStartMonth = Math.floor(curM / 3) * 3;
-  const quarterStart = new Date(Date.UTC(curY, quarterStartMonth, 1));
-  const quarterEnd = new Date(Date.UTC(curY, quarterStartMonth + 3, 1));
+  // Fenêtre de seaux mensuels : au moins les 8 mois affichés par le graphe,
+  // ÉLARGIE en arrière si la comparaison remonte plus loin (période « annee » :
+  // jusqu'à 24 seaux). Le graphe n'affiche toujours que les 8 derniers ; le
+  // KPI 1 se somme sur les seaux de sa période — zéro requête ajoutée.
+  const chartStart = new Date(Date.UTC(curY, curM - 7, 1));
+  const windowStart = win.prevStart < chartStart ? win.prevStart : chartStart;
+  const monthsMeta = monthsBetween(windowStart, monthEnd);
+  const windowEnd = monthEnd;
 
   const [
     enAttente,
@@ -157,7 +170,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     overdueRows,
     devisRows,
     recentRows,
-    quarterRows,
+    periodRows,
   ] = await Promise.all([
     // KPI 2 : factures en attente (HT) — « envoye » non échues.
     prisma.document.aggregate({
@@ -261,13 +274,13 @@ export async function getDashboardData(): Promise<DashboardData> {
       ],
       take: 5,
     }),
-    // Top clients (trimestre) : documents ÉMIS (hors brouillon, devis +
-    // factures), issuedAt dans le trimestre. HT, groupés par client en JS.
+    // Top clients : documents ÉMIS (hors brouillon, devis + factures),
+    // issuedAt dans la PÉRIODE sélectionnée. HT, groupés par client en JS.
     prisma.document.findMany({
       where: {
         userId,
         status: { not: "brouillon" },
-        issuedAt: { gte: quarterStart, lt: quarterEnd },
+        issuedAt: { gte: win.start, lt: win.end },
       },
       select: {
         totalHtCents: true,
@@ -285,42 +298,48 @@ export async function getDashboardData(): Promise<DashboardData> {
   }).format(now);
   const todayLabel = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1);
 
-  // --- Graphe CA (8 mois glissants) ------------------------------------------
-  // Calculé AVANT les KPI : les deux derniers seaux fournissent le CA encaissé
-  // du mois en cours et du mois précédent (cf. note plus haut).
-  const buckets = Array.from({ length: 8 }, () => ({
+  // --- Seaux mensuels (graphe + KPI 1) ----------------------------------------
+  // Calculés AVANT les KPI : le KPI 1 se dérive des seaux de sa période.
+  const buckets = monthsMeta.map(() => ({
     paidCents: 0,
     pendingCents: 0,
   }));
-  const bucketIndex = (dt: Date): number =>
-    (dt.getUTCFullYear() - monthsMeta[0].y) * 12 +
-    (dt.getUTCMonth() - monthsMeta[0].m);
   for (const row of monthlyRows) {
     if (row.status === "paye" && row.paidAt) {
-      const i = bucketIndex(row.paidAt);
-      if (i >= 0 && i < 8) buckets[i].paidCents += row.totalHtCents;
+      const i = monthIndex(monthsMeta, row.paidAt);
+      if (i >= 0 && i < buckets.length) buckets[i].paidCents += row.totalHtCents;
     } else if (row.status === "envoye" && row.issuedAt) {
-      const i = bucketIndex(row.issuedAt);
-      if (i >= 0 && i < 8) buckets[i].pendingCents += row.totalHtCents;
+      const i = monthIndex(monthsMeta, row.issuedAt);
+      if (i >= 0 && i < buckets.length)
+        buckets[i].pendingCents += row.totalHtCents;
     }
   }
-  const monthlyRevenue = buckets.map((b, i) => ({
-    month: MONTH_LABELS[monthsMeta[i].m],
+  // Le graphe n'affiche que les 8 derniers mois, quelle que soit la fenêtre.
+  const chartOffset = Math.max(0, buckets.length - 8);
+  const monthlyRevenue = buckets.slice(chartOffset).map((b, i) => ({
+    month: MONTH_LABELS[monthsMeta[chartOffset + i].m],
     paidCents: b.paidCents,
     pendingCents: b.pendingCents,
   }));
 
-  // --- KPI 1 : CA encaissé + delta vs mois dernier ----------------------------
-  // Dérivés des seaux : buckets[7] = mois en cours, buckets[6] = mois précédent
-  // (monthsMeta[k] vaut curM + (k - 7)). Le filtre du graphe (« paye » + paidAt
-  // dans la fenêtre) est exactement celui qu'auraient eu deux agrégats dédiés —
-  // on économise 2 allers-retours BDD sans changer le résultat.
-  const caEncaisseCents = buckets[7].paidCents;
-  const caPrevMonth = buckets[6].paidCents;
+  // --- KPI 1 : CA encaissé (période) + delta vs période précédente complète ----
+  // Dérivés des seaux : somme des mois de [start, end) et de [prevStart,
+  // prevEnd). Le filtre du graphe (« paye » + paidAt dans la fenêtre) est
+  // exactement celui qu'auraient eu deux agrégats dédiés — on économise 2
+  // allers-retours BDD sans changer le résultat.
+  const sumPaidRange = (from: Date, to: Date): number =>
+    monthsMeta.reduce((total, { y, m }, i) => {
+      const t = Date.UTC(y, m, 1);
+      return t >= from.getTime() && t < to.getTime()
+        ? total + buckets[i].paidCents
+        : total;
+    }, 0);
+  const caEncaisseCents = sumPaidRange(win.start, win.end);
+  const caPrevPeriod = sumPaidRange(win.prevStart, win.prevEnd);
   const caEncaisseDeltaPct =
-    caPrevMonth === 0
+    caPrevPeriod === 0
       ? null
-      : Math.round(((caEncaisseCents - caPrevMonth) / caPrevMonth) * 100);
+      : Math.round(((caEncaisseCents - caPrevPeriod) / caPrevPeriod) * 100);
 
   // --- Panneau priorité ------------------------------------------------------
   const overdueItems: DashboardPriorityItem[] = overdueRows.map((r) => ({
@@ -358,33 +377,36 @@ export async function getDashboardData(): Promise<DashboardData> {
     amountTtcCents: d.totalTtcCents,
   }));
 
-  // --- Top clients (trimestre) -----------------------------------------------
+  // --- Top clients (période sélectionnée) --------------------------------------
   const totalsByClient = new Map<string, number>();
-  let quarterTotal = 0;
-  for (const doc of quarterRows) {
+  let periodTotal = 0;
+  for (const doc of periodRows) {
     const name = doc.project.client.name;
     totalsByClient.set(name, (totalsByClient.get(name) ?? 0) + doc.totalHtCents);
-    quarterTotal += doc.totalHtCents;
+    periodTotal += doc.totalHtCents;
   }
 
   let topClients: DashboardData["topClients"] = null;
-  if (quarterTotal > 0) {
+  if (periodTotal > 0) {
     const sorted = Array.from(totalsByClient.entries()).sort(
       (a, b) => b[1] - a[1],
     );
     const items = sorted.slice(0, 4).map(([clientName, cents]) => ({
       clientName,
-      pct: Math.round((cents / quarterTotal) * 100),
+      pct: Math.round((cents / periodTotal) * 100),
     }));
     const othersCents = sorted
       .slice(4)
       .reduce((sum, [, cents]) => sum + cents, 0);
-    const othersPct = Math.round((othersCents / quarterTotal) * 100);
+    const othersPct = Math.round((othersCents / periodTotal) * 100);
     topClients = { items, othersPct };
   }
 
   return {
     todayLabel,
+    period,
+    comparisonLabel: DASHBOARD_COMPARISON_LABEL[period],
+    rangeLabel: DASHBOARD_RANGE_LABEL[period],
     kpis: {
       caEncaisseCents,
       caEncaisseDeltaPct,
