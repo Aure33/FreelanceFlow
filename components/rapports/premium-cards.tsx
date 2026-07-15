@@ -44,7 +44,7 @@ export function ClientRevenueCard({
   const max = Math.max(1, ...amounts);
 
   return (
-    <section className="rounded-lg border border-line bg-surface shadow-sm">
+    <section className="rounded-lg border border-line bg-surface shadow-sm print:break-inside-avoid">
       <CardHead title="Répartition du CA par client" />
       <div className="p-pad">
         {data.items.map((c) => (
@@ -91,7 +91,7 @@ export function PaymentDelaysCard({
   const max = Math.max(1, data.averageDays, ...data.items.map((c) => c.days));
 
   return (
-    <section className="rounded-lg border border-line bg-surface shadow-sm">
+    <section className="rounded-lg border border-line bg-surface shadow-sm print:break-inside-avoid">
       <CardHead title="Délais de paiement par client" />
       <div className="p-pad">
         {data.items.map((c) => (
@@ -191,7 +191,7 @@ function LockedCard({
 }) {
   return (
     <section
-      className="relative overflow-hidden rounded-lg border border-line bg-surface shadow-sm"
+      className="relative overflow-hidden rounded-lg border border-line bg-surface shadow-sm print:break-inside-avoid"
       aria-label={ariaLabel}
     >
       <div className="flex items-center gap-3 border-b border-line-soft px-pad py-[18px]">

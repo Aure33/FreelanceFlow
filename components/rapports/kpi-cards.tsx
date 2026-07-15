@@ -10,7 +10,7 @@ export function KpiCards({ data }: { data: ReportsData }) {
   const prevYear = year - 1;
 
   return (
-    <section className="mb-gap grid grid-cols-4 gap-gap max-[1100px]:grid-cols-2">
+    <section className="mb-gap grid grid-cols-4 gap-gap max-[1100px]:grid-cols-2 print:break-inside-avoid">
       {/* CA encaissé */}
       <KpiCard
         label={`CA encaissé en ${year}`}

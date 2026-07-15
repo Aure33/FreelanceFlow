@@ -40,7 +40,7 @@ export function RevenueChart({ data }: { data: ReportsData }) {
     : `Chiffre d'affaires mensuel de janvier à décembre ${year}, aucune donnée pour l'instant.`;
 
   return (
-    <section className="rounded-lg border border-line bg-surface shadow-sm">
+    <section className="rounded-lg border border-line bg-surface shadow-sm print:break-inside-avoid">
       <div className="flex items-center gap-3 border-b border-line-soft px-pad py-[18px]">
         <div>
           <h2 className="text-[15px] font-bold tracking-[-0.01em]">
