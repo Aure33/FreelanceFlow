@@ -233,11 +233,14 @@ if (!hasEnv) {
       await expect(page.getByText(/837,21/).first()).toBeVisible();
 
       // La liste /factures compte désormais UN brouillon (la copie) en plus de
-      // la facture d'origine : la cellule « Brouillon » (texte exact) apparaît
-      // une fois, et l'original est toujours là.
+      // la facture d'origine. On compte les LIGNES contenant « Brouillon »
+      // (une même ligne l'affiche deux fois : cellule pièce + tag de statut —
+      // un getByText exact matcherait donc 2 éléments pour un seul brouillon).
       await page.goto("/factures");
       await expect(page.getByText(INVOICE_NUMBER).first()).toBeVisible();
-      await expect(page.getByText("Brouillon", { exact: true })).toHaveCount(1);
+      await expect(
+        page.getByRole("row").filter({ hasText: "Brouillon" }),
+      ).toHaveCount(1);
 
       expect(errors, `Erreurs console détectées :\n${errors.join("\n")}`).toEqual([]);
     });
