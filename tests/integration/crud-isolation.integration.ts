@@ -325,7 +325,8 @@ if (!hasEnv) {
     describe("clients — isolation (where: { userId })", () => {
       test("listClients() « comme A » ne renvoie QUE les clients de A", async () => {
         activeUserId = userA.id;
-        const list: ClientListItem[] = await clientsActions.listClients();
+        // listClients renvoie désormais { items, pagination } (pagination #70).
+        const { items: list } = await clientsActions.listClients();
         // A possède au moins son client initial + celui créé plus haut.
         expect(list.length).toBeGreaterThanOrEqual(2);
         // Aucun client de B (ni son id, ni son nom) ne doit apparaître.
@@ -576,7 +577,8 @@ if (!hasEnv) {
     describe("projets — isolation (where: { userId })", () => {
       test("listProjects() « comme A » ne renvoie jamais le projet de B", async () => {
         activeUserId = userA.id;
-        const list: ProjectListItem[] = await projetsActions.listProjects();
+        // listProjects renvoie désormais { items, pagination } (pagination #70).
+        const { items: list } = await projetsActions.listProjects();
         expect(list.some((p) => p.id === projectBId)).toBe(false);
         expect(list.some((p) => p.name.includes("secret de B"))).toBe(false);
       });

@@ -231,7 +231,8 @@ if (!hasEnv) {
 
       test("listDocuments('facture') « comme A » ne contient QUE les factures de A", async () => {
         activeUserId = userA.id;
-        const list: DocumentListItem[] = await listDocuments("facture");
+        // listDocuments renvoie désormais { items, pagination } (pagination #70).
+        const { items: list } = await listDocuments("facture");
         expect(list.length).toBeGreaterThanOrEqual(1);
         // Isolation prouvée par l'id : la facture de B n'apparaît jamais.
         // (Le NUMÉRO ne prouve rien ici : la numérotation est par utilisateur,
@@ -244,7 +245,7 @@ if (!hasEnv) {
 
       test("listDocuments('devis') « comme A » ne contient jamais le devis de B", async () => {
         activeUserId = userA.id;
-        const list = await listDocuments("devis");
+        const { items: list } = await listDocuments("devis");
         expect(list.some((d) => d.id === docBDevisId)).toBe(false);
       });
     });

@@ -2,11 +2,16 @@ import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ClientList } from "@/components/clients/client-list";
+import { Pagination } from "@/components/ui/pagination";
 import { listClients } from "./actions";
 
-export default async function ClientsPage() {
-  const clients = await listClients();
-  const count = clients.length;
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: { page?: string | string[] };
+}) {
+  const { items: clients, pagination } = await listClients(searchParams.page);
+  const count = pagination.total;
 
   return (
     <>
@@ -59,6 +64,13 @@ export default async function ClientsPage() {
           </div>
 
           <ClientList clients={clients} />
+
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            total={pagination.total}
+            label="clients"
+          />
         </>
       )}
     </>

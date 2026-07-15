@@ -2,49 +2,64 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FileText, ListFilter, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/dashboard/tag";
+import { Pagination } from "@/components/ui/pagination";
 import { ClientAvatar } from "@/components/clients/client-avatar";
 import { cn } from "@/lib/utils";
 import type {
   ClientOption,
   ProjectListItem,
+  ProjectCounts,
 } from "@/app/(app)/projets/actions";
+import type { Pagination as PaginationState } from "@/lib/pagination";
 import { STATUS_META, formatProjectDate } from "./status";
 import { NewProjectModal } from "./new-project-modal";
 
 type View = "grille" | "kanban";
-type Filter = "all" | "encours" | "termine";
+type Filter = "all" | "en_cours" | "termine";
 
-// Vue Projets : bascule Grille / Kanban, filtres par statut, cartes cliquables
-// et modale de création. Client car toute l'interactivité (état de vue, filtre,
-// ouverture de la modale) vit ici. Les données arrivent du server component.
+// Vue Projets : bascule Grille / Kanban (état client), filtres/tri/pagination
+// portés par l'URL (issue #70). Client car l'interactivité (vue, modale,
+// navigation) vit ici ; les données paginées arrivent du server component.
 export function ProjectBoard({
   projects,
+  pagination,
+  counts,
   clients,
 }: {
   projects: ProjectListItem[];
+  pagination: PaginationState;
+  counts: ProjectCounts;
   clients: ClientOption[];
 }) {
   const [view, setView] = useState<View>("grille");
-  const [filter, setFilter] = useState<Filter>("all");
   const [modalOpen, setModalOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const count = projects.length;
-  const enCours = projects.filter((p) => p.status === "en_cours").length;
-  const termine = projects.filter((p) => p.status === "termine").length;
+  const filter: Filter = ((): Filter => {
+    const s = searchParams.get("statut");
+    return s === "en_cours" || s === "termine" ? s : "all";
+  })();
+  const sort = searchParams.get("tri") === "nom" ? "nom" : "recent";
 
-  // Filtre appliqué à la grille. Le Kanban regroupe TOUS les projets par statut
-  // (le filtre n'y a pas de sens : les chips sont masquées dans cette vue, comme
-  // dans la maquette).
-  const filtered = projects.filter((p) =>
-    filter === "all"
-      ? true
-      : filter === "encours"
-        ? p.status === "en_cours"
-        : p.status === "termine",
-  );
+  const count = counts.all;
+  const enCours = counts.en_cours;
+  const termine = counts.termine;
+
+  // Construit une URL en changeant un paramètre (et en réinitialisant la page).
+  const hrefWith = (key: string, value: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === null) params.delete(key);
+    else params.set(key, value);
+    params.delete("page"); // nouveau filtre/tri = page 1
+    const qs = params.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  };
 
   const chipBase =
     "inline-flex h-[34px] items-center gap-[7px] rounded-full border px-3.5 text-[13px] font-semibold transition-colors";
@@ -117,49 +132,73 @@ export function ProjectBoard({
         </div>
       ) : (
         <>
-          {/* Filtres (`.filters`) */}
+          {/* Filtres (`.filters`) — chips = liens `?statut=` (issue #70) ;
+              tri réel via `?tri=`. Chips masqués en Kanban (regroupé par statut). */}
           <div className="mb-[18px] flex items-center gap-2.5">
             {view === "grille" && (
               <>
                 {(
                   [
                     { id: "all", label: "Tous", n: count },
-                    { id: "encours", label: "En cours", n: enCours },
+                    { id: "en_cours", label: "En cours", n: enCours },
                     { id: "termine", label: "Terminés", n: termine },
                   ] as const
-                ).map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setFilter(c.id)}
-                    aria-pressed={filter === c.id}
-                    className={cn(
-                      chipBase,
-                      filter === c.id
-                        ? "border-ink bg-ink text-bg"
-                        : "border-line bg-surface text-ink-2 hover:bg-surface-2",
-                    )}
-                  >
-                    {c.label} <span className="num text-[11.5px] opacity-70">{c.n}</span>
-                  </button>
-                ))}
+                ).map((c) => {
+                  const active = filter === c.id;
+                  return (
+                    <Link
+                      key={c.id}
+                      href={hrefWith("statut", c.id === "all" ? null : c.id)}
+                      scroll={false}
+                      aria-current={active ? "true" : undefined}
+                      className={cn(
+                        chipBase,
+                        active
+                          ? "border-ink bg-ink text-bg"
+                          : "border-line bg-surface text-ink-2 hover:bg-surface-2",
+                      )}
+                    >
+                      {c.label}{" "}
+                      <span className="num text-[11.5px] opacity-70">{c.n}</span>
+                    </Link>
+                  );
+                })}
               </>
             )}
-            {/* Tri : décoratif (aucune spec de comportement dans la maquette) */}
-            <span
+            {/* Tri réel (maquette : chip « Trier ») */}
+            <label
               className={cn(
                 chipBase,
-                "ml-auto border-line bg-surface text-ink-2",
+                "ml-auto cursor-pointer border-line bg-surface text-ink-2 focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2 focus-within:ring-offset-bg",
               )}
             >
               <ListFilter className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-              Trier : activité récente
-            </span>
+              <span className="sr-only">Trier les projets</span>
+              Trier :
+              <select
+                value={sort}
+                onChange={(e) =>
+                  router.push(
+                    hrefWith("tri", e.target.value === "nom" ? "nom" : null),
+                    { scroll: false },
+                  )
+                }
+                className="cursor-pointer bg-transparent font-semibold text-ink-2 outline-none"
+              >
+                <option value="recent">activité récente</option>
+                <option value="nom">nom (A→Z)</option>
+              </select>
+            </label>
           </div>
 
-          {view === "grille" ? (
+          {projects.length === 0 ? (
+            // Aucune pièce sur CE filtre/CETTE page (mais des projets existent).
+            <div className="rounded-lg border border-line bg-surface px-6 py-12 text-center text-sm text-ink-3 shadow-sm">
+              Aucun projet ne correspond à ce filtre.
+            </div>
+          ) : view === "grille" ? (
             <div className="grid grid-cols-3 gap-gap max-[1180px]:grid-cols-2 max-[800px]:grid-cols-1">
-              {filtered.map((p) => (
+              {projects.map((p) => (
                 <ProjectCard key={p.id} project={p} />
               ))}
               {/* Carte « Nouveau projet » (`.proj-new`) */}
@@ -175,8 +214,15 @@ export function ProjectBoard({
               </button>
             </div>
           ) : (
-            <KanbanBoard projects={projects} />
+            <KanbanBoard projects={projects} counts={counts} />
           )}
+
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            total={pagination.total}
+            label="projets"
+          />
         </>
       )}
 
@@ -248,7 +294,15 @@ function ProjectCard({ project }: { project: ProjectListItem }) {
 }
 
 // —— Vue Kanban (`.kanban`) : regroupement visuel en lecture, PAS de drag-drop ——
-function KanbanBoard({ projects }: { projects: ProjectListItem[] }) {
+// Cartes = page courante groupée par statut ; badge de colonne = total RÉEL du
+// statut (counts), pour rester lisible malgré la pagination.
+function KanbanBoard({
+  projects,
+  counts,
+}: {
+  projects: ProjectListItem[];
+  counts: ProjectCounts;
+}) {
   const columns = [
     { status: "en_cours" as const },
     { status: "termine" as const },
@@ -269,7 +323,7 @@ function KanbanBoard({ projects }: { projects: ProjectListItem[] }) {
               <span className={cn("h-[9px] w-[9px] flex-none rounded-full", meta.dot)} />
               <b className="text-[13.5px] font-bold tracking-[-0.01em]">{meta.label}</b>
               <span className="num rounded-full border border-line-soft bg-surface px-2 py-px text-[11.5px] font-semibold text-ink-3">
-                {items.length}
+                {counts[col.status]}
               </span>
             </div>
             <div className="flex flex-col gap-[9px]">
