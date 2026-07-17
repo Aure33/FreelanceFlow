@@ -66,6 +66,27 @@ lourd (lib de graphes, moment.js…) est ainsi bloqué avant merge.
 Pour toute dérogation nouvelle : justifier dans ce fichier + ajouter la route
 dans `size-budget.json`.
 
+### Dérogation — Sentry (issue #88, 16 juillet 2026)
+
+L'ajout du SDK **`@sentry/nextjs`** (monitoring d'erreurs prod, #88) alourdit le
+JS de premier chargement de **~10 Ko gzip sur chaque route authentifiée** —
+même avec le tracing/Session Replay explicitement désactivés (aucun
+`tracesSampleRate` ni `replaysSessionSampleRate` configurés, tree-shaking
+`removeTracing`/`removeDebugLogging` activés dans `next.config.mjs`) : c'est le
+coût **irréductible** de la capture d'erreurs + transport réseau du SDK.
+
+Budget relevé : `defaultKb` **130 → 150** Ko, `/connexion`/`/inscription`
+**190 → 210** Ko (ces deux routes embarquent déjà le client Supabase, cf.
+dérogation précédente — l'overhead Sentry s'y ajoute).
+
+Compromis assumé : un monitoring d'erreurs prod réel a plus de valeur pour ce
+projet (diagnostiquer un incident comme celui du 10/07, cf. #67) que les
+quelques Ko économisés — et le nouveau budget reste **très loin** de tout seuil
+d'alerte utilisateur (une page ~150 Ko gzip charge en un instant même en 3G).
+Aucun changement sur les métriques EcoIndex mesurées (DOM/requêtes/poids
+transféré) : le tableau ci-dessus reste représentatif, seul le budget CI JS a
+été relevé.
+
 ## Rejouer l'audit
 
 ```bash
