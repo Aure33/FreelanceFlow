@@ -101,6 +101,7 @@ model Document {
   publicToken   String?   @unique(map: "documents_public_token_key") @map("public_token") // lien public de devis (#85) — jeton aléatoire révocable, null par défaut
   dueAt         DateTime? @map("due_at") @db.Timestamptz(6)
   paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
+  emailSentAt   DateTime? @map("email_sent_at") @db.Timestamptz(6) // dernier envoi par e-mail au client (#83), horodatage SERVEUR
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)

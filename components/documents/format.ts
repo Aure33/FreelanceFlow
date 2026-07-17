@@ -23,6 +23,15 @@ export function formatDocDate(date: Date | null): string {
   return `${dd}/${mm}/${date.getUTCFullYear()}`;
 }
 
+// Horodatage complet (date + heure) — UTC comme le reste du fichier, pour un
+// événement instantané réel (ex. envoi e-mail, #83) plutôt qu'une date métier.
+export function formatDateTime(date: Date | null): string {
+  if (!date) return "—";
+  const hh = String(date.getUTCHours()).padStart(2, "0");
+  const mi = String(date.getUTCMinutes()).padStart(2, "0");
+  return `${formatDocDate(date)} à ${hh}:${mi}`;
+}
+
 // Quantité décimale → notation française (« 1,5 »).
 export function formatQty(quantity: number): string {
   return String(quantity).replace(".", ",");

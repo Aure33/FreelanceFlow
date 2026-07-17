@@ -148,6 +148,7 @@ export type DocumentView = {
   issuedAt: Date | null;
   dueAt: Date | null;
   paidAt: Date | null;
+  emailSentAt: Date | null; // dernier envoi par e-mail au client (#83)
   // Émetteur = profil de l'utilisateur (bloc en-tête du document).
   emitter: {
     name: string | null;
@@ -161,6 +162,7 @@ export type DocumentView = {
     name: string;
     address: string | null;
     siret: string | null;
+    email: string | null; // pré-remplissage du destinataire (#83)
   };
   project: { id: string; name: string };
   lines: DocumentLineView[];
@@ -522,6 +524,7 @@ const DOCUMENT_VIEW_SELECT = {
   issuedAt: true,
   dueAt: true,
   paidAt: true,
+  emailSentAt: true,
   totalHtCents: true,
   totalTvaCents: true,
   totalTtcCents: true,
@@ -540,7 +543,7 @@ const DOCUMENT_VIEW_SELECT = {
     select: {
       id: true,
       name: true,
-      client: { select: { name: true, address: true, siret: true } },
+      client: { select: { name: true, address: true, siret: true, email: true } },
     },
   },
   lines: {
@@ -592,6 +595,7 @@ function toDocumentView(doc: DocumentViewRow, now: Date): DocumentView {
     issuedAt: doc.issuedAt,
     dueAt: doc.dueAt,
     paidAt: doc.paidAt,
+    emailSentAt: doc.emailSentAt,
     emitter: {
       name: doc.user.name,
       address: doc.user.address,
@@ -603,6 +607,7 @@ function toDocumentView(doc: DocumentViewRow, now: Date): DocumentView {
       name: doc.project.client.name,
       address: doc.project.client.address,
       siret: doc.project.client.siret,
+      email: doc.project.client.email,
     },
     project: { id: doc.project.id, name: doc.project.name },
     lines,

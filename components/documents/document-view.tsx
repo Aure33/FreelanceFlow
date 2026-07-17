@@ -6,6 +6,7 @@ import type { DocumentView as DocumentViewData } from "@/app/(app)/documents/act
 import { DocumentPaper } from "./document-paper";
 import { DocumentStatusActions } from "./document-status-actions";
 import { ShareQuote } from "./share-quote";
+import { SendEmail } from "./send-email";
 import { statusMeta } from "./status";
 import { formatDocDate } from "./format";
 
@@ -104,6 +105,15 @@ export function DocumentView({ view }: { view: DocumentViewData }) {
               />
             </div>
           </section>
+
+          {/* Envoi par e-mail (#83) — tout document émis (devis ou facture) */}
+          {view.status !== "brouillon" && (
+            <SendEmail
+              id={view.id}
+              defaultEmail={view.client.email}
+              lastSentAt={view.emailSentAt}
+            />
+          )}
 
           {/* Partage public (#85) — devis émis uniquement */}
           {view.type === "devis" && view.status !== "brouillon" && (

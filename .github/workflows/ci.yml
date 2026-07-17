@@ -150,6 +150,12 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.TEST_SUPABASE_SECRET_KEY }}
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
           DIRECT_URL: ${{ secrets.TEST_DIRECT_URL }}
+          # Optionnel (#83) : si absent, tests/e2e/document-email.spec.ts se
+          # SKIPPE proprement (même convention que les 5 secrets ci-dessus).
+          # Aucun risque de quota/délivrance : le test cible un destinataire
+          # TOUJOURS rejeté par la restriction anti-abus du palier gratuit
+          # Resend (aucun e-mail n'est jamais réellement délivré en CI).
+          RESEND_API_KEY: ${{ secrets.TEST_RESEND_API_KEY }}
 
       - name: E2E ignorés (secrets de test absents)
         if: steps.check-secrets.outputs.present == 'false'
