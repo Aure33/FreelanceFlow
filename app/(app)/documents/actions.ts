@@ -17,6 +17,7 @@
 // transaction, en s'appuyant sur l'unicité (user_id, number). Les collisions
 // concurrentes (P2002) déclenchent un nouvel essai avec le numéro suivant.
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
@@ -167,6 +168,7 @@ export type DocumentView = {
   totalTvaCents: number;
   totalTtcCents: number;
   legalMentions: string[]; // mentions légales déduites (type + régime)
+  publicToken: string | null; // lien public de devis (#85) — null si non partagé
   // Traçabilité conversion (#61) : devis d'origine (sur une facture convertie)
   // et facture issue de ce devis (sur un devis converti).
   sourceQuote: { id: string; number: string | null } | null;
@@ -508,68 +510,62 @@ export async function listQuoteSummary(): Promise<QuoteSummary> {
 // Émetteur = profil users ; client = project -> client. Lignes triées par
 // position. Le régime figé à l'émission (tvaRegime) fait foi pour les mentions ;
 // pour un brouillon (non figé) on retombe sur le régime courant du profil.
-export async function getDocument(id: string): Promise<DocumentView | null> {
-  const userId = await requireUserId();
-
-  if (!z.string().uuid().safeParse(id).success) return null;
-
-  const doc = await prisma.document.findFirst({
-    where: { id, userId },
+// SELECT partagé par la lecture authentifiée (getDocument) et publique
+// (getPublicQuote) — même vue, seule la clause `where` diffère.
+const DOCUMENT_VIEW_SELECT = {
+  id: true,
+  type: true,
+  number: true,
+  status: true,
+  object: true,
+  tvaRegime: true,
+  issuedAt: true,
+  dueAt: true,
+  paidAt: true,
+  totalHtCents: true,
+  totalTvaCents: true,
+  totalTtcCents: true,
+  publicToken: true,
+  user: {
+    select: {
+      name: true,
+      address: true,
+      siret: true,
+      iban: true,
+      bic: true,
+      tvaRegime: true,
+    },
+  },
+  project: {
     select: {
       id: true,
-      type: true,
-      number: true,
-      status: true,
-      object: true,
-      tvaRegime: true,
-      issuedAt: true,
-      dueAt: true,
-      paidAt: true,
-      totalHtCents: true,
-      totalTvaCents: true,
-      totalTtcCents: true,
-      user: {
-        select: {
-          name: true,
-          address: true,
-          siret: true,
-          iban: true,
-          bic: true,
-          tvaRegime: true,
-        },
-      },
-      project: {
-        select: {
-          id: true,
-          name: true,
-          client: { select: { name: true, address: true, siret: true } },
-        },
-      },
-      lines: {
-        select: {
-          id: true,
-          label: true,
-          quantity: true,
-          unitPriceCents: true,
-          tvaRate: true,
-        },
-        orderBy: { position: "asc" },
-      },
-      // Traçabilité conversion (#61). Relations internes à la ligne (déjà
-      // filtrée userId) : un devis ne peut référencer que des documents du
-      // même utilisateur (convertQuoteToInvoice l'impose à l'écriture).
-      sourceQuote: { select: { id: true, number: true } },
-      convertedInvoice: {
-        select: { id: true, number: true, status: true },
-      },
+      name: true,
+      client: { select: { name: true, address: true, siret: true } },
     },
-  });
+  },
+  lines: {
+    select: {
+      id: true,
+      label: true,
+      quantity: true,
+      unitPriceCents: true,
+      tvaRate: true,
+    },
+    orderBy: { position: "asc" as const },
+  },
+  // Traçabilité conversion (#61).
+  sourceQuote: { select: { id: true, number: true } },
+  convertedInvoice: { select: { id: true, number: true, status: true } },
+} satisfies Prisma.DocumentSelect;
 
-  if (!doc) return null;
+type DocumentViewRow = Prisma.DocumentGetPayload<{
+  select: typeof DOCUMENT_VIEW_SELECT;
+}>;
 
+// Mapper pur : ligne Prisma (SELECT ci-dessus) -> DocumentView exposé à l'UI.
+function toDocumentView(doc: DocumentViewRow, now: Date): DocumentView {
   const type = doc.type as DocType;
   const regime = normalizeRegime(doc.tvaRegime ?? doc.user.tvaRegime);
-  const now = new Date();
 
   const lines: DocumentLineView[] = doc.lines.map((l) => {
     const quantity = Number(l.quantity);
@@ -614,6 +610,7 @@ export async function getDocument(id: string): Promise<DocumentView | null> {
     totalTvaCents: doc.totalTvaCents,
     totalTtcCents: doc.totalTtcCents,
     legalMentions: legalMentions({ type, regime }),
+    publicToken: doc.publicToken,
     sourceQuote: doc.sourceQuote
       ? { id: doc.sourceQuote.id, number: doc.sourceQuote.number }
       : null,
@@ -625,6 +622,115 @@ export async function getDocument(id: string): Promise<DocumentView | null> {
         }
       : null,
   };
+}
+
+// Vue complète d'un document. findFirst + filtre userId : un id d'un autre
+// utilisateur (ou un non-UUID) renvoie null — isolation garantie côté app.
+export async function getDocument(id: string): Promise<DocumentView | null> {
+  const userId = await requireUserId();
+  if (!z.string().uuid().safeParse(id).success) return null;
+
+  const doc = await prisma.document.findFirst({
+    where: { id, userId },
+    select: DOCUMENT_VIEW_SELECT,
+  });
+  if (!doc) return null;
+  return toDocumentView(doc, new Date());
+}
+
+// --- Lien public de devis (issue #85) ----------------------------------------
+// Un devis peut être partagé par une URL tokenisée ; le client l'accepte ou le
+// refuse SANS compte. Le jeton EST le secret d'accès (aléatoire, révocable).
+
+const shareTokenSchema = z.string().trim().min(16).max(64);
+
+// Lecture publique d'un devis par son jeton — AUCUNE session. Filtre strict :
+// le jeton doit exister ET la pièce doit être un devis (jamais une facture).
+export async function getPublicQuote(
+  token: string,
+): Promise<DocumentView | null> {
+  if (!shareTokenSchema.safeParse(token).success) return null;
+
+  const doc = await prisma.document.findFirst({
+    where: { publicToken: token, type: "devis" },
+    select: DOCUMENT_VIEW_SELECT,
+  });
+  if (!doc) return null;
+  return toDocumentView(doc, new Date());
+}
+
+// Réponse publique du client (accepter / refuser) — AUCUNE session, validée par
+// le seul jeton. Transition atomique n'autorisée QUE depuis « envoye » :
+// updateMany renvoie 0 si le devis n'est pas/plus en attente (déjà tranché,
+// jeton révoqué/inexistant) → message neutre, aucune fuite.
+export async function respondToQuote(
+  token: string,
+  decision: "accept" | "refuse",
+): Promise<{ ok: true } | { error: string }> {
+  if (!shareTokenSchema.safeParse(token).success) {
+    return { error: "Lien invalide." };
+  }
+  const nextStatus = decision === "accept" ? "accepte" : "refuse";
+
+  const res = await prisma.document.updateMany({
+    where: { publicToken: token, type: "devis", status: "envoye" },
+    data: { status: nextStatus },
+  });
+  if (res.count === 0) {
+    return {
+      error:
+        "Ce devis a déjà reçu une réponse, ou le lien n'est plus valide.",
+    };
+  }
+  revalidatePath(`/proposition/${token}`);
+  return { ok: true };
+}
+
+// Crée (ou renvoie) le lien de partage d'un devis — PROPRIÉTAIRE uniquement.
+export async function createShareLink(
+  id: string,
+): Promise<{ token: string } | { error: string }> {
+  const userId = await requireUserId();
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "Devis introuvable." };
+  }
+
+  const doc = await prisma.document.findFirst({
+    where: { id, userId },
+    select: { type: true, status: true, publicToken: true },
+  });
+  if (!doc || doc.type !== "devis") {
+    return { error: "Seuls les devis peuvent être partagés." };
+  }
+  if (doc.status === "brouillon") {
+    return { error: "Émettez le devis avant de le partager." };
+  }
+  if (doc.publicToken) return { token: doc.publicToken };
+
+  // Jeton URL-safe imprévisible (24 octets -> 32 caractères base64url).
+  const token = randomBytes(24).toString("base64url");
+  await prisma.document.updateMany({
+    where: { id, userId },
+    data: { publicToken: token },
+  });
+  revalidatePath(`/devis/${id}`);
+  return { token };
+}
+
+// Révoque le lien de partage (retour à null) — PROPRIÉTAIRE uniquement.
+export async function revokeShareLink(
+  id: string,
+): Promise<{ ok: true } | { error: string }> {
+  const userId = await requireUserId();
+  if (!z.string().uuid().safeParse(id).success) {
+    return { error: "Devis introuvable." };
+  }
+  await prisma.document.updateMany({
+    where: { id, userId, type: "devis" },
+    data: { publicToken: null },
+  });
+  revalidatePath(`/devis/${id}`);
+  return { ok: true };
 }
 
 // --- Écriture : brouillon ----------------------------------------------------

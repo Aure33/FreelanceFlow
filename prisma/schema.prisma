@@ -98,6 +98,7 @@ model Document {
   issuedAt      DateTime? @map("issued_at") @db.Timestamptz(6) // date "métier", éditable par l'utilisateur
   emittedAt     DateTime? @map("emitted_at") @db.Timestamptz(6) // horodatage SERVEUR, jamais éditable — quota paywall (#10)
   sourceQuoteId String?   @unique(map: "documents_source_quote_id_key") @map("source_quote_id") @db.Uuid // devis d'origine si conversion (#61) — UNIQUE : un devis → une seule facture
+  publicToken   String?   @unique(map: "documents_public_token_key") @map("public_token") // lien public de devis (#85) — jeton aléatoire révocable, null par défaut
   dueAt         DateTime? @map("due_at") @db.Timestamptz(6)
   paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)

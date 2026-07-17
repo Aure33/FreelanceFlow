@@ -5,6 +5,7 @@ import { formatEuros } from "@/lib/invoicing";
 import type { DocumentView as DocumentViewData } from "@/app/(app)/documents/actions";
 import { DocumentPaper } from "./document-paper";
 import { DocumentStatusActions } from "./document-status-actions";
+import { ShareQuote } from "./share-quote";
 import { statusMeta } from "./status";
 import { formatDocDate } from "./format";
 
@@ -103,6 +104,11 @@ export function DocumentView({ view }: { view: DocumentViewData }) {
               />
             </div>
           </section>
+
+          {/* Partage public (#85) — devis émis uniquement */}
+          {view.type === "devis" && view.status !== "brouillon" && (
+            <ShareQuote id={view.id} initialToken={view.publicToken} />
+          )}
 
           {/* Rattachements */}
           <section className="rounded-lg border border-line bg-surface shadow-sm">
