@@ -4,13 +4,18 @@
 //
 // C'est le cœur métier de l'issue : `emitDocument()` (app/(app)/documents/
 // actions.ts) doit refuser la 6e émission du mois pour un utilisateur `free`,
-// SANS consommer de numéro ni écrire en base, tandis que `getUsage()` et
-// `upgradeToPremium()` (app/(app)/abonnement/actions.ts) doivent rester
-// cohérents à chaque étape. Deux utilisateurs réels prouvent l'isolation du
-// compteur (where: { userId }).
+// SANS consommer de numéro ni écrire en base, tandis que `getUsage()`
+// (app/(app)/abonnement/actions.ts) doit rester cohérent à chaque étape. Le
+// passage en Premium (#82, paiement Stripe réel) n'est PAS testable ici — il
+// n'existe plus de fonction serveur qui l'accorde sans paiement (l'ancienne
+// `upgradeToPremium()`, une server action reachable sans vérification, a été
+// SUPPRIMÉE pour cette raison précise, cf. lib/premium.ts) : on flippe le
+// plan par écriture Prisma DIRECTE, hors de toute action, pour isoler le test
+// de la logique de quota de celle du paiement. Deux utilisateurs réels
+// prouvent l'isolation du compteur (where: { userId }).
 //
 // POURQUOI un test bun:test ici plutôt qu'un spec Playwright (tests/e2e/) :
-// `emitDocument`/`getUsage`/`upgradeToPremium` sont de simples fonctions
+// `emitDocument`/`getUsage` sont de simples fonctions
 // serveur (Prisma + logique métier) — leur seule dépendance au contexte HTTP
 // est `requireUserId()` (lit le cookie de session via Supabase) et
 // `revalidatePath()` (cache Next). On les appelle ICI directement, en
@@ -100,9 +105,7 @@ if (!hasEnv) {
   // Import DYNAMIQUE (après les mocks : un import statique serait hoisté
   // avant mock.module par le moteur JS et capterait la vraie session).
   const { emitDocument } = await import("@/app/(app)/documents/actions");
-  const { getUsage, upgradeToPremium } = await import(
-    "@/app/(app)/abonnement/actions"
-  );
+  const { getUsage } = await import("@/app/(app)/abonnement/actions");
 
   const admin = createSupabaseAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -306,10 +309,16 @@ if (!hasEnv) {
     );
 
     test(
-      "upgradeToPremium() lève la limite : l'émission au-delà de 5 réussit, documentsLimit devient null",
+      "passage en Premium lève la limite : l'émission au-delà de 5 réussit, documentsLimit devient null",
       async () => {
         activeUserId = userA.id;
-        await upgradeToPremium();
+        // Le forfait n'est accordé QUE par le webhook Stripe (#82) — on
+        // simule ici son EFFET par une écriture Prisma directe, pour tester
+        // la logique de quota indépendamment du paiement.
+        await prisma.user.update({
+          where: { id: userA.id },
+          data: { planType: "premium" },
+        });
 
         const usageAfterUpgrade: Usage = await getUsage();
         expect(usageAfterUpgrade.planType).toBe("premium");

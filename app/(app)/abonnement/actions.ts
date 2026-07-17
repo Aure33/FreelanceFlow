@@ -12,9 +12,12 @@
 // actions.ts) — jamais sur `issued_at`, éditable par l'utilisateur dans
 // l'éditeur, qui serait contournable en antidatant/postdatant.
 
-import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Forme exposée à l'UI (jauge sidebar, bannière Devis/Factures, modale
 // paywall, page /abonnement, garde-fou /documents/nouveau).
@@ -70,21 +73,82 @@ export async function getUsage(): Promise<Usage> {
   };
 }
 
-// Upgrade SIMULÉ vers le forfait Premium (décision validée : aucune
-// intégration de paiement réelle dans ce projet RNCP — immédiat, sans
-// Stripe). Revalide les pages affichant la jauge freemium.
-export async function upgradeToPremium(): Promise<{ ok: true }> {
+// --- Paiement réel (issue #82, mode TEST Stripe — aucun argent réel) --------
+//
+// Le forfait n'est accordé QUE par le webhook Stripe (lib/premium.ts), jamais
+// par cette action : elle se contente d'ouvrir une session Checkout. Aucun
+// paiement n'est confié au client — Stripe héberge le formulaire de carte.
+
+const PRICE_BY_CYCLE = {
+  mois: process.env.STRIPE_PRICE_MONTHLY!,
+  an: process.env.STRIPE_PRICE_YEARLY!,
+} as const;
+
+export type CheckoutResult = { url: string } | { error: string };
+
+// Point d'entrée UI : résout l'origin depuis la requête (next/headers) puis
+// délègue à la logique testable ci-dessous.
+export async function createCheckoutSession(
+  cycle: "mois" | "an",
+): Promise<CheckoutResult> {
+  const h = await headers();
+  const origin =
+    h.get("origin") ??
+    (h.get("host")
+      ? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`
+      : (process.env.NEXT_PUBLIC_SITE_URL ?? ""));
+
+  return createCheckoutSessionCore(cycle, { origin });
+}
+
+// Logique métier isolée de next/headers (mocké de façon incompatible par
+// d'autres fichiers d'intégration, cf. #68/#83) : appelée directement par les
+// tests avec un contexte origin factice.
+export async function createCheckoutSessionCore(
+  cycle: "mois" | "an",
+  reqCtx: { origin: string },
+): Promise<CheckoutResult> {
   const userId = await requireUserId();
+  const priceId = PRICE_BY_CYCLE[cycle];
+  if (!priceId) return { error: "Configuration de paiement indisponible." };
 
-  await prisma.user.update({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    data: { planType: "premium" },
+    select: { email: true, stripeCustomerId: true },
   });
+  if (!user) return { error: "Compte introuvable." };
 
-  revalidatePath("/abonnement");
-  revalidatePath("/dashboard");
-  revalidatePath("/factures");
-  revalidatePath("/devis");
+  // Un seul client Stripe par utilisateur, réutilisé d'une tentative à
+  // l'autre (évite les doublons si un paiement est annulé puis retenté).
+  let customerId = user.stripeCustomerId;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: user.email,
+      metadata: { userId },
+    });
+    customerId = customer.id;
+    await prisma.user.update({
+      where: { id: userId },
+      data: { stripeCustomerId: customerId },
+    });
+  }
 
-  return { ok: true };
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      client_reference_id: userId,
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: { metadata: { userId } },
+      success_url: `${reqCtx.origin}/abonnement?checkout=success`,
+      cancel_url: `${reqCtx.origin}/abonnement?checkout=cancel`,
+    });
+    if (!session.url) return { error: "Impossible d'ouvrir le paiement." };
+    return { url: session.url };
+  } catch {
+    // Jamais de détail Stripe (clé, config) exposé au client.
+    return {
+      error: "Impossible d'ouvrir le paiement. Réessayez dans un instant.",
+    };
+  }
 }

@@ -32,6 +32,8 @@ model User {
   planType  String   @default("free") @map("plan_type") // free | premium
   iban      String?
   bic       String?
+  stripeCustomerId     String?   @unique(map: "users_stripe_customer_id_key") @map("stripe_customer_id") // #82 — posé à la 1ère session Checkout
+  stripeSubscriptionId String?   @unique(map: "users_stripe_subscription_id_key") @map("stripe_subscription_id") // #82 — posé/effacé par le webhook, jamais par l'app
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   clients       Client[]

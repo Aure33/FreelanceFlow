@@ -99,6 +99,14 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.TEST_SUPABASE_SECRET_KEY }}
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
           DIRECT_URL: ${{ secrets.TEST_DIRECT_URL }}
+          # Optionnel (#82) : si absent, les suites Stripe se SKIPPENT
+          # proprement (Resend a son propre secret, déjà géré en #83). Mode
+          # TEST Stripe uniquement, aucun argent réel — STRIPE_WEBHOOK_SECRET
+          # n'est PAS requis ici (stripe-webhook.integration.ts fixe son
+          # propre secret de test et signe ses payloads localement).
+          STRIPE_SECRET_KEY: ${{ secrets.TEST_STRIPE_SECRET_KEY }}
+          STRIPE_PRICE_MONTHLY: ${{ secrets.TEST_STRIPE_PRICE_MONTHLY }}
+          STRIPE_PRICE_YEARLY: ${{ secrets.TEST_STRIPE_PRICE_YEARLY }}
 
       - name: Intégration ignorée (secrets de test absents)
         if: steps.check-secrets.outputs.present == 'false'
@@ -156,6 +164,14 @@ jobs:
           # TOUJOURS rejeté par la restriction anti-abus du palier gratuit
           # Resend (aucun e-mail n'est jamais réellement délivré en CI).
           RESEND_API_KEY: ${{ secrets.TEST_RESEND_API_KEY }}
+          # Optionnel (#82) : si absent, tests/e2e/stripe-checkout.spec.ts se
+          # SKIPPE proprement. Vérifie seulement l'ouverture d'une session
+          # Checkout réelle (redirection vers checkout.stripe.com) — Stripe ne
+          # peut pas livrer de webhook à `localhost`, donc aucun paiement
+          # n'est complété ici (boucle webhook vérifiée manuellement en prod).
+          STRIPE_SECRET_KEY: ${{ secrets.TEST_STRIPE_SECRET_KEY }}
+          STRIPE_PRICE_MONTHLY: ${{ secrets.TEST_STRIPE_PRICE_MONTHLY }}
+          STRIPE_PRICE_YEARLY: ${{ secrets.TEST_STRIPE_PRICE_YEARLY }}
 
       - name: E2E ignorés (secrets de test absents)
         if: steps.check-secrets.outputs.present == 'false'
