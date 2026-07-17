@@ -8,6 +8,7 @@ import { ClientAvatar } from "@/components/clients/client-avatar";
 import { ProjectBreadcrumb } from "@/components/projets/project-breadcrumb";
 import { ProjectTabs } from "@/components/projets/project-tabs";
 import { STATUS_META, formatProjectDate } from "@/components/projets/status";
+import { formatEuros } from "@/lib/invoicing";
 import { getProject } from "../actions";
 
 export default async function ProjetDetailPage({
@@ -19,6 +20,11 @@ export default async function ProjetDetailPage({
   if (!project) notFound();
 
   const meta = STATUS_META[project.status];
+  const hasBudget = project.budgetHtCents > 0;
+  const remainingHtCents = Math.max(
+    0,
+    project.budgetHtCents - project.invoicedHtCents,
+  );
 
   return (
     <>
@@ -60,16 +66,20 @@ export default async function ProjetDetailPage({
         </div>
       </div>
 
-      {/* Bandeau financier — placeholders tant que les documents ne sont pas
-          modélisés (#8). Seule la barre d'avancement reflète une donnée réelle. */}
+      {/* Bandeau financier — agrégats réels (issue #86), en HT. Le « budget »
+          est la somme des devis ACCEPTÉS du projet ; « restant à facturer » en
+          découle. Sans devis accepté, on l'affiche « — » (pas de budget défini). */}
       <section className="mb-gap grid grid-cols-[1fr_auto_auto_auto] items-center gap-9 rounded-lg border border-line bg-surface px-pad py-5 shadow-sm max-[1100px]:grid-cols-1 max-[1100px]:gap-3.5">
         <div>
-          <span className="num text-2xl font-semibold tracking-[-0.01em] text-ink-3">
-            —
+          <span className="num text-2xl font-semibold tracking-[-0.01em]">
+            {formatEuros(project.invoicedHtCents)}
           </span>
           <div className="mt-px text-[13px] text-ink-3">
-            facturés sur <b className="num text-ink-2">—</b> de budget ·{" "}
-            {project.progress} %
+            facturés HT sur{" "}
+            <b className="num text-ink-2">
+              {hasBudget ? formatEuros(project.budgetHtCents) : "—"}
+            </b>{" "}
+            de budget · {project.progress} %
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-2">
             <span
@@ -79,12 +89,15 @@ export default async function ProjetDetailPage({
           </div>
         </div>
         {[
-          { v: "—", l: "encaissés" },
-          { v: "—", l: "en attente" },
-          { v: "—", l: "restant à facturer" },
+          { v: formatEuros(project.paidHtCents), l: "encaissés" },
+          { v: formatEuros(project.pendingHtCents), l: "en attente" },
+          {
+            v: hasBudget ? formatEuros(remainingHtCents) : "—",
+            l: "restant à facturer",
+          },
         ].map((f) => (
           <div key={f.l} className="text-right max-[1100px]:text-left">
-            <div className="num text-base font-semibold text-ink-3">{f.v}</div>
+            <div className="num text-base font-semibold text-ink-2">{f.v}</div>
             <div className="text-[12.5px] text-ink-3">{f.l}</div>
           </div>
         ))}
@@ -108,7 +121,7 @@ export default async function ProjetDetailPage({
           </section>
 
           {/* Onglets Documents / Notes / Activité */}
-          <ProjectTabs notes={project.notes} />
+          <ProjectTabs notes={project.notes} documents={project.documents} />
         </div>
 
         {/* ===== Colonne secondaire ===== */}

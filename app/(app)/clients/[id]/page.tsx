@@ -2,19 +2,55 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tag } from "@/components/dashboard/tag";
 import { EditClientButton } from "@/components/clients/edit-client-modal";
 import { ClientBreadcrumb } from "@/components/clients/client-breadcrumb";
 import { ClientAvatar } from "@/components/clients/client-avatar";
 import { formatSiret } from "@/components/clients/format";
-import { getClient } from "../actions";
+import { statusMeta } from "@/components/documents/status";
+import { formatListDate } from "@/components/documents/format";
+import { STATUS_META as PROJECT_STATUS_META } from "@/components/projets/status";
+import { formatEuros } from "@/lib/invoicing";
+import { getClientFiche } from "../actions";
 
 export default async function ClientDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const client = await getClient(params.id);
-  if (!client) notFound();
+  const fiche = await getClientFiche(params.id);
+  if (!fiche) notFound();
+  const { client, stats, projects, documents } = fiche;
+
+  // Tuiles de stats — agrégats réels en HT (convention #47), délai en jours.
+  const tiles = [
+    {
+      l: `CA ${stats.year}`,
+      v: formatEuros(stats.caYearHtCents),
+      d:
+        stats.caYearHtCents > 0
+          ? "HT encaissé cette année"
+          : "Dès votre première facture",
+    },
+    {
+      l: "En attente de paiement",
+      v: formatEuros(stats.pendingHtCents),
+      d:
+        stats.pendingHtCents > 0
+          ? "HT · factures non réglées"
+          : "Rien à encaisser",
+    },
+    {
+      l: "Pièces émises",
+      v: String(stats.emittedCount),
+      d: stats.emittedCount > 0 ? "devis et factures" : "Aucun document",
+    },
+    {
+      l: "Délai moyen de paiement",
+      v: stats.avgPaymentDays === null ? "—" : `${stats.avgPaymentDays} j`,
+      d: stats.avgPaymentDays === null ? "—" : "sur factures réglées",
+    },
+  ];
 
   return (
     <>
@@ -49,14 +85,9 @@ export default async function ClientDetailPage({
         </div>
       </div>
 
-      {/* Stats — nuls tant que les documents ne sont pas modélisés (#7) */}
+      {/* Stats — agrégats réels (issue #86) */}
       <section className="mb-gap grid grid-cols-4 gap-gap max-[1100px]:grid-cols-2">
-        {[
-          { l: "CA 2026", v: "—", d: "Dès votre première facture" },
-          { l: "En attente de paiement", v: "—", d: "Rien à encaisser" },
-          { l: "Pièces émises", v: "0", d: "Aucun document" },
-          { l: "Délai moyen de paiement", v: "—", d: "—" },
-        ].map((s) => (
+        {tiles.map((s) => (
           <div
             key={s.l}
             className="rounded-lg border border-line bg-surface px-5 py-4 shadow-sm"
@@ -120,11 +151,36 @@ export default async function ClientDetailPage({
           <section className="rounded-lg border border-line bg-surface shadow-sm">
             <div className="flex items-center gap-3 border-b border-line-soft px-pad py-[18px]">
               <h2 className="text-[15px] font-bold tracking-[-0.01em]">Projets</h2>
-              <span className="text-[13px] text-ink-3">Aucun projet</span>
+              <span className="text-[13px] text-ink-3">
+                {projects.length === 0
+                  ? "Aucun projet"
+                  : `${projects.length} projet${projects.length > 1 ? "s" : ""}`}
+              </span>
             </div>
-            <div className="px-pad py-10 text-center text-sm text-ink-3">
-              Aucun projet rattaché à ce client pour l&apos;instant.
-            </div>
+            {projects.length === 0 ? (
+              <div className="px-pad py-10 text-center text-sm text-ink-3">
+                Aucun projet rattaché à ce client pour l&apos;instant.
+              </div>
+            ) : (
+              <ul className="[&>li:last-child]:border-b-0">
+                {projects.map((p) => {
+                  const meta = PROJECT_STATUS_META[p.status];
+                  return (
+                    <li key={p.id} className="border-b border-line-soft">
+                      <Link
+                        href={`/projets/${p.id}`}
+                        className="flex items-center gap-3 px-pad py-3 transition-colors hover:bg-surface-2"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-sm font-[600]">
+                          {p.name}
+                        </span>
+                        <Tag tone={meta.tone}>{meta.label}</Tag>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
 
           <section className="rounded-lg border border-line bg-surface shadow-sm">
@@ -132,11 +188,45 @@ export default async function ClientDetailPage({
               <h2 className="text-[15px] font-bold tracking-[-0.01em]">
                 Historique des pièces
               </h2>
-              <span className="text-[13px] text-ink-3">Aucun document</span>
+              <span className="text-[13px] text-ink-3">
+                {documents.length === 0
+                  ? "Aucun document"
+                  : `${documents.length} dernière${documents.length > 1 ? "s" : ""}`}
+              </span>
             </div>
-            <div className="px-pad py-10 text-center text-sm text-ink-3">
-              Aucun devis ni facture émis pour ce client.
-            </div>
+            {documents.length === 0 ? (
+              <div className="px-pad py-10 text-center text-sm text-ink-3">
+                Aucun devis ni facture émis pour ce client.
+              </div>
+            ) : (
+              <ul className="[&>li:last-child]:border-b-0">
+                {documents.map((d) => {
+                  const meta = statusMeta(d.type, d.status);
+                  const path = d.type === "facture" ? "factures" : "devis";
+                  return (
+                    <li key={d.id} className="border-b border-line-soft">
+                      <Link
+                        href={`/${path}/${d.id}`}
+                        className="flex items-center gap-3 px-pad py-3 transition-colors hover:bg-surface-2"
+                      >
+                        <span className="num w-[130px] flex-none truncate text-[13px] font-medium text-ink-2">
+                          {d.number ?? (
+                            <span className="italic text-ink-3">Brouillon</span>
+                          )}
+                        </span>
+                        <Tag tone={meta.tone}>{meta.label}</Tag>
+                        <span className="ml-auto whitespace-nowrap text-[12.5px] text-ink-3">
+                          {formatListDate(d.issuedAt)}
+                        </span>
+                        <span className="num w-[110px] flex-none text-right text-sm font-semibold">
+                          {formatEuros(d.totalTtcCents)}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
         </div>
       </div>
