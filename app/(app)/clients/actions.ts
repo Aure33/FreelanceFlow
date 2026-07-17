@@ -19,6 +19,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { PAGE_SIZE, paginate, type Paginated } from "@/lib/pagination";
+import type { DocType } from "@/lib/invoicing";
+import type { DocumentStatus } from "@/app/(app)/documents/actions";
+import type { ProjectStatus } from "@/app/(app)/projets/actions";
 
 // --- Types exposés à l'UI ----------------------------------------------------
 
@@ -181,6 +184,172 @@ export async function getClient(id: string): Promise<ClientDetail | null> {
       createdAt: true,
     },
   });
+}
+
+// --- Fiche client : agrégats financiers réels (issue #86) --------------------
+
+// Statistiques d'en-tête de la fiche. Agrégats en HT (convention #47 : les
+// stats sont en HT, les montants par pièce en TTC).
+export type ClientStats = {
+  year: number;
+  caYearHtCents: number; // CA encaissé HT sur l'année civile en cours
+  pendingHtCents: number; // factures envoyées non payées (HT)
+  emittedCount: number; // pièces émises (numéro attribué), devis + factures
+  avgPaymentDays: number | null; // délai moyen de paiement (null si aucune payée)
+};
+
+export type ClientProjectRow = {
+  id: string;
+  name: string;
+  status: ProjectStatus;
+};
+
+// Ligne compacte de l'historique des pièces (montant en TTC, comme les listes).
+export type FicheDocumentRow = {
+  id: string;
+  type: DocType;
+  number: string | null;
+  status: DocumentStatus; // effectif (en_retard dérivé)
+  issuedAt: Date | null;
+  totalTtcCents: number;
+};
+
+export type ClientFiche = {
+  client: ClientDetail;
+  stats: ClientStats;
+  projects: ClientProjectRow[];
+  documents: FicheDocumentRow[];
+};
+
+// Statut effectif : « en_retard » dérivé (jamais stocké), aligné sur
+// documents/actions.ts. Copie locale (helper non exporté d'un autre fichier).
+function ficheEffectiveStatus(
+  row: { type: string; status: string; dueAt: Date | null; paidAt: Date | null },
+  now: Date,
+): DocumentStatus {
+  if (
+    row.type === "facture" &&
+    row.status === "envoye" &&
+    row.paidAt === null &&
+    row.dueAt !== null &&
+    row.dueAt.getTime() < now.getTime()
+  ) {
+    return "en_retard";
+  }
+  return row.status as DocumentStatus;
+}
+
+// Fiche complète d'un client : profil + agrégats + projets + historique des
+// pièces. UNE vérification d'appartenance (findFirst where { id, userId }),
+// puis toutes les lectures en parallèle, chacune filtrée `userId` ET sur ce
+// client (via project.clientId). Éco : agrégats côté base, historique borné.
+export async function getClientFiche(id: string): Promise<ClientFiche | null> {
+  const userId = await requireUserId();
+  if (!z.string().uuid().safeParse(id).success) return null;
+
+  const client = await getClient(id);
+  if (!client) return null;
+
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(year, 0, 1));
+  const yearEnd = new Date(Date.UTC(year + 1, 0, 1));
+  // Toutes les pièces de ce client : ses documents passent par ses projets.
+  const ofClient = { userId, project: { clientId: id } } as const;
+
+  const [caYear, pending, emittedCount, paidRows, projects, documents] =
+    await Promise.all([
+      prisma.document.aggregate({
+        where: {
+          ...ofClient,
+          type: "facture",
+          status: "paye",
+          paidAt: { gte: yearStart, lt: yearEnd },
+        },
+        _sum: { totalHtCents: true },
+      }),
+      prisma.document.aggregate({
+        where: { ...ofClient, type: "facture", status: "envoye", paidAt: null },
+        _sum: { totalHtCents: true },
+      }),
+      prisma.document.count({ where: { ...ofClient, number: { not: null } } }),
+      // Délai moyen : paires (issuedAt, paidAt) des factures payées, borné.
+      prisma.document.findMany({
+        where: {
+          ...ofClient,
+          type: "facture",
+          status: "paye",
+          issuedAt: { not: null },
+          paidAt: { not: null },
+        },
+        select: { issuedAt: true, paidAt: true },
+        take: 200,
+      }),
+      prisma.project.findMany({
+        where: { userId, clientId: id },
+        select: { id: true, name: true, status: true },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+      prisma.document.findMany({
+        where: ofClient,
+        select: {
+          id: true,
+          type: true,
+          number: true,
+          status: true,
+          issuedAt: true,
+          dueAt: true,
+          paidAt: true,
+          totalTtcCents: true,
+        },
+        orderBy: [
+          { issuedAt: { sort: "desc", nulls: "last" } },
+          { createdAt: "desc" },
+        ],
+        take: 10,
+      }),
+    ]);
+
+  const avgPaymentDays =
+    paidRows.length === 0
+      ? null
+      : Math.round(
+          paidRows.reduce(
+            (sum, r) =>
+              sum +
+              ((r.paidAt as Date).getTime() - (r.issuedAt as Date).getTime()) /
+                86_400_000,
+            0,
+          ) / paidRows.length,
+        );
+
+  return {
+    client,
+    stats: {
+      year,
+      caYearHtCents: caYear._sum.totalHtCents ?? 0,
+      pendingHtCents: pending._sum.totalHtCents ?? 0,
+      emittedCount,
+      avgPaymentDays,
+    },
+    projects: projects.map((p) => ({
+      id: p.id,
+      name: p.name,
+      status:
+        p.status === "termine" || p.status === "en_pause"
+          ? p.status
+          : "en_cours",
+    })),
+    documents: documents.map((d) => ({
+      id: d.id,
+      type: d.type as DocType,
+      number: d.number,
+      status: ficheEffectiveStatus(d, now),
+      issuedAt: d.issuedAt,
+      totalTtcCents: d.totalTtcCents,
+    })),
+  };
 }
 
 // --- Écriture ----------------------------------------------------------------

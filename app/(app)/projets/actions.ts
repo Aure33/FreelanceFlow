@@ -25,6 +25,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { PAGE_SIZE, paginate, type Paginated } from "@/lib/pagination";
+import type { DocType } from "@/lib/invoicing";
+import type { DocumentStatus } from "@/app/(app)/documents/actions";
 
 // --- Types exposés à l'UI ----------------------------------------------------
 
@@ -48,6 +50,17 @@ export type ProjectListItem = {
   budgetCents: 0;
 };
 
+// Ligne compacte de l'onglet Documents de la fiche (montant TTC, comme les
+// listes ; le statut « en_retard » est dérivé).
+export type ProjectDocumentRow = {
+  id: string;
+  type: DocType;
+  number: string | null;
+  status: DocumentStatus;
+  issuedAt: Date | null;
+  totalTtcCents: number;
+};
+
 export type ProjectDetail = {
   id: string;
   name: string;
@@ -57,10 +70,15 @@ export type ProjectDetail = {
   createdAt: Date;
   clientId: string;
   clientName: string;
-  // Stubs #8
-  documentsCount: 0;
-  invoicedCents: 0;
-  budgetCents: 0;
+  // Agrégats financiers réels (issue #86), en HT (convention #47). Le
+  // « budget » = Σ HT des devis ACCEPTÉS du projet (montant validé par le
+  // client) ; « restant à facturer » = budget − facturé (borné à 0).
+  budgetHtCents: number;
+  invoicedHtCents: number; // Σ HT des factures émises (numéro attribué)
+  paidHtCents: number; // Σ HT des factures payées
+  pendingHtCents: number; // Σ HT des factures envoyées non payées
+  documentsCount: number; // devis + factures rattachés
+  documents: ProjectDocumentRow[]; // onglet Documents (récents, bornés)
 };
 
 export type CreateProjectInput = {
@@ -235,6 +253,52 @@ export async function getProject(id: string): Promise<ProjectDetail | null> {
 
   if (!row) return null;
 
+  // Agrégats financiers du projet (issue #86) — filtrés `userId` + `projectId`,
+  // en parallèle, côté base (HT). L'historique est borné (éco).
+  const now = new Date();
+  const ofProject = { userId, projectId: id } as const;
+  const [budget, invoiced, paid, pending, documentsCount, docRows] =
+    await Promise.all([
+      prisma.document.aggregate({
+        where: { ...ofProject, type: "devis", status: "accepte" },
+        _sum: { totalHtCents: true },
+      }),
+      prisma.document.aggregate({
+        where: { ...ofProject, type: "facture", number: { not: null } },
+        _sum: { totalHtCents: true },
+      }),
+      prisma.document.aggregate({
+        where: { ...ofProject, type: "facture", status: "paye" },
+        _sum: { totalHtCents: true },
+      }),
+      prisma.document.aggregate({
+        where: { ...ofProject, type: "facture", status: "envoye", paidAt: null },
+        _sum: { totalHtCents: true },
+      }),
+      prisma.document.count({ where: ofProject }),
+      prisma.document.findMany({
+        where: ofProject,
+        select: {
+          id: true,
+          type: true,
+          number: true,
+          status: true,
+          issuedAt: true,
+          dueAt: true,
+          paidAt: true,
+          totalTtcCents: true,
+        },
+        orderBy: [
+          { issuedAt: { sort: "desc", nulls: "last" } },
+          { createdAt: "desc" },
+        ],
+        take: 20,
+      }),
+    ]);
+
+  const budgetHtCents = budget._sum.totalHtCents ?? 0;
+  const invoicedHtCents = invoiced._sum.totalHtCents ?? 0;
+
   return {
     id: row.id,
     name: row.name,
@@ -244,9 +308,26 @@ export async function getProject(id: string): Promise<ProjectDetail | null> {
     createdAt: row.createdAt,
     clientId: row.clientId,
     clientName: row.client.name,
-    documentsCount: 0,
-    invoicedCents: 0,
-    budgetCents: 0,
+    budgetHtCents,
+    invoicedHtCents,
+    paidHtCents: paid._sum.totalHtCents ?? 0,
+    pendingHtCents: pending._sum.totalHtCents ?? 0,
+    documentsCount,
+    documents: docRows.map((d) => ({
+      id: d.id,
+      type: d.type as DocType,
+      number: d.number,
+      status:
+        d.type === "facture" &&
+        d.status === "envoye" &&
+        d.paidAt === null &&
+        d.dueAt !== null &&
+        d.dueAt.getTime() < now.getTime()
+          ? ("en_retard" as DocumentStatus)
+          : (d.status as DocumentStatus),
+      issuedAt: d.issuedAt,
+      totalTtcCents: d.totalTtcCents,
+    })),
   };
 }
 
