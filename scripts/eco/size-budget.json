@@ -1,7 +1,7 @@
 {
-  "defaultKb": 130,
+  "defaultKb": 150,
   "routes": {
-    "/connexion": 190,
-    "/inscription": 190
+    "/connexion": 210,
+    "/inscription": 210
   }
 }
