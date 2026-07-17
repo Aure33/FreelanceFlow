@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import { applyPremiumPlan, revokePremiumPlan } from "@/lib/premium";
 import { prisma } from "@/lib/prisma";
+import { getStripe } from "@/lib/stripe";
 
 // Webhook Stripe (issue #82) — SEUL endroit qui accorde/retire le forfait
 // Premium. AUCUNE session ici (Stripe appelle ce endpoint serveur-à-serveur,
@@ -9,8 +10,6 @@ import { prisma } from "@/lib/prisma";
 // (STRIPE_WEBHOOK_SECRET), jamais d'un cookie. Runtime Node (crypto pour la
 // vérification de signature).
 export const runtime = "nodejs";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get("stripe-signature");
@@ -25,7 +24,7 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event;
   try {
-    event = await stripe.webhooks.constructEventAsync(
+    event = await getStripe().webhooks.constructEventAsync(
       rawBody,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!,

@@ -13,11 +13,9 @@
 // l'éditeur, qui serait contournable en antidatant/postdatant.
 
 import { headers } from "next/headers";
-import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import { getStripe } from "@/lib/stripe";
 
 // Forme exposée à l'UI (jauge sidebar, bannière Devis/Factures, modale
 // paywall, page /abonnement, garde-fou /documents/nouveau).
@@ -111,6 +109,7 @@ export async function createCheckoutSessionCore(
   const userId = await requireUserId();
   const priceId = PRICE_BY_CYCLE[cycle];
   if (!priceId) return { error: "Configuration de paiement indisponible." };
+  const stripe = getStripe();
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
