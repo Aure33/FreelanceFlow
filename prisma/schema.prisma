@@ -34,6 +34,13 @@ model User {
   bic       String?
   stripeCustomerId     String?   @unique(map: "users_stripe_customer_id_key") @map("stripe_customer_id") // #82 — posé à la 1ère session Checkout
   stripeSubscriptionId String?   @unique(map: "users_stripe_subscription_id_key") @map("stripe_subscription_id") // #82 — posé/effacé par le webhook, jamais par l'app
+  // Relances automatiques (#84) — valeurs whitelistées par zod (parametres/
+  // actions.ts) ; le cron ne traite que premium + remindersEnabled.
+  remindersEnabled   Boolean @default(false) @map("reminders_enabled")
+  reminderFirstDays  Int     @default(7) @map("reminder_first_days") // 3 | 7 | 10
+  reminderSecondDays Int     @default(15) @map("reminder_second_days") // 10 | 15 | 21
+  reminderFinalDays  Int     @default(30) @map("reminder_final_days") // 21 | 30 | 45
+  reminderTone       String  @default("courtois") @map("reminder_tone") // courtois | neutre | ferme
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   clients       Client[]
@@ -104,6 +111,8 @@ model Document {
   dueAt         DateTime? @map("due_at") @db.Timestamptz(6)
   paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
   emailSentAt   DateTime? @map("email_sent_at") @db.Timestamptz(6) // dernier envoi par e-mail au client (#83), horodatage SERVEUR
+  reminderCount   Int       @default(0) @map("reminder_count") // relances déjà envoyées par le cron (#84), 0..3
+  lastReminderAt  DateTime? @map("last_reminder_at") @db.Timestamptz(6) // horodatage SERVEUR de la dernière relance (#84) — idempotence quotidienne
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)

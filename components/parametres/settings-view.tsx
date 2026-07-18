@@ -22,7 +22,7 @@ export function SettingsView({ profile }: { profile: ProfileData }) {
         <TvaCard profile={profile} />
         <BankCard profile={profile} />
         <BillingPrefsCard profile={profile} />
-        <RemindersCard planType={profile.planType} />
+        <RemindersCard planType={profile.planType} initial={profile.reminders} />
         <AppearanceCard />
         <AccountCard email={profile.email} />
       </div>
