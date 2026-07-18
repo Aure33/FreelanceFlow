@@ -41,6 +41,7 @@ model User {
   reminderSecondDays Int     @default(15) @map("reminder_second_days") // 10 | 15 | 21
   reminderFinalDays  Int     @default(30) @map("reminder_final_days") // 21 | 30 | 45
   reminderTone       String  @default("courtois") @map("reminder_tone") // courtois | neutre | ferme
+  logoPath String? @map("logo_path") // objet du bucket privé `logos` (#87) : `<userId>/logo.<ext>`
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   clients       Client[]

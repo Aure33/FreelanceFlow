@@ -24,6 +24,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { PAGE_SIZE, paginate, type Paginated } from "@/lib/pagination";
+import { signedLogoUrl } from "@/lib/logo";
 import {
   computeTotals,
   computeDueDate,
@@ -156,6 +157,7 @@ export type DocumentView = {
     siret: string | null;
     iban: string | null;
     bic: string | null;
+    logoUrl: string | null; // URL signée du logo (#87), null sans logo
   };
   // Client = client du projet rattaché (bloc « Facturé à » / « Adressé à »).
   client: {
@@ -537,6 +539,7 @@ const DOCUMENT_VIEW_SELECT = {
       iban: true,
       bic: true,
       tvaRegime: true,
+      logoPath: true, // logo d'entreprise (#87) — signé au moment du fetch
     },
   },
   project: {
@@ -566,7 +569,11 @@ type DocumentViewRow = Prisma.DocumentGetPayload<{
 }>;
 
 // Mapper pur : ligne Prisma (SELECT ci-dessus) -> DocumentView exposé à l'UI.
-function toDocumentView(doc: DocumentViewRow, now: Date): DocumentView {
+function toDocumentView(
+  doc: DocumentViewRow,
+  now: Date,
+  emitterLogoUrl: string | null,
+): DocumentView {
   const type = doc.type as DocType;
   const regime = normalizeRegime(doc.tvaRegime ?? doc.user.tvaRegime);
 
@@ -602,6 +609,7 @@ function toDocumentView(doc: DocumentViewRow, now: Date): DocumentView {
       siret: doc.user.siret,
       iban: doc.user.iban,
       bic: doc.user.bic,
+      logoUrl: emitterLogoUrl,
     },
     client: {
       name: doc.project.client.name,
@@ -640,7 +648,7 @@ export async function getDocument(id: string): Promise<DocumentView | null> {
     select: DOCUMENT_VIEW_SELECT,
   });
   if (!doc) return null;
-  return toDocumentView(doc, new Date());
+  return toDocumentView(doc, new Date(), await signedLogoUrl(doc.user.logoPath));
 }
 
 // --- Lien public de devis (issue #85) ----------------------------------------
@@ -661,7 +669,7 @@ export async function getPublicQuote(
     select: DOCUMENT_VIEW_SELECT,
   });
   if (!doc) return null;
-  return toDocumentView(doc, new Date());
+  return toDocumentView(doc, new Date(), await signedLogoUrl(doc.user.logoPath));
 }
 
 // Réponse publique du client (accepter / refuser) — AUCUNE session, validée par

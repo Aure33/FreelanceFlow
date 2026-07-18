@@ -24,6 +24,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { documentPrefix, nextNumber, type TvaRegime } from "@/lib/invoicing";
+import { signedLogoUrl } from "@/lib/logo";
 
 // --- Types exposés à l'UI ----------------------------------------------------
 
@@ -40,6 +41,7 @@ export type ProfileData = {
   planType: "free" | "premium";
   nextDocumentNumber: string; // aperçu en LECTURE SEULE, ex. "FAC-2026-006" — ne consomme/réserve RIEN
   reminders: ReminderSettingsData; // relances automatiques (#84)
+  logoUrl: string | null; // URL signée du logo (#87), null sans logo
 };
 
 // Réglages des relances automatiques (#84). Un compte FREE peut les
@@ -164,6 +166,7 @@ export async function getProfile(): Promise<ProfileData> {
       reminderSecondDays: true,
       reminderFinalDays: true,
       reminderTone: true,
+      logoPath: true,
     },
   });
 
@@ -199,6 +202,7 @@ export async function getProfile(): Promise<ProfileData> {
     tvaRegime: normalizeRegime(user.tvaRegime),
     planType: normalizePlan(user.planType),
     nextDocumentNumber,
+    logoUrl: await signedLogoUrl(user.logoPath),
     reminders: {
       enabled: user.remindersEnabled,
       firstDays: user.reminderFirstDays,
