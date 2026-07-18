@@ -262,10 +262,21 @@ if (!hasEnv) {
       await expect(rowBtn).toBeVisible();
       await expect(rowBtn).toBeEnabled();
 
-      await rowBtn.click();
-      await page.waitForURL(/\/documents\/nouveau\?document=/, {
-        timeout: 15_000,
-      });
+      // CI (runner lent) : le clic peut partir AVANT la fin de l'hydratation
+      // React — le handler n'est pas encore attaché, le clic est muet et la
+      // navigation n'arrive jamais (flaky observé sur main depuis l'ajout du
+      // JS client Sentry, #88). On re-clique donc tant que l'URL n'a pas
+      // changé : aucun risque de double duplication, le bouton est `disabled`
+      // pendant l'action en vol (un clic Playwright sur bouton désactivé ne
+      // déclenche rien, il expire).
+      await expect(async () => {
+        if (!/\/documents\/nouveau\?document=/.test(page.url())) {
+          await rowBtn.click({ timeout: 2_000 });
+        }
+        await page.waitForURL(/\/documents\/nouveau\?document=/, {
+          timeout: 5_000,
+        });
+      }).toPass({ timeout: 40_000 });
 
       // Éditeur pré-rempli avec les lignes copiées (libellé + TTC exact).
       await expect(page.getByText(LINE_LABEL).first()).toBeVisible();
