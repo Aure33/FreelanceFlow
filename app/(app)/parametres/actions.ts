@@ -39,6 +39,18 @@ export type ProfileData = {
   tvaRegime: TvaRegime;
   planType: "free" | "premium";
   nextDocumentNumber: string; // aperçu en LECTURE SEULE, ex. "FAC-2026-006" — ne consomme/réserve RIEN
+  reminders: ReminderSettingsData; // relances automatiques (#84)
+};
+
+// Réglages des relances automatiques (#84). Un compte FREE peut les
+// sauvegarder (« s'activera dès votre passage en Premium », copie de la
+// carte) — le cron ne traite de toute façon que les comptes premium.
+export type ReminderSettingsData = {
+  enabled: boolean;
+  firstDays: number;
+  secondDays: number;
+  finalDays: number;
+  tone: "courtois" | "neutre" | "ferme";
 };
 
 export type UpdateProfileInput = Partial<{
@@ -147,6 +159,11 @@ export async function getProfile(): Promise<ProfileData> {
       bic: true,
       tvaRegime: true,
       planType: true,
+      remindersEnabled: true,
+      reminderFirstDays: true,
+      reminderSecondDays: true,
+      reminderFinalDays: true,
+      reminderTone: true,
     },
   });
 
@@ -182,7 +199,61 @@ export async function getProfile(): Promise<ProfileData> {
     tvaRegime: normalizeRegime(user.tvaRegime),
     planType: normalizePlan(user.planType),
     nextDocumentNumber,
+    reminders: {
+      enabled: user.remindersEnabled,
+      firstDays: user.reminderFirstDays,
+      secondDays: user.reminderSecondDays,
+      finalDays: user.reminderFinalDays,
+      tone:
+        user.reminderTone === "neutre" || user.reminderTone === "ferme"
+          ? user.reminderTone
+          : "courtois",
+    },
   };
+}
+
+// --- Relances automatiques (#84) ---------------------------------------------
+
+// Valeurs STRICTEMENT whitelistées : celles des selects de la carte (mêmes
+// paliers que la maquette Profil.html). Toute valeur forgée est refusée.
+const reminderSettingsSchema = z.object({
+  enabled: z.boolean(),
+  firstDays: z.union([z.literal(3), z.literal(7), z.literal(10)]),
+  secondDays: z.union([z.literal(10), z.literal(15), z.literal(21)]),
+  finalDays: z.union([z.literal(21), z.literal(30), z.literal(45)]),
+  tone: z.enum(["courtois", "neutre", "ferme"]),
+});
+
+export async function updateReminderSettings(
+  input: ReminderSettingsData,
+): Promise<UpdateProfileResult> {
+  const userId = await requireUserId();
+
+  const parsed = reminderSettingsSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: "Réglages de relance invalides." };
+  }
+  const s = parsed.data;
+
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        remindersEnabled: s.enabled,
+        reminderFirstDays: s.firstDays,
+        reminderSecondDays: s.secondDays,
+        reminderFinalDays: s.finalDays,
+        reminderTone: s.tone,
+      },
+    });
+  } catch {
+    return {
+      error: "Impossible d'enregistrer les réglages. Réessayez dans un instant.",
+    };
+  }
+
+  revalidatePath("/parametres");
+  return { ok: true };
 }
 
 // --- Écriture ----------------------------------------------------------------

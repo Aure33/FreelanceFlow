@@ -1,12 +1,15 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/dashboard/tag";
-import { CARD, CARD_BODY, CARD_DESC, CARD_HEAD, CARD_TITLE, LABEL } from "./shared";
+import {
+  updateReminderSettings,
+  type ReminderSettingsData,
+} from "@/app/(app)/parametres/actions";
+import { CARD, CARD_BODY, CARD_DESC, CARD_HEAD, CARD_TITLE, CardFoot, LABEL } from "./shared";
 
 type Tone = "courtois" | "neutre" | "ferme";
 
@@ -29,17 +32,48 @@ const TONE_LABELS: Record<Tone, string> = {
 const SELECT =
   "h-[42px] w-full cursor-pointer appearance-none rounded-md border border-line bg-surface pl-[13px] pr-[38px] text-sm text-ink transition-colors focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent-soft";
 
-// Section « Relances automatiques » (Premium) — interactivité 100 % locale,
-// AUCUNE persistance réelle : ce projet n'implémente aucune automatisation
-// d'envoi de relance côté serveur. Le bouton Enregistrer reste désactivé pour
-// ne jamais laisser croire que la configuration est sauvegardée.
-export function RemindersCard({ planType }: { planType: "free" | "premium" }) {
-  const [enabled, setEnabled] = useState(true);
-  const [first, setFirst] = useState("J+7 après échéance");
-  const [second, setSecond] = useState("J+15");
-  const [last, setLast] = useState("J+30");
-  const [tone, setTone] = useState<Tone>("courtois");
+// Section « Relances automatiques » — RÉELLE depuis #84 : les réglages sont
+// persistés (users.reminders_enabled / reminder_*) et exécutés par le cron
+// quotidien (app/api/cron/relances). Un compte free peut sauvegarder sa
+// configuration (copie existante : « s'activera dès votre passage en
+// Premium ») — le cron ne traite que les comptes premium.
+export function RemindersCard({
+  planType,
+  initial,
+}: {
+  planType: "free" | "premium";
+  initial: ReminderSettingsData;
+}) {
+  const [enabled, setEnabled] = useState(initial.enabled);
+  const [first, setFirst] = useState(initial.firstDays);
+  const [second, setSecond] = useState(initial.secondDays);
+  const [last, setLast] = useState(initial.finalDays);
+  const [tone, setTone] = useState<Tone>(initial.tone);
   const switchId = useId();
+
+  const [isPending, startTransition] = useTransition();
+  const [feedback, setFeedback] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timeoutRef.current), []);
+
+  function save() {
+    clearTimeout(timeoutRef.current);
+    startTransition(async () => {
+      const res = await updateReminderSettings({
+        enabled,
+        firstDays: first,
+        secondDays: second,
+        finalDays: last,
+        tone,
+      });
+      if ("error" in res) {
+        setFeedback({ type: "error", text: res.error });
+      } else {
+        setFeedback({ type: "ok", text: "Enregistré." });
+        timeoutRef.current = setTimeout(() => setFeedback(null), 2500);
+      }
+    });
+  }
 
   const isPremium = planType === "premium";
 
@@ -62,8 +96,8 @@ export function RemindersCard({ planType }: { planType: "free" | "premium" }) {
               Activer les relances automatiques
             </b>
             <small className="text-[13px] text-ink-3">
-              S&apos;applique aux factures dont l&apos;échéance est dépassée.
-              Vous gardez la main : chaque envoi est notifié.
+              S&apos;applique aux factures dont l&apos;échéance est dépassée,
+              selon les paliers ci-dessous. Une vérification par jour.
             </small>
           </div>
           <label
@@ -94,12 +128,12 @@ export function RemindersCard({ planType }: { planType: "free" | "premium" }) {
                   id="rel-first"
                   className={SELECT}
                   value={first}
-                  onChange={(e) => setFirst(e.target.value)}
+                  onChange={(e) => setFirst(Number(e.target.value))}
                   disabled={!enabled}
                 >
-                  <option>J+3 après échéance</option>
-                  <option>J+7 après échéance</option>
-                  <option>J+10 après échéance</option>
+                  <option value={3}>J+3 après échéance</option>
+                  <option value={7}>J+7 après échéance</option>
+                  <option value={10}>J+10 après échéance</option>
                 </select>
               </div>
             </div>
@@ -111,12 +145,12 @@ export function RemindersCard({ planType }: { planType: "free" | "premium" }) {
                 id="rel-second"
                 className={SELECT}
                 value={second}
-                onChange={(e) => setSecond(e.target.value)}
+                onChange={(e) => setSecond(Number(e.target.value))}
                 disabled={!enabled}
               >
-                <option>J+10</option>
-                <option>J+15</option>
-                <option>J+21</option>
+                <option value={10}>J+10</option>
+                <option value={15}>J+15</option>
+                <option value={21}>J+21</option>
               </select>
             </div>
             <div>
@@ -127,12 +161,12 @@ export function RemindersCard({ planType }: { planType: "free" | "premium" }) {
                 id="rel-last"
                 className={SELECT}
                 value={last}
-                onChange={(e) => setLast(e.target.value)}
+                onChange={(e) => setLast(Number(e.target.value))}
                 disabled={!enabled}
               >
-                <option>J+21</option>
-                <option>J+30</option>
-                <option>J+45</option>
+                <option value={21}>J+21</option>
+                <option value={30}>J+30</option>
+                <option value={45}>J+45</option>
               </select>
             </div>
           </div>
@@ -179,9 +213,9 @@ export function RemindersCard({ planType }: { planType: "free" | "premium" }) {
           <ShieldAlert className="mt-0.5 h-4 w-4 flex-none" strokeWidth={2} aria-hidden />
           {isPremium ? (
             <span>
-              Fonctionnalité incluse dans votre forfait Premium. La
-              configuration ci-dessus est une démonstration : aucune relance
-              n&apos;est envoyée automatiquement dans ce projet.
+              Fonctionnalité incluse dans votre forfait Premium. Les factures
+              échues sont relancées automatiquement par e-mail, une
+              vérification par jour, selon ce calendrier.
             </span>
           ) : (
             <span>
@@ -195,19 +229,7 @@ export function RemindersCard({ planType }: { planType: "free" | "premium" }) {
           )}
         </div>
       </div>
-      <div className="flex items-center gap-3 rounded-b-lg border-t border-line-soft bg-surface-2 px-pad py-[14px]">
-        <span className="text-[13px] text-ink-3">Configuration jamais activée</span>
-        <Button
-          type="button"
-          variant="primary"
-          size="sm"
-          className="ml-auto"
-          disabled
-          title="Les relances automatiques ne sont pas encore persistées côté serveur : aucune automatisation d'envoi n'existe dans ce projet."
-        >
-          Enregistrer
-        </Button>
-      </div>
+      <CardFoot feedback={feedback} isPending={isPending} onSave={save} />
     </section>
   );
 }
