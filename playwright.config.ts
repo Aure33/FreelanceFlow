@@ -19,6 +19,13 @@ export default defineConfig({
   timeout: 60_000,
   fullyParallel: false,
   workers: 1,
+  // CI uniquement : les runners GitHub (lents, partagés) exposent une course
+  // d'hydratation React — un clic peut partir avant que le handler soit
+  // attaché (flaky observé sur main depuis le JS client Sentry, #88 :
+  // duplicate-document, public-quote…). Un test qui re-flake est relancé dans
+  // un worker NEUF (données re-semées via un nouveau RUN_ID, trace conservée).
+  // En local : 0 retry — un échec doit se voir immédiatement.
+  retries: process.env.CI ? 2 : 0,
   reporter: "list",
   use: {
     baseURL: BASE_URL,

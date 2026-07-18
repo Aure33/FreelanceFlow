@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Box, Check, FileText, Lock, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/dashboard/tag";
 import { cn } from "@/lib/utils";
-import { upgradeToPremium, type Usage } from "@/app/(app)/abonnement/actions";
+import { createCheckoutSession, type Usage } from "@/app/(app)/abonnement/actions";
 import { memberSinceLabel, nextMonthFirstLabel } from "@/lib/date-fr";
 
 type Cycle = "mois" | "an";
@@ -15,14 +15,19 @@ const li =
   "flex gap-2.5 text-[13.5px] leading-[1.45]";
 const liIcon = "mt-px h-4 w-4 flex-none";
 
-// Page Abonnement (issue #10, AC #4) — reproduit `Abonnement.html`. Reçoit
-// `usage` chargé côté serveur (getUsage()) ; le toggle mensuel/annuel est un
-// state purement local (aucune persistance : pas de facturation réelle dans
-// ce projet).
+// Page Abonnement (issue #10, AC #4 ; paiement réel #82). Reçoit `usage`
+// chargé côté serveur (getUsage()) ; le toggle mensuel/annuel est un state
+// local qui détermine le prix Stripe envoyé à createCheckoutSession(). Le
+// forfait n'est JAMAIS accordé ici : Stripe héberge le formulaire de carte,
+// et seul le webhook (lib/premium.ts) accorde le Premium après paiement
+// confirmé — cette page ne fait qu'ouvrir la session Checkout.
 export function SubscriptionView({ usage }: { usage: Usage }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const checkoutState = searchParams.get("checkout"); // "success" | "cancel" | null
   const [cycle, setCycle] = useState<Cycle>("mois");
   const [isPending, startTransition] = useTransition();
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const isPremium = usage.planType === "premium";
   const limit = usage.documentsLimit; // null si premium
@@ -37,10 +42,27 @@ export function SubscriptionView({ usage }: { usage: Usage }) {
   // décoratif faute de palier de référence dans les données.
   const clientsPct = Math.min(100, usage.clientsCount);
 
+  // Le webhook Stripe (asynchrone) peut arriver quelques centaines de ms
+  // après la redirection de Checkout : si l'utilisateur revient marqué
+  // « success » mais que `usage` (chargé juste avant ce rendu) montre encore
+  // « free », un unique refresh différé laisse le temps au webhook d'arriver.
+  useEffect(() => {
+    if (checkoutState !== "success" || isPremium) return;
+    const t = setTimeout(() => router.refresh(), 2000);
+    return () => clearTimeout(t);
+  }, [checkoutState, isPremium, router]);
+
   function handleUpgrade() {
+    setCheckoutError(null);
     startTransition(async () => {
-      await upgradeToPremium();
-      router.refresh();
+      const res = await createCheckoutSession(cycle);
+      if ("error" in res) {
+        setCheckoutError(res.error);
+        return;
+      }
+      // Redirection RÉELLE vers Stripe (hors origine) — pas de router.push,
+      // qui ne gère que la navigation interne à l'app.
+      window.location.href = res.url;
     });
   }
 
@@ -62,6 +84,36 @@ export function SubscriptionView({ usage }: { usage: Usage }) {
           </div>
         </div>
       </div>
+
+      {/* Retour de Stripe Checkout (#82) */}
+      {checkoutState === "success" && (
+        <div
+          role="status"
+          className="mb-gap flex items-center gap-2.5 rounded-md bg-ok-soft px-[18px] py-[13px] text-[13.5px] font-medium text-ok-ink"
+        >
+          <Check className="h-[18px] w-[18px] flex-none" strokeWidth={2.2} aria-hidden />
+          {isPremium
+            ? "Paiement confirmé — vous êtes en Premium."
+            : "Paiement reçu — activation de votre Premium en cours…"}
+        </div>
+      )}
+      {checkoutState === "cancel" && (
+        <div
+          role="status"
+          className="mb-gap flex items-center gap-2.5 rounded-md bg-surface-2 px-[18px] py-[13px] text-[13.5px] font-medium text-ink-2"
+        >
+          Paiement annulé — aucun montant n&apos;a été prélevé.
+        </div>
+      )}
+      {checkoutError && (
+        <div
+          role="alert"
+          className="mb-gap flex items-center gap-2.5 rounded-md bg-danger-soft px-[18px] py-[13px] text-[13.5px] font-medium text-danger-ink"
+        >
+          <TriangleAlert className="h-[18px] w-[18px] flex-none" strokeWidth={2.2} aria-hidden />
+          {checkoutError}
+        </div>
+      )}
 
       {/* ===== Forfait actuel ===== */}
       <section className="rounded-lg border border-line bg-surface shadow-sm">
@@ -404,10 +456,10 @@ export function SubscriptionView({ usage }: { usage: Usage }) {
           {isPremium ? (
             <>
               <b className="mb-0.5 block text-sm font-[650] text-ink-2">
-                Aucun reçu pour le moment
+                Aucun reçu affiché ici pour le moment
               </b>
-              Le forfait Premium est simulé sans paiement réel dans ce
-              projet — aucun reçu ne sera généré.
+              Votre abonnement est actif et facturé par Stripe (mode test) —
+              le détail des reçus arrivera avec l&apos;espace client dédié.
             </>
           ) : (
             <>
