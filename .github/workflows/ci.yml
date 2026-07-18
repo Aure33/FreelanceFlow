@@ -63,6 +63,16 @@ jobs:
   tests-integration:
     needs: [lint, build]
     runs-on: ubuntu-latest
+    # Un seul job d'intégration À LA FOIS, tous runs confondus : ils partagent
+    # la même base Supabase dev, et le balayage des relances (#84) est une
+    # opération GLOBALE (il traite tous les comptes premium activés) — deux
+    # runs parallèles peuvent se relancer mutuellement leurs factures semées
+    # (flaky observé : le sweep du run A pose reminder_count=1 sur la facture
+    # du run B avant que B ne balaie). Les autres suites, elles, n'assertent
+    # que leurs propres données (RUN id unique) et ne se gênent pas.
+    concurrency:
+      group: supabase-dev-db-integration
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
