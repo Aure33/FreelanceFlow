@@ -22,9 +22,21 @@ export function DocumentPaper({ view }: { view: DocumentView }) {
   return (
     <div className="flex justify-center rounded-lg border border-line bg-[oklch(0.93_0.008_95)] p-[34px] max-[1180px]:p-[18px] print:justify-normal print:rounded-none print:border-none print:bg-white print:p-0">
       <div className="flex h-fit w-[595px] min-h-[842px] max-w-full flex-none flex-col rounded-[4px] bg-white p-[48px_52px] text-[11.5px] leading-[1.5] text-[oklch(0.25_0.01_75)] shadow-lg print:shadow-none">
-        {/* En-tête : émetteur + badge */}
+        {/* En-tête : émetteur (logo #87 optionnel) + badge */}
         <div className="mb-[38px] flex items-start justify-between">
           <div className="text-[oklch(0.42_0.012_75)]">
+            {view.emitter.logoUrl ? (
+              // URL signée Supabase à durée limitée : next/image n'apporte
+              // rien (pas d'optimisation possible sur une URL expirante) et le
+              // PDF Puppeteer charge l'octet exact. Dimensions bornées, jamais
+              // déformé (object-contain), fallback = en-tête texte inchangé.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={view.emitter.logoUrl}
+                alt=""
+                className="mb-[10px] block max-h-[52px] max-w-[180px] object-contain object-left"
+              />
+            ) : null}
             <b className="mb-[3px] block text-[14px]">
               {view.emitter.name ?? (
                 <span className="italic">Nom à compléter dans Paramètres</span>
