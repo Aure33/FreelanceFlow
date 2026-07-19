@@ -425,7 +425,7 @@ export function ClientForm() {
         )}
 
         {/* Pied du formulaire (`.form-foot`) */}
-        <div className="flex items-center gap-2.5 rounded-b-lg border-t border-line-soft bg-surface-2 px-pad py-4">
+        <div className="flex flex-wrap items-center justify-end gap-2.5 rounded-b-lg border-t border-line-soft bg-surface-2 px-pad py-4">
           <span className="text-[12.5px] text-ink-3">
             Vous pourrez compléter la fiche à tout moment.
           </span>

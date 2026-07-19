@@ -47,7 +47,7 @@ export default function LandingPage() {
           Devis, factures conformes, relances et suivi du chiffre d&apos;affaires.
           Pensé pour les freelances, pas pour les comptables.
         </p>
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-3">
           <Button
             asChild
             variant="primary"

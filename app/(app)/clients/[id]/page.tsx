@@ -71,7 +71,7 @@ export default async function ClientDetailPage({
             devis / facture » ouvrent l'éditeur (#8) — le projet (qui porte le
             client) se choisit dans l'éditeur, un client pouvant avoir
             plusieurs projets. */}
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
           <EditClientButton client={client} />
           <Button asChild variant="default">
             <Link href="/documents/nouveau?type=devis">Nouveau devis</Link>
@@ -169,7 +169,7 @@ export default async function ClientDetailPage({
                     <li key={p.id} className="border-b border-line-soft">
                       <Link
                         href={`/projets/${p.id}`}
-                        className="flex items-center gap-3 px-pad py-3 transition-colors hover:bg-surface-2"
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1 px-pad py-3 transition-colors hover:bg-surface-2"
                       >
                         <span className="min-w-0 flex-1 truncate text-sm font-[600]">
                           {p.name}
@@ -207,7 +207,7 @@ export default async function ClientDetailPage({
                     <li key={d.id} className="border-b border-line-soft">
                       <Link
                         href={`/${path}/${d.id}`}
-                        className="flex items-center gap-3 px-pad py-3 transition-colors hover:bg-surface-2"
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1 px-pad py-3 transition-colors hover:bg-surface-2"
                       >
                         <span className="num w-[130px] flex-none truncate text-[13px] font-medium text-ink-2">
                           {d.number ?? (

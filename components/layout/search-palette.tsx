@@ -157,11 +157,15 @@ export function SearchPalette() {
         type="button"
         onClick={openPalette}
         aria-label="Rechercher (raccourci Cmd+K ou Ctrl+K)"
-        className="ml-auto flex w-[280px] items-center gap-[9px] rounded-md border border-line bg-surface px-[13px] py-2 text-ink-3 transition-shadow hover:border-accent focus-visible:border-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent-soft"
+        className="ml-auto flex h-11 w-11 items-center justify-center gap-[9px] rounded-md border border-line bg-surface text-ink-3 transition-shadow hover:border-accent focus-visible:border-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent-soft sm:h-auto sm:w-[280px] sm:justify-start sm:px-[13px] sm:py-2"
       >
         <Search className="h-4 w-4 flex-none" strokeWidth={2} aria-hidden />
-        <span className="truncate text-sm">Rechercher un client, une facture…</span>
-        <span className="num ml-auto rounded-[5px] border border-line px-[5px] py-px text-[11px]">
+        {/* Libellé et raccourci masqués sur mobile (#96) : déclencheur icône
+            seule, l'aria-label porte le nom accessible dans tous les cas. */}
+        <span className="hidden truncate text-sm sm:inline">
+          Rechercher un client, une facture…
+        </span>
+        <span className="num ml-auto hidden rounded-[5px] border border-line px-[5px] py-px text-[11px] sm:inline">
           ⌘K
         </span>
       </button>

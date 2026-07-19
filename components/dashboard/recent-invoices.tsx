@@ -30,7 +30,8 @@ export function RecentInvoices({
           Aucune facture émise pour le moment
         </div>
       ) : (
-        <table className="w-full border-collapse">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[540px] border-collapse">
           <thead>
             <tr>
               {["Pièce", "Client", "Échéance", "Statut"].map((h) => (
@@ -77,6 +78,7 @@ export function RecentInvoices({
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

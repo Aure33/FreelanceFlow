@@ -87,7 +87,7 @@ export function ProjectTabs({
                   <li key={d.id} className="border-b border-line-soft">
                     <Link
                       href={`/${path}/${d.id}`}
-                      className="flex items-center gap-3 px-pad py-3 transition-colors hover:bg-surface-2"
+                      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-pad py-3 transition-colors hover:bg-surface-2"
                     >
                       <span className="num w-[130px] flex-none truncate text-[13px] font-medium text-ink-2">
                         {d.number ?? (

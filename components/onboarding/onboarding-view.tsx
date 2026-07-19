@@ -57,7 +57,7 @@ export function OnboardingView({
   return (
     <>
       {/* En-tête (`.page-head`) + sortie du guide (exigence « ignorable ») */}
-      <div className="mb-6 flex items-end gap-[18px]">
+      <div className="mb-6 flex flex-wrap items-end gap-[18px]">
         <div>
           <div className="text-2xl font-extrabold tracking-[-0.03em]">
             Bienvenue{firstName ? `, ${firstName}` : ""}
