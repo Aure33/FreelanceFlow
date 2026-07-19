@@ -31,7 +31,7 @@ export function DashboardHeader({
   }
 
   return (
-    <div className="mb-6 flex items-end gap-[18px]">
+    <div className="mb-6 flex flex-wrap items-end gap-[18px]">
       <div>
         <div className="text-2xl font-extrabold tracking-[-0.03em]">
           Bonjour {firstName}{" "}
@@ -43,7 +43,7 @@ export function DashboardHeader({
           {dateLabel} · Voici l&apos;état de votre activité
         </div>
       </div>
-      <div className="ml-auto flex items-center gap-2.5">
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
         <PeriodSegment />
         <GatedCreateLink
           usage={usage}

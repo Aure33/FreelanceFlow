@@ -205,7 +205,7 @@ export function DocumentList(props: Props) {
   return (
     <>
       {/* En-tête de page (`.page-head`) */}
-      <div className="mb-[22px] flex items-center gap-[18px]">
+      <div className="mb-[22px] flex flex-wrap items-center gap-[18px]">
         <div>
           <div className="text-2xl font-extrabold tracking-[-0.03em]">
             {copy.title}
@@ -217,7 +217,7 @@ export function DocumentList(props: Props) {
               : ""}
           </div>
         </div>
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
           {type === "facture" && (
             <Button
               type="button"
@@ -344,7 +344,7 @@ export function DocumentList(props: Props) {
           </div>
 
           {/* Filtres (`.filters`) — chips = liens `?statut=` (issue #70). */}
-          <div className="mb-4 flex items-center gap-2.5">
+          <div className="mb-4 flex flex-wrap items-center gap-2.5">
             {FILTERS[type].map((c) => {
               const active = filter === c.id;
               return (

@@ -67,7 +67,7 @@ export function ProjectBoard({
   return (
     <>
       {/* En-tête de page (`.page-head`) */}
-      <div className="mb-[22px] flex items-center gap-[18px]">
+      <div className="mb-[22px] flex flex-wrap items-center gap-[18px]">
         <div>
           <div className="text-2xl font-extrabold tracking-[-0.03em]">Projets</div>
           <div className="mt-[3px] text-sm text-ink-3">
@@ -75,7 +75,7 @@ export function ProjectBoard({
             {count > 0 ? ` · ${enCours} en cours` : ""}
           </div>
         </div>
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
           {count > 0 && (
             <div
               role="radiogroup"
@@ -134,7 +134,7 @@ export function ProjectBoard({
         <>
           {/* Filtres (`.filters`) — chips = liens `?statut=` (issue #70) ;
               tri réel via `?tri=`. Chips masqués en Kanban (regroupé par statut). */}
-          <div className="mb-[18px] flex items-center gap-2.5">
+          <div className="mb-[18px] flex flex-wrap items-center gap-2.5">
             {view === "grille" && (
               <>
                 {(

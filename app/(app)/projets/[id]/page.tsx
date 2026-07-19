@@ -50,7 +50,7 @@ export default async function ProjetDetailPage({
         {/* « Modifier » ouvre la modale d'édition/suppression (#58) ; « Créer un
             devis / une facture » ouvrent l'éditeur (#8) avec ce projet + le type
             pré-sélectionnés. */}
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
           <EditProjectButton project={project} />
           <Button asChild variant="default">
             <Link href={`/documents/nouveau?projet=${project.id}&type=devis`}>

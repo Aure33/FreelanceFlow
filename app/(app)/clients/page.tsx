@@ -16,14 +16,14 @@ export default async function ClientsPage({
   return (
     <>
       {/* En-tête de page (`.page-head`) */}
-      <div className="mb-[22px] flex items-center gap-[18px]">
+      <div className="mb-[22px] flex flex-wrap items-center gap-[18px]">
         <div>
           <div className="text-2xl font-extrabold tracking-[-0.03em]">Clients</div>
           <div className="mt-[3px] text-sm text-ink-3">
             {count} client{count > 1 ? "s" : ""}
           </div>
         </div>
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
           <Button asChild variant="primary">
             <Link href="/clients/nouveau">
               <Plus strokeWidth={2} />

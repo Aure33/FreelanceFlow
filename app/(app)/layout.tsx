@@ -1,5 +1,5 @@
 import { Sidebar } from "@/components/layout/sidebar";
-import { Topbar } from "@/components/layout/topbar";
+import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentUserProfile } from "@/lib/auth/session";
 import { getUsage } from "@/app/(app)/abonnement/actions";
 import { getNavCounts } from "@/app/(app)/nav-counts";
@@ -22,15 +22,14 @@ export default async function AppLayout({
   const user =
     profile ?? ({ name: "Utilisateur", email: "", initials: "U" } as const);
 
+  // Coquille responsive (#96) : desktop identique (grille sidebar + contenu),
+  // mobile = sidebar en tiroir piloté par la topbar (état client dans AppShell).
   return (
-    <div className="grid min-h-screen grid-cols-[var(--sidebar-w)_1fr] print:block">
-      <Sidebar user={user} usage={usage} counts={counts} />
-      <div className="flex min-w-0 flex-col">
-        <Topbar notifications={notifications} />
-        <main className="mx-auto w-full max-w-content p-7 print:max-w-none print:p-0">
-          {children}
-        </main>
-      </div>
-    </div>
+    <AppShell
+      sidebar={<Sidebar user={user} usage={usage} counts={counts} />}
+      notifications={notifications}
+    >
+      {children}
+    </AppShell>
   );
 }

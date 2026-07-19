@@ -41,11 +41,11 @@ export function RevenueChart({ data }: { data: ReportsData }) {
           </span>
         </div>
       </div>
-      <div className="p-pad">
+      <div className="overflow-x-auto p-pad">
         <div
           role="img"
           aria-label={ariaLabel}
-          className="flex h-[250px] items-end gap-[14px] px-1 pt-2"
+          className="flex h-[250px] min-w-[520px] items-end gap-[14px] px-1 pt-2"
         >
           {monthlyRevenue.map((d, i) => {
             const peak = hasData && i === peakIndex;

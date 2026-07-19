@@ -383,7 +383,7 @@ export function DocumentEditor({
               )}
             </small>
           </div>
-          <div className="ml-auto flex items-center gap-2.5">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
             {/* Indicateur d'enregistrement (autosave) */}
             <span
               className="inline-flex items-center gap-1.5 text-[12.5px] text-ink-3"
@@ -744,7 +744,7 @@ export function DocumentEditor({
             <Eye className="h-4 w-4" strokeWidth={2} aria-hidden />
             Aperçu du document
           </span>
-          <div className="ml-auto flex items-center gap-2.5">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
             <Button
               variant="default"
               size="sm"
