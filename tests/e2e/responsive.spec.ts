@@ -152,6 +152,9 @@ if (!hasEnv) {
     test("zéro débordement horizontal sur toutes les pages (shell + publiques)", async ({
       page,
     }) => {
+      // 17 chargements de page sur un runner CI lent (Supabase distant) :
+      // le budget par défaut (60 s) est structurellement trop court.
+      test.setTimeout(240_000);
       const errors = collectConsoleErrors(page);
       await loginAs(page, EMAIL, PASSWORD);
 
@@ -172,7 +175,12 @@ if (!hasEnv) {
       ];
       for (const path of appPages) {
         await page.goto(path);
-        await page.waitForLoadState("networkidle");
+        // networkidle borné avec repli : Sentry/streaming peuvent maintenir
+        // des connexions ouvertes sur CI — un settle court suffit à mesurer.
+        await page
+          .waitForLoadState("networkidle", { timeout: 8_000 })
+          .catch(() => {});
+        await page.waitForTimeout(300);
         expect(
           await horizontalOverflow(page),
           `débordement horizontal sur ${path}`,
@@ -183,7 +191,12 @@ if (!hasEnv) {
       await page.context().clearCookies();
       for (const path of ["/", "/legal", "/connexion", "/inscription"]) {
         await page.goto(path);
-        await page.waitForLoadState("networkidle");
+        // networkidle borné avec repli : Sentry/streaming peuvent maintenir
+        // des connexions ouvertes sur CI — un settle court suffit à mesurer.
+        await page
+          .waitForLoadState("networkidle", { timeout: 8_000 })
+          .catch(() => {});
+        await page.waitForTimeout(300);
         expect(
           await horizontalOverflow(page),
           `débordement horizontal sur ${path}`,
@@ -228,7 +241,11 @@ if (!hasEnv) {
       await expect(
         page.getByRole("button", { name: "Ouvrir la navigation" }),
       ).toHaveAttribute("aria-expanded", "false");
-      await expect(page.getByText(`FAC-RESP-${RUN}`).first()).toBeVisible();
+      // Timeout élargi : la page streame (squelette d'abord) et les requêtes
+      // Supabase sont lentes depuis le runner CI.
+      await expect(page.getByText(`FAC-RESP-${RUN}`).first()).toBeVisible({
+        timeout: 15_000,
+      });
 
       expect(errors, `Erreurs console :\n${errors.join("\n")}`).toEqual([]);
     });
