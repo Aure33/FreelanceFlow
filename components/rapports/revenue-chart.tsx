@@ -41,7 +41,7 @@ export function RevenueChart({ data }: { data: ReportsData }) {
           </span>
         </div>
       </div>
-      <div className="overflow-x-auto p-pad">
+      <div className="overflow-x-auto p-pad" tabIndex={0} role="region" aria-label="Graphique du chiffre d'affaires (défilable)">
         <div
           role="img"
           aria-label={ariaLabel}

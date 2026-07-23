@@ -779,6 +779,7 @@ export function DocumentEditor({
           className="min-h-0 flex-1 overflow-y-auto p-[30px]"
           role="region"
           aria-label="Aperçu du document en temps réel"
+          tabIndex={0}
         >
           <span className="sr-only" aria-live="polite">
             {liveMsg}
@@ -896,7 +897,7 @@ export function DocumentEditor({
                     <tr>
                       <td
                         colSpan={5}
-                        className="border-b border-[oklch(0.92_0.005_95)] px-2 py-[9px] italic text-[oklch(0.6_0.01_75)]"
+                        className="border-b border-[oklch(0.92_0.005_95)] px-2 py-[9px] italic text-[oklch(0.5_0.01_75)]"
                       >
                         Ajoutez une prestation pour la voir apparaître ici.
                       </td>

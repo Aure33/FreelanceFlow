@@ -20,7 +20,7 @@ export function AuthPitch({ children }: { children: ReactNode }) {
       {/* Contenu central (varie selon l'écran). */}
       <div className="my-auto max-w-[420px]">{children}</div>
 
-      <div className="text-[12.5px] text-[oklch(0.6_0.008_95)]">
+      <div className="text-[12.5px] text-[oklch(0.72_0.008_95)]">
         Hébergé en France · Données chiffrées · RGPD
       </div>
 

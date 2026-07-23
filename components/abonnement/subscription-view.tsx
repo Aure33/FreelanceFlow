@@ -275,7 +275,7 @@ export function SubscriptionView({ usage }: { usage: Usage }) {
             )}
           >
             Annuel{" "}
-            <span className="font-mono text-[11px] opacity-75">−20 %</span>
+            <span className="font-mono text-[11px]">−20 %</span>
           </button>
         </div>
       </div>
