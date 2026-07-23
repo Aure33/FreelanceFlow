@@ -18,7 +18,7 @@
 
   --ink:       oklch(0.23 0.012 75);    /* texte principal, encre chaude */
   --ink-2:     oklch(0.45 0.012 75);    /* texte secondaire */
-  --ink-3:     oklch(0.60 0.010 75);    /* texte tertiaire / labels */
+  --ink-3:     oklch(0.52 0.010 75);    /* texte tertiaire / labels — L 0.52 pour AA 4.5:1 (a11y #98) */
 
   /* — Accent indigo — */
   --accent:        oklch(0.48 0.14 264);
@@ -73,9 +73,9 @@
 
   --ink:       oklch(0.93 0.006 95);
   --ink-2:     oklch(0.76 0.009 95);
-  --ink-3:     oklch(0.60 0.010 95);
+  --ink-3:     oklch(0.68 0.010 95);    /* a11y #98 : L 0.68 pour AA 4.5:1 sur fond sombre */
 
-  --accent:        oklch(0.60 0.13 264);
+  --accent:        oklch(0.54 0.13 264);   /* a11y #98 : abaissé de 0.60 pour AA sur le bouton primaire (texte on-accent) */
   --accent-hover:  oklch(0.65 0.13 264);
   --accent-soft:   oklch(0.30 0.055 264);
   --accent-ink:    oklch(0.80 0.09 264);

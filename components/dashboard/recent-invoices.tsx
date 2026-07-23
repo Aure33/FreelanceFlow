@@ -30,7 +30,7 @@ export function RecentInvoices({
           Aucune facture émise pour le moment
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Factures récentes (tableau défilable)">
         <table className="w-full min-w-[540px] border-collapse">
           <thead>
             <tr>

@@ -389,7 +389,7 @@ export function DocumentList(props: Props) {
             </p>
           )}
 
-          <section className="overflow-x-auto rounded-lg border border-line bg-surface shadow-sm">
+          <section tabIndex={0} aria-label="Tableau (défilable horizontalement)" className="overflow-x-auto rounded-lg border border-line bg-surface shadow-sm">
             <table className="w-full border-collapse">
               <thead>
                 <tr>

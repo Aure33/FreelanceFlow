@@ -117,7 +117,11 @@ export function RemindersCard({
           </label>
         </div>
 
-        <div className={cn("transition-opacity", !enabled && "pointer-events-none opacity-45")}>
+        {/* Désactivé : porté par le toggle + les contrôles nativement
+            `disabled` (grisés). Pas de voile d'opacité sur le texte — ce
+            serait un anti-pattern de contraste (échec WCAG 1.4.3 sur le petit
+            texte de l'aperçu). a11y #98. */}
+        <div className={cn(!enabled && "pointer-events-none")}>
           <div className="mb-3.5 grid grid-cols-3 gap-3.5 max-[700px]:grid-cols-1">
             <div>
               <label htmlFor="rel-first" className={LABEL}>
