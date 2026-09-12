@@ -2,13 +2,14 @@ import { formatSiret } from "@/components/clients/format";
 import { formatEuros } from "@/lib/invoicing";
 import type { DocumentView } from "@/app/(app)/documents/actions";
 import { formatDocDate, formatQty, formatRate } from "./format";
+import { DocLabel, PaperEmitterBlock, PaperPaymentBlock } from "./paper-parts";
 
 // Document A4 en lecture — reprend EXACTEMENT le rendu de l'aperçu de l'éditeur
 // (components/document-editor.tsx) : papier blanc fixe dans les deux thèmes
 // (exception assumée), couleurs figées en oklch. Server component : aucun état.
 //
-// Émetteur = profil utilisateur ; tant que l'écran Paramètres (#12) n'existe pas,
-// les champs non renseignés affichent un placeholder « à compléter ».
+// Émetteur = profil utilisateur (Paramètres #12). En-tête émetteur et bloc
+// règlement partagés avec l'aperçu de l'éditeur (paper-parts.tsx, #105).
 export function DocumentPaper({ view }: { view: DocumentView }) {
   const isFacture = view.type === "facture";
   const kind = isFacture ? "FACTURE" : "DEVIS";
@@ -16,45 +17,12 @@ export function DocumentPaper({ view }: { view: DocumentView }) {
   const clientLabel = isFacture ? "Facturé à" : "Adressé à";
   const ref = view.number ?? "Brouillon";
 
-  const iban = view.emitter.iban;
-  const bic = view.emitter.bic;
-
   return (
     <div className="flex justify-center rounded-lg border border-line bg-[oklch(0.93_0.008_95)] p-[34px] max-[1180px]:p-[18px] print:justify-normal print:rounded-none print:border-none print:bg-white print:p-0">
       <div className="flex h-fit w-[595px] min-h-[842px] max-w-full flex-none flex-col rounded-[4px] bg-white p-[48px_52px] text-[11.5px] leading-[1.5] text-[oklch(0.25_0.01_75)] shadow-lg print:shadow-none">
         {/* En-tête : émetteur (logo #87 optionnel) + badge */}
         <div className="mb-[38px] flex items-start justify-between">
-          <div className="text-[oklch(0.42_0.012_75)]">
-            {view.emitter.logoUrl ? (
-              // URL signée Supabase à durée limitée : next/image n'apporte
-              // rien (pas d'optimisation possible sur une URL expirante) et le
-              // PDF Puppeteer charge l'octet exact. Dimensions bornées, jamais
-              // déformé (object-contain), fallback = en-tête texte inchangé.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={view.emitter.logoUrl}
-                alt=""
-                className="mb-[10px] block max-h-[52px] max-w-[180px] object-contain object-left"
-              />
-            ) : null}
-            <b className="mb-[3px] block text-[14px]">
-              {view.emitter.name ?? (
-                <span className="italic">Nom à compléter dans Paramètres</span>
-              )}
-            </b>
-            {view.emitter.address ? (
-              <span className="whitespace-pre-line">{view.emitter.address}</span>
-            ) : (
-              <span className="italic">Adresse à compléter dans Paramètres</span>
-            )}
-            <br />
-            <span className="font-mono text-[10px]">
-              {view.emitter.siret
-                ? `SIRET ${formatSiret(view.emitter.siret)}`
-                : "SIRET à compléter"}{" "}
-              · TVA à compléter
-            </span>
-          </div>
+          <PaperEmitterBlock emitter={view.emitter} />
           <div className="text-right">
             <div className="text-[21px] font-extrabold tracking-[-0.02em] text-[oklch(0.40_0.15_264)]">
               {kind}
@@ -162,14 +130,7 @@ export function DocumentPaper({ view }: { view: DocumentView }) {
         {/* Pied : règlement + mentions légales */}
         <div className="mt-auto pt-[28px]">
           <div className="flex gap-[30px] border-t border-[oklch(0.92_0.005_95)] py-[13px]">
-            <div>
-              <DocLabel>Règlement par virement</DocLabel>
-              <span className="font-mono text-[10px]">
-                {iban
-                  ? `IBAN ${iban}${bic ? ` · BIC ${bic}` : ""}`
-                  : "IBAN à compléter dans Paramètres"}
-              </span>
-            </div>
+            <PaperPaymentBlock emitter={view.emitter} />
           </div>
           <div className="border-t border-[oklch(0.92_0.005_95)] pt-2.5 text-[8.5px] leading-[1.6] text-[oklch(0.55_0.01_75)]">
             {view.legalMentions.join(" ")}
@@ -177,15 +138,6 @@ export function DocumentPaper({ view }: { view: DocumentView }) {
         </div>
       </div>
     </div>
-  );
-}
-
-// Petit label du document A4 (reproduit `.doc-meta label` / `.doc-client label`).
-function DocLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label className="mb-0.5 block text-[9px] font-bold uppercase tracking-[0.09em] text-[oklch(0.55_0.01_75)]">
-      {children}
-    </label>
   );
 }
 

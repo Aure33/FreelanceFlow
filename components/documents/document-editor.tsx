@@ -18,6 +18,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatSiret } from "@/components/clients/format";
 import {
+  DocLabel,
+  PaperEmitterBlock,
+  PaperPaymentBlock,
+  type PaperEmitter,
+} from "./paper-parts";
+import {
   saveDraft,
   emitDocument,
   type ProjectPickerOption,
@@ -135,14 +141,15 @@ export type EditorInitialDocument = {
 
 export function DocumentEditor({
   projects,
-  emitterName,
+  emitter,
   regime,
   initialType = "facture",
   initialProjectId = "",
   initialDocument = null,
 }: {
   projects: ProjectPickerOption[];
-  emitterName: string;
+  // Coordonnées réelles du profil (Paramètres #12), lues côté page (#105).
+  emitter: PaperEmitter;
   regime: TvaRegime;
   // Présélection depuis un point d'entrée (fiche projet) — validés côté page.
   initialType?: DocType;
@@ -792,23 +799,18 @@ export function DocumentEditor({
             <div className="flex h-fit w-[595px] min-h-[842px] flex-none flex-col rounded-[4px] bg-white p-[48px_52px] text-[11.5px] leading-[1.5] text-[oklch(0.25_0.01_75)] shadow-lg">
               {/* En-tête : émetteur + badge */}
               <div className="mb-[38px] flex items-start justify-between">
-                <div className="text-[oklch(0.42_0.012_75)]">
-                  <b className="mb-[3px] block text-[14px]">{emitterName}</b>
-                  {/* Coordonnées émetteur non renseignables tant que #12 n'est pas fait */}
-                  <span className="italic">Adresse à compléter dans Paramètres</span>
-                  <br />
-                  <span className="font-mono text-[10px]">
-                    SIRET à compléter · TVA à compléter
-                  </span>
-                </div>
+                <PaperEmitterBlock emitter={emitter} />
                 <div className="text-right">
                   <div className="text-[21px] font-extrabold tracking-[-0.02em] text-[oklch(0.40_0.15_264)]">
                     {type === "facture" ? "FACTURE" : "DEVIS"}
                   </div>
                   <div className="mt-0.5 font-mono text-[11px] text-[oklch(0.45_0.012_75)]">
                     {/* Dans l'éditeur, le document est toujours un brouillon ;
-                        une fois émis, on affiche l'écran de confirmation. */}
+                        le numéro légal n'est attribué qu'à l'émission. */}
                     Brouillon
+                  </div>
+                  <div className="mt-0.5 text-[9px] italic text-[oklch(0.55_0.01_75)]">
+                    Numéro attribué à l&apos;émission
                   </div>
                 </div>
               </div>
@@ -822,7 +824,7 @@ export function DocumentEditor({
                   </div>
                 </div>
                 <div>
-                  <DocLabel>Échéance</DocLabel>
+                  <DocLabel>{type === "facture" ? "Échéance" : "Validité"}</DocLabel>
                   <div className="font-mono font-semibold">
                     {formatFrDate(dueDate)}
                   </div>
@@ -835,10 +837,18 @@ export function DocumentEditor({
 
               {/* Facturé à */}
               <div className="mb-[30px] rounded-[8px] bg-[oklch(0.975_0.005_95)] px-4 py-[13px]">
-                <DocLabel>Facturé à</DocLabel>
+                <DocLabel>{type === "facture" ? "Facturé à" : "Adressé à"}</DocLabel>
                 {selectedProject ? (
                   <>
                     <b className="text-[13px]">{selectedProject.clientName}</b>
+                    {selectedProject.clientAddress && (
+                      <>
+                        <br />
+                        <span className="whitespace-pre-line">
+                          {selectedProject.clientAddress}
+                        </span>
+                      </>
+                    )}
                     <br />
                     <span className="font-mono text-[10px]">
                       {selectedProject.clientSiret
@@ -935,12 +945,7 @@ export function DocumentEditor({
               {/* Pied : règlement + mentions légales */}
               <div className="mt-auto pt-[28px]">
                 <div className="flex gap-[30px] border-t border-[oklch(0.92_0.005_95)] py-[13px]">
-                  <div>
-                    <DocLabel>Règlement par virement</DocLabel>
-                    <span className="font-mono text-[10px]">
-                      IBAN à compléter dans Paramètres
-                    </span>
-                  </div>
+                  <PaperPaymentBlock emitter={emitter} />
                 </div>
                 <div className="border-t border-[oklch(0.92_0.005_95)] pt-2.5 text-[8.5px] leading-[1.6] text-[oklch(0.55_0.01_75)]">
                   {mentions.join(" ")}
@@ -972,11 +977,3 @@ function SectionTitle({
   );
 }
 
-// Petit label du document A4 (reproduit `.doc-meta label` / `.doc-client label`).
-function DocLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label className="mb-0.5 block text-[9px] font-bold uppercase tracking-[0.09em] text-[oklch(0.55_0.01_75)]">
-      {children}
-    </label>
-  );
-}
