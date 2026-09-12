@@ -43,9 +43,12 @@ export function PriorityPanel({
             ? { tone: "danger" as const, label: "En retard" }
             : { tone: "warn" as const, label: "À relancer" };
           return (
-            <div
+            // Ligne entière = lien vers le document (#106).
+            <Link
               key={`${item.number}-${i}`}
-              className="flex items-center gap-[13px] border-b border-line-soft px-pad py-[13px] transition-colors last:border-b-0 hover:bg-surface-2"
+              href={danger ? `/factures/${item.id}` : `/devis/${item.id}`}
+              aria-label={`Ouvrir ${danger ? "la facture" : "le devis"} ${item.number} — ${item.clientName}`}
+              className="flex items-center gap-[13px] border-b border-line-soft px-pad py-[13px] transition-colors last:border-b-0 hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-accent-soft"
             >
               <div
                 className={`grid h-9 w-9 flex-none place-items-center rounded-[9px] text-[13px] font-bold ${
@@ -70,7 +73,7 @@ export function PriorityPanel({
                   </Tag>
                 </small>
               </div>
-            </div>
+            </Link>
           );
         })
       )}

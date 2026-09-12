@@ -46,6 +46,7 @@ import {
 // --- Types exposés à l'UI ----------------------------------------------------
 
 export type DashboardPriorityItem = {
+  id: string; // lien vers la vue du document (#106)
   kind: "facture_retard" | "devis_relance";
   clientName: string;
   number: string;
@@ -85,7 +86,8 @@ export type DashboardData = {
   };
   recentInvoices: DashboardRecentInvoice[]; // 5 dernières factures émises
   topClients: {
-    items: { clientName: string; pct: number }[]; // top 4, part en % du CA du trimestre
+    // top 4, part en % du CA de la période ; clientId = lien fiche (#106)
+    items: { clientId: string; clientName: string; pct: number }[];
     othersPct: number; // part cumulée des autres (0 si <= 4 clients)
   } | null; // null si aucun CA ce trimestre
 };
@@ -233,6 +235,7 @@ export async function getDashboardData(
         dueAt: { lt: now },
       },
       select: {
+        id: true,
         number: true,
         dueAt: true,
         totalTtcCents: true,
@@ -246,6 +249,7 @@ export async function getDashboardData(
     prisma.document.findMany({
       where: { userId, type: "devis", status: "envoye" },
       select: {
+        id: true,
         number: true,
         emittedAt: true,
         issuedAt: true,
@@ -284,7 +288,7 @@ export async function getDashboardData(
       },
       select: {
         totalHtCents: true,
-        project: { select: { client: { select: { name: true } } } },
+        project: { select: { client: { select: { id: true, name: true } } } },
       },
     }),
   ]);
@@ -343,6 +347,7 @@ export async function getDashboardData(
 
   // --- Panneau priorité ------------------------------------------------------
   const overdueItems: DashboardPriorityItem[] = overdueRows.map((r) => ({
+    id: r.id,
     kind: "facture_retard" as const,
     clientName: r.project.client.name,
     number: r.number ?? "",
@@ -355,6 +360,7 @@ export async function getDashboardData(
     .map((r) => {
       const ref = r.emittedAt ?? r.issuedAt;
       return {
+        id: r.id,
         kind: "devis_relance" as const,
         clientName: r.project.client.name,
         number: r.number ?? "",
@@ -378,26 +384,31 @@ export async function getDashboardData(
   }));
 
   // --- Top clients (période sélectionnée) --------------------------------------
-  const totalsByClient = new Map<string, number>();
+  // Groupés par IDENTIFIANT client (#106) : deux clients homonymes restent
+  // distincts, et chaque ligne mène à la bonne fiche.
+  const totalsByClient = new Map<string, { name: string; cents: number }>();
   let periodTotal = 0;
   for (const doc of periodRows) {
-    const name = doc.project.client.name;
-    totalsByClient.set(name, (totalsByClient.get(name) ?? 0) + doc.totalHtCents);
+    const { id, name } = doc.project.client;
+    const entry = totalsByClient.get(id) ?? { name, cents: 0 };
+    entry.cents += doc.totalHtCents;
+    totalsByClient.set(id, entry);
     periodTotal += doc.totalHtCents;
   }
 
   let topClients: DashboardData["topClients"] = null;
   if (periodTotal > 0) {
     const sorted = Array.from(totalsByClient.entries()).sort(
-      (a, b) => b[1] - a[1],
+      (a, b) => b[1].cents - a[1].cents,
     );
-    const items = sorted.slice(0, 4).map(([clientName, cents]) => ({
-      clientName,
+    const items = sorted.slice(0, 4).map(([clientId, { name, cents }]) => ({
+      clientId,
+      clientName: name,
       pct: Math.round((cents / periodTotal) * 100),
     }));
     const othersCents = sorted
       .slice(4)
-      .reduce((sum, [, cents]) => sum + cents, 0);
+      .reduce((sum, [, { cents }]) => sum + cents, 0);
     const othersPct = Math.round((othersCents / periodTotal) * 100);
     topClients = { items, othersPct };
   }

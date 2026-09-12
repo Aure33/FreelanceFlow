@@ -51,12 +51,16 @@ export function RecentInvoices({
             {invoices.map((inv) => {
               const meta = statusMeta("facture", inv.status);
               return (
-                <tr key={inv.id} className="transition-colors hover:bg-surface-2">
-                  <td className="num relative whitespace-nowrap border-b border-line-soft px-pad py-3.5 text-sm">
-                    {/* Recouvre toute la ligne pour la rendre cliquable sans casser le rendu */}
+                // `relative` sur la LIGNE (et non sur la cellule) : le lien en
+                // absolu recouvre toute la ligne, pas seulement « Pièce » (#106).
+                <tr
+                  key={inv.id}
+                  className="relative transition-colors hover:bg-surface-2 has-[a:focus-visible]:bg-surface-2"
+                >
+                  <td className="num whitespace-nowrap border-b border-line-soft px-pad py-3.5 text-sm">
                     <Link
                       href={`/factures/${inv.id}`}
-                      className="absolute inset-0"
+                      className="absolute inset-0 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-accent-soft"
                       aria-label={`Ouvrir la facture ${inv.number}`}
                     />
                     {inv.number}
