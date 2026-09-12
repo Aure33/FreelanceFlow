@@ -5,7 +5,8 @@ import {
   listProjectsForPicker,
 } from "@/app/(app)/documents/actions";
 import { getUsage } from "@/app/(app)/abonnement/actions";
-import { getCurrentUserProfile, requireUserId } from "@/lib/auth/session";
+import { requireUserId } from "@/lib/auth/session";
+import { signedLogoUrl } from "@/lib/logo";
 import { prisma } from "@/lib/prisma";
 import type { TvaRegime } from "@/lib/invoicing";
 
@@ -34,12 +35,21 @@ export default async function NouveauDocumentPage({
   // d'un brouillon depuis sa vue). getDraftForEditor est filtré userId + statut
   // « brouillon » : un id d'autrui, inconnu ou déjà émis → null → éditeur vierge
   // impossible à confondre avec le document demandé, on redirige vers la liste.
-  const [projects, profile, me, usage, draft] = await Promise.all([
+  // Profil émetteur lu en base (#105) : l'aperçu affiche les mêmes coordonnées
+  // que le document émis (même source : la ligne `users`, cf. getDocument).
+  const [projects, me, usage, draft] = await Promise.all([
     listProjectsForPicker(),
-    getCurrentUserProfile(),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { tvaRegime: true },
+      select: {
+        tvaRegime: true,
+        name: true,
+        address: true,
+        siret: true,
+        iban: true,
+        bic: true,
+        logoPath: true,
+      },
     }),
     getUsage(),
     searchParams.document
@@ -78,10 +88,21 @@ export default async function NouveauDocumentPage({
       ? searchParams.type
       : undefined;
 
+  // Signature du logo seulement après les gardes (redirections) : aucun appel
+  // Storage pour un rendu qui n'aura pas lieu.
+  const logoUrl = await signedLogoUrl(me?.logoPath ?? null);
+
   return (
     <DocumentEditor
       projects={projects}
-      emitterName={profile?.name ?? "Vous"}
+      emitter={{
+        name: me?.name ?? null,
+        address: me?.address ?? null,
+        siret: me?.siret ?? null,
+        iban: me?.iban ?? null,
+        bic: me?.bic ?? null,
+        logoUrl,
+      }}
       regime={normalizeRegime(me?.tvaRegime)}
       initialProjectId={initialProjectId}
       initialType={initialType}

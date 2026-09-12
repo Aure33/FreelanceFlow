@@ -47,6 +47,7 @@ export type ProjectPickerOption = {
   name: string;
   clientName: string;
   clientSiret: string | null;
+  clientAddress: string | null;
 };
 
 // Ligne saisie dans l'éditeur (valeurs brutes du formulaire : zod coerce).
@@ -329,7 +330,7 @@ export async function listProjectsForPicker(): Promise<ProjectPickerOption[]> {
     select: {
       id: true,
       name: true,
-      client: { select: { name: true, siret: true } },
+      client: { select: { name: true, siret: true, address: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -339,6 +340,7 @@ export async function listProjectsForPicker(): Promise<ProjectPickerOption[]> {
     name: p.name,
     clientName: p.client.name,
     clientSiret: p.client.siret ?? null,
+    clientAddress: p.client.address ?? null,
   }));
 }
 
