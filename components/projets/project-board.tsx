@@ -36,10 +36,21 @@ export function ProjectBoard({
   clients: ClientOption[];
 }) {
   const [view, setView] = useState<View>("grille");
-  const [modalOpen, setModalOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // `?nouveau=1` ouvre directement la modale (#108) : point d'entrée du guide
+  // « Premiers pas » et de l'éditeur sans projet.
+  const [modalOpen, setModalOpen] = useState(
+    () => searchParams.get("nouveau") === "1",
+  );
+  function closeModal() {
+    setModalOpen(false);
+    // Retire le paramètre pour qu'un rechargement ne rouvre pas la modale.
+    if (searchParams.get("nouveau") !== null) {
+      router.replace(hrefWith("nouveau", null), { scroll: false });
+    }
+  }
 
   const filter: Filter = ((): Filter => {
     const s = searchParams.get("statut");
@@ -228,7 +239,7 @@ export function ProjectBoard({
 
       <NewProjectModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={closeModal}
         clients={clients}
       />
     </>

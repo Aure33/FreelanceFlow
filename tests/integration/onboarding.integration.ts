@@ -5,7 +5,7 @@
 // (3 requêtes Prisma : siret du profil, count clients, count documents).
 //
 // Ce qu'on prouve, avec DEUX utilisateurs réels (Supabase Auth + Prisma réel) :
-//   - COMPTE NEUF : { hasSiret: false, clientCount: 0, documentCount: 0 } —
+//   - COMPTE NEUF : { hasSiret: false, clientCount: 0, projectCount: 0, documentCount: 0 } —
 //     c'est l'état qui déclenche l'écran d'onboarding (show=true côté pur) ;
 //   - COMPTES RÉELS : en tant que B (qui possède 1 client + 1 document), les
 //     compteurs remontent bien 1/1 — garde anti-tautologie : une action qui
@@ -203,6 +203,7 @@ if (!hasEnv) {
         expect(await getOnboardingStatus()).toEqual({
           hasSiret: false,
           clientCount: 0,
+          projectCount: 0,
           documentCount: 0,
         });
       },
@@ -218,6 +219,7 @@ if (!hasEnv) {
         expect(await getOnboardingStatus()).toEqual({
           hasSiret: false,
           clientCount: 1,
+          projectCount: 1,
           documentCount: 1,
         });
       },
@@ -234,6 +236,7 @@ if (!hasEnv) {
         activeUserId = userA.id;
         const status = await getOnboardingStatus();
         expect(status.clientCount).toBe(0);
+        expect(status.projectCount).toBe(0); // #108
         expect(status.documentCount).toBe(0);
       },
       TIMEOUT,

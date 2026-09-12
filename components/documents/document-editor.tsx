@@ -521,9 +521,9 @@ export function DocumentEditor({
                   client à facturer.
                 </p>
                 <Button asChild variant="primary" className="mt-1">
-                  <Link href="/projets">
+                  <Link href="/projets?nouveau=1">
                     <FolderPlus strokeWidth={2} />
-                    Aller aux projets
+                    Créer un projet
                   </Link>
                 </Button>
               </div>
