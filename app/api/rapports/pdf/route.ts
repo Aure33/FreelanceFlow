@@ -14,6 +14,8 @@ import { parseReportsPeriod } from "@/lib/periods";
 // pour les blocs Premium (getReportsData ne les calcule ni ne les envoie,
 // décision #11) → le PDF ne peut pas contenir plus que l'écran.
 export const runtime = "nodejs";
+// Démarrage à froid de Chromium (décompression) : plusieurs secondes (#103).
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   // Session : un vrai 401 JSON (pas de redirect(), inadapté à un téléchargement).
@@ -64,8 +66,10 @@ export async function GET(request: NextRequest) {
         "Cache-Control": "no-store",
       },
     });
-  } catch {
-    // Jamais de stack trace exposée au client.
+  } catch (error) {
+    // Journal serveur uniquement (#103 : sans lui, la panne de production
+    // était muette). Jamais de stack trace exposée au client.
+    console.error("Rendu PDF impossible :", error);
     return NextResponse.json(
       { error: "Impossible de générer le PDF. Réessayez dans un instant." },
       { status: 500 },

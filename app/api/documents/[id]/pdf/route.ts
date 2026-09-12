@@ -7,6 +7,8 @@ import { renderDocumentPdf } from "@/lib/pdf";
 // Génération PDF côté SERVEUR uniquement (spec sécurité RNCP) — jamais côté
 // client. Runtime Node (Puppeteer a besoin de Node, incompatible avec Edge).
 export const runtime = "nodejs";
+// Démarrage à froid de Chromium (décompression) : plusieurs secondes (#103).
+export const maxDuration = 60;
 
 // Le rendu Puppeteer (navigation + cookie forwardé + dimensions 595×842) est
 // mutualisé avec l'envoi par e-mail (#83) dans lib/pdf.ts.
@@ -68,8 +70,10 @@ export async function GET(
         "Cache-Control": "no-store",
       },
     });
-  } catch {
-    // Jamais de stack trace exposée au client.
+  } catch (error) {
+    // Journal serveur uniquement (#103 : sans lui, la panne de production
+    // était muette). Jamais de stack trace exposée au client.
+    console.error("Rendu PDF impossible :", error);
     return NextResponse.json(
       { error: "Impossible de générer le PDF. Réessayez dans un instant." },
       { status: 500 },
