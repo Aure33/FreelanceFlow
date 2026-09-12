@@ -1033,6 +1033,9 @@ export async function emitDocument(input: DocumentInput): Promise<EmitResult> {
 // Statuts cibles autorisés PAR TYPE (le formulaire ne décide de rien) :
 //  - facture : « paye » (Marquer payé) ou « envoye » (relance / dé-marquage) ;
 //  - devis   : « accepte », « refuse » ou « envoye ».
+// « envoye » est aussi la cible d'une ANNULATION (#107) : facture payée par
+// erreur → de nouveau en attente (paidAt effacé ci-dessous), devis accepté ou
+// refusé → de nouveau en attente de réponse.
 const invoiceStatusSchema = z.enum(["paye", "envoye"]);
 const quoteStatusSchema = z.enum(["accepte", "refuse", "envoye"]);
 
@@ -1052,9 +1055,22 @@ export async function updateDocumentStatus(
 
   const doc = await prisma.document.findFirst({
     where: { id, userId },
-    select: { type: true, status: true },
+    select: {
+      type: true,
+      status: true,
+      convertedInvoice: { select: { id: true } },
+    },
   });
   if (!doc) return { error: "Document introuvable." };
+
+  // Un devis déjà converti en facture (#61) a une décision figée : la remettre
+  // en attente ou la renverser rendrait la facture issue du devis incohérente.
+  if (doc.convertedInvoice) {
+    return {
+      error:
+        "Ce devis a déjà été converti en facture : sa décision ne peut plus être modifiée.",
+    };
+  }
 
   // Un brouillon n'a pas encore été émis : il n'a pas de statut à faire avancer.
   if (doc.status === "brouillon") {
