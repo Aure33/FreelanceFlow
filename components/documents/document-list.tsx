@@ -11,7 +11,7 @@ import {
   Plus,
   TriangleAlert,
 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Tag } from "@/components/dashboard/tag";
 import { Pagination } from "@/components/ui/pagination";
 import { GatedCreateLink } from "@/components/paywall/gated-create-link";
@@ -218,17 +218,6 @@ export function DocumentList(props: Props) {
           </div>
         </div>
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
-          {type === "facture" && (
-            <Button
-              type="button"
-              variant="default"
-              disabled
-              title="Bientôt disponible"
-            >
-              <Download strokeWidth={2} />
-              Exporter
-            </Button>
-          )}
           <GatedCreateLink
             usage={usage}
             href={createHref}
