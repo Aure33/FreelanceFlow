@@ -10,6 +10,7 @@ import {
   Copy,
   Download,
   Pencil,
+  Undo2,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,9 @@ import {
 // « Convertir en facture » (#61) : actif uniquement sur un devis ACCEPTÉ non
 // encore converti — crée un brouillon de facture (lignes copiées, traçabilité
 // sourceQuoteId) puis ouvre l'éditeur dessus pour relecture et émission (le
-// quota freemium reste du ressort d'emitDocument). Les actions restantes sans
-// comportement spécifié (relance, dupliquer #66) restent désactivées.
+// quota freemium reste du ressort d'emitDocument).
+// Annulation (#107) : « Annuler le paiement » / « Remettre en attente de
+// réponse » ramènent le document à « envoye » (sauf devis déjà converti).
 export function DocumentStatusActions({
   type,
   id,
@@ -49,6 +51,8 @@ export function DocumentStatusActions({
   const [error, setError] = useState<string | null>(null);
 
   const isDraft = status === "brouillon";
+  // Décision d'un devis figée une fois converti en facture (#61, garde serveur).
+  const decisionLocked = type === "devis" && convertedInvoice !== null;
 
   function run(target: DocumentStatus) {
     setError(null);
@@ -109,7 +113,7 @@ export function DocumentStatusActions({
             type="button"
             variant="primary"
             className={btn}
-            disabled={pending || isDraft || status === "accepte"}
+            disabled={pending || isDraft || decisionLocked || status === "accepte"}
             onClick={() => run("accepte")}
           >
             <Check strokeWidth={2} />
@@ -119,7 +123,7 @@ export function DocumentStatusActions({
             type="button"
             variant="default"
             className={btn}
-            disabled={pending || isDraft || status === "refuse"}
+            disabled={pending || isDraft || decisionLocked || status === "refuse"}
             onClick={() => run("refuse")}
           >
             <X strokeWidth={2} />
@@ -127,6 +131,36 @@ export function DocumentStatusActions({
           </Button>
         </>
       )}
+
+      {/* Annulation (#107) : un clic malheureux ne doit pas être définitif.
+          Retour à « envoye » — le statut affiché redevient « en attente » ou
+          « en retard » selon l'échéance (dérivé, jamais stocké). */}
+      {type === "facture" && status === "paye" && (
+        <Button
+          type="button"
+          variant="default"
+          className={btn}
+          disabled={pending}
+          onClick={() => run("envoye")}
+        >
+          <Undo2 strokeWidth={2} />
+          Annuler le paiement
+        </Button>
+      )}
+      {type === "devis" &&
+        (status === "accepte" || status === "refuse") &&
+        !decisionLocked && (
+          <Button
+            type="button"
+            variant="default"
+            className={btn}
+            disabled={pending}
+            onClick={() => run("envoye")}
+          >
+            <Undo2 strokeWidth={2} />
+            Remettre en attente de réponse
+          </Button>
+        )}
 
       {type === "facture" ? (
         // Les relances sont automatiques (#84) : un balayage quotidien traite
