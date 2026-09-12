@@ -334,11 +334,20 @@ export function DocumentEditor({
             {kindWord} <span className="num">{emitted.number}</span> {emisAccord}
           </h2>
           <p className="mt-2 text-[13.5px] leading-[1.55] text-ink-2">
-            Le document a été numéroté et enregistré. Vous pourrez le télécharger
-            en PDF prochainement.
+            Le document a été numéroté et enregistré. Vous pouvez le télécharger
+            en PDF ou le retrouver à tout moment dans vos{" "}
+            {type === "facture" ? "factures" : "devis"}.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
-            <Button variant="primary" onClick={resetEditor}>
+            {docId && (
+              <Button asChild variant="primary">
+                <a href={`/api/documents/${docId}/pdf`}>
+                  <Download strokeWidth={2} />
+                  Télécharger le PDF
+                </a>
+              </Button>
+            )}
+            <Button variant="default" onClick={resetEditor}>
               <Plus strokeWidth={2} />
               Nouveau document
             </Button>
@@ -753,15 +762,10 @@ export function DocumentEditor({
             >
               {saveState === "saved" ? "Brouillon enregistré" : "Enregistrer en brouillon"}
             </Button>
-            <Button
-              variant="default"
-              size="sm"
-              disabled
-              title="Bientôt disponible (#9)"
-            >
-              <Download strokeWidth={2} />
-              PDF
-            </Button>
+            {/* Pas de bouton PDF ici : dans l'éditeur le document est toujours
+                un brouillon, et la route PDF refuse les brouillons (pas de
+                numéro légal, #9). Le téléchargement est proposé sur l'écran de
+                confirmation, une fois le document émis. */}
             <Button
               variant="primary"
               size="sm"

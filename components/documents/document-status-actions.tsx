@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  Bell,
   Check,
   Copy,
   Download,
   Pencil,
-  Send,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -129,10 +129,14 @@ export function DocumentStatusActions({
       )}
 
       {type === "facture" ? (
-        // Non branchée — désactivée (aucune automatisation d'envoi, cf. #69).
-        <Button type="button" variant="default" className={btn} disabled>
-          <Send strokeWidth={2} />
-          Envoyer une relance
+        // Les relances sont automatiques (#84) : un balayage quotidien traite
+        // les factures en retard selon les paliers réglés par l'utilisateur.
+        // Il n'y a pas d'envoi manuel — on renvoie donc vers le réglage réel.
+        <Button asChild variant="default" className={btn}>
+          <Link href="/parametres#relances">
+            <Bell strokeWidth={2} />
+            Configurer les relances
+          </Link>
         </Button>
       ) : convertedInvoice ? (
         // Devis déjà converti : lien vers la facture (éditeur si brouillon).
