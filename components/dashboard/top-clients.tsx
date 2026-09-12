@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Users } from "lucide-react";
 import type { DashboardData } from "@/app/(app)/dashboard/actions";
 
@@ -32,9 +33,12 @@ export function TopClients({
       ) : (
         <>
           {items.map((c) => (
-            <div
-              key={c.clientName}
-              className="mb-[11px] flex items-center gap-2.5 last:mb-0"
+            // Chaque client mène à sa fiche (#106).
+            <Link
+              key={c.clientId}
+              href={`/clients/${c.clientId}`}
+              aria-label={`Ouvrir la fiche ${c.clientName} — ${c.pct} %`}
+              className="-mx-2 mb-[5px] flex items-center gap-2.5 rounded-sm px-2 py-[3px] transition-colors last:mb-0 hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent-soft"
             >
               <span className="w-[120px] truncate text-[13.5px] font-semibold">
                 {c.clientName}
@@ -48,7 +52,7 @@ export function TopClients({
               <span className="num w-[42px] text-right text-[12px] text-ink-3">
                 {c.pct} %
               </span>
-            </div>
+            </Link>
           ))}
           {topClients.othersPct > 0 && (
             <div className="mb-[11px] flex items-center gap-2.5 last:mb-0">

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ArrowUpRight,
   Clock,
@@ -45,6 +46,7 @@ export function KpiCards({
       <KpiCard
         tone="a"
         icon="revenue"
+        href="/factures?statut=paye"
         label="Chiffre d'affaires encaissé"
         value={eurosAmount(kpis.caEncaisseCents)}
         unit="€"
@@ -66,6 +68,7 @@ export function KpiCards({
       <KpiCard
         tone="w"
         icon="clock"
+        href="/factures?statut=envoye"
         label="Factures en attente"
         value={eurosAmount(kpis.enAttenteCents)}
         unit="€"
@@ -83,6 +86,7 @@ export function KpiCards({
       <KpiCard
         tone="d"
         icon="alert"
+        href="/factures?statut=en_retard"
         label="En retard de paiement"
         value={eurosAmount(kpis.enRetardCents)}
         unit="€"
@@ -100,6 +104,7 @@ export function KpiCards({
       <KpiCard
         tone="g"
         icon="quote"
+        href="/devis?statut=envoye"
         label="Devis à relancer"
         value={String(kpis.devisARelancerCount)}
         unit="en attente"
@@ -116,9 +121,13 @@ export function KpiCards({
   );
 }
 
+// Chaque carte mène à la liste filtrée correspondante (#106) — filtres
+// `?statut=` existants (#70), aucune requête ajoutée. Nuance : l'indicateur
+// « encaissé » est borné à la période, la liste des payées ne l'est pas.
 function KpiCard({
   tone,
   icon,
+  href,
   label,
   value,
   unit,
@@ -126,6 +135,7 @@ function KpiCard({
 }: {
   tone: Tone;
   icon: KpiIcon;
+  href: string;
   label: string;
   value: string;
   unit: string;
@@ -133,7 +143,10 @@ function KpiCard({
 }) {
   const Icon = KPI_ICON[icon];
   return (
-    <div className="relative overflow-hidden rounded-lg border border-line bg-surface p-5 shadow-sm">
+    <Link
+      href={href}
+      className="relative block overflow-hidden rounded-lg border border-line bg-surface p-5 shadow-sm transition-colors hover:border-accent hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent-soft focus-visible:border-accent"
+    >
       <div
         className={`mb-[14px] grid h-[34px] w-[34px] place-items-center rounded-[9px] ${IC_TONE[tone]}`}
       >
@@ -147,7 +160,7 @@ function KpiCard({
       <div className="flex items-center gap-[7px] text-[12.5px] text-ink-3">
         {foot}
       </div>
-    </div>
+    </Link>
   );
 }
 

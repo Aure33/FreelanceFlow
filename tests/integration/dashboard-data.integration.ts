@@ -396,6 +396,19 @@ if (!hasEnv) {
         expect(it.clientName).toContain(RUN_ID);
         expect(it.clientName).not.toBe(projB.clientName);
       }
+      // #106 : groupement par IDENTIFIANT — chaque ligne porte le vrai id d'un
+      // client de A (lien vers la fiche), jamais celui de B, sans doublon.
+      const ownClientIds = (
+        await prisma.client.findMany({
+          where: { userId: userA.id },
+          select: { id: true },
+        })
+      ).map((c) => c.id);
+      for (const it of tc.items) {
+        expect(ownClientIds).toContain(it.clientId);
+        expect(it.clientId).not.toBe(projB.clientId);
+      }
+      expect(new Set(tc.items.map((i) => i.clientId)).size).toBe(tc.items.length);
 
       // GARDE-FOU BROUILLON : le devis brouillon (HT 999999, client Delmas) doit
       // être EXCLU. S'il fuitait, il pèserait ~1M contre <300k pour tout le
@@ -452,7 +465,7 @@ if (!hasEnv) {
         projB.clientName,
       ]);
       expect(dataB.topClients!.items).toEqual([
-        { clientName: projB.clientName, pct: 100 },
+        { clientId: projB.clientId, clientName: projB.clientName, pct: 100 },
       ]);
 
       const countsB = await getNavCounts();
