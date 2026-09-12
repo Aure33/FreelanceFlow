@@ -338,7 +338,7 @@ if (!hasEnv) {
       const annee = await getDashboardData("annee");
       expect(annee.topClients).not.toBeNull();
       expect(annee.topClients!.items).toEqual([
-        { clientName: clientAName, pct: 100 },
+        { clientId: clientAId, clientName: clientAName, pct: 100 },
       ]);
       expect(annee.topClients!.othersPct).toBe(0);
     }, 20_000);
