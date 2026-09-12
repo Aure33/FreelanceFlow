@@ -26,12 +26,31 @@ const securityHeaders = [
   },
 ];
 
+const CHROMIUM_BIN = "./node_modules/@sparticuz/chromium/bin/**";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Requis sur Next.js 14 pour que instrumentation.ts soit chargé (stable
   // sans flag depuis Next.js 15) — issue #88.
   experimental: {
     instrumentationHook: true,
+    // PDF en production (issue #103). @sparticuz/chromium décompresse Chromium
+    // depuis ses fichiers bin/*.br, qu'il cherche À CÔTÉ de son propre module.
+    // Empaqueté par webpack, il perd ce chemin, et les .br (chargés par un
+    // chemin dynamique) ne sont pas repérés par le traçage des fichiers : la
+    // fonction déployée ne contenait pas Chromium → 500 sur tout rendu PDF,
+    // invisible en local où node_modules est complet.
+    // 1) ne pas empaqueter ces deux paquets (chargés depuis node_modules) ;
+    serverComponentsExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+    // 2) embarquer explicitement les binaires dans les seules fonctions qui
+    //    rendent un PDF (téléchargement, export rapports, envoi e-mail depuis
+    //    la vue document) — pas dans toutes, ~60 Mo chacune.
+    outputFileTracingIncludes: {
+      "/api/documents/[id]/pdf": [CHROMIUM_BIN],
+      "/api/rapports/pdf": [CHROMIUM_BIN],
+      "/(app)/factures/[id]": [CHROMIUM_BIN],
+      "/(app)/devis/[id]": [CHROMIUM_BIN],
+    },
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

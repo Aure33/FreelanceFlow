@@ -90,7 +90,9 @@ export async function sendDocumentByEmailCore(
   let pdfBuffer: Buffer;
   try {
     pdfBuffer = await renderDocumentPdf({ origin, internalPath, cookieHeader });
-  } catch {
+  } catch (renderError) {
+    // Journal serveur uniquement (#103) — jamais exposé au client.
+    console.error("Rendu PDF impossible (envoi e-mail) :", renderError);
     return {
       error: "Impossible de générer le PDF. Réessayez dans un instant.",
     };
