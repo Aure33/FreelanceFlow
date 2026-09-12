@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "playwright/test";
 import { createClient as createSupabaseAdminClient } from "@supabase/supabase-js";
+import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 
 // NOTE ENVIRONNEMENT (Bun, pas de Node dans WSL) : `tests/e2e/package.json`
@@ -10,7 +11,7 @@ import { randomUUID } from "node:crypto";
 // Premier lancement (issue #60) — parcours réel de l'onboarding.
 //
 // Un VRAI utilisateur fraîchement créé (API admin Supabase, aucune donnée) :
-//   - /dashboard affiche le guide « Premiers pas » (Bienvenue, 0/3, étape 1
+//   - /dashboard affiche le guide « Premiers pas » (Bienvenue, 0/4, étape 1
 //     courante) À LA PLACE du tableau de bord classique (« À traiter en
 //     priorité » absent) ;
 //   - « Ignorer ce guide » -> le tableau de bord classique s'affiche
@@ -104,6 +105,47 @@ if (!hasEnv) {
       }
     });
 
+    // Compte à 2/4 (SIRET + client, sans projet) — étape « projet » (#108).
+    const prisma = new PrismaClient();
+    let user2: { id: string; email: string };
+    let user2ClientId = "";
+
+    test.beforeAll(async () => {
+      const { data, error } = await admin.auth.admin.createUser({
+        email: `test-onb2-${RUN_ID}@freelanceflow.test`,
+        password: PASSWORD,
+        email_confirm: true,
+      });
+      if (error || !data?.user) {
+        throw new Error(`Création de l'utilisateur 2 a échoué : ${error?.message}`);
+      }
+      user2 = { id: data.user.id, email: data.user.email! };
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      await prisma.user.update({
+        where: { id: user2.id },
+        data: { siret: "12345678900011" },
+      });
+      user2ClientId = (
+        await prisma.client.create({
+          data: { userId: user2.id, name: `Client onb ${RUN_ID}` },
+          select: { id: true },
+        })
+      ).id;
+    });
+
+    test.afterAll(async () => {
+      try {
+        if (user2?.id) {
+          await prisma.project.deleteMany({ where: { userId: user2.id } });
+          await prisma.client.deleteMany({ where: { userId: user2.id } });
+          await admin.auth.admin.deleteUser(user2.id);
+        }
+      } catch (e) {
+        console.warn("Nettoyage user onboarding 2 échoué :", e);
+      }
+      await prisma.$disconnect();
+    });
+
     test("compte neuf -> /dashboard affiche « Premiers pas », pas le dashboard classique", async ({
       page,
     }) => {
@@ -114,7 +156,7 @@ if (!hasEnv) {
       // L'écran d'onboarding est rendu…
       await expect(page.getByText(/Bienvenue/).first()).toBeVisible();
       await expect(page.getByText("Premiers pas", { exact: true })).toBeVisible();
-      await expect(page.getByText(/0 \/ 3 terminés/)).toBeVisible();
+      await expect(page.getByText(/0 \/ 4 terminés/)).toBeVisible();
       // …avec l'étape 1 (SIRET) comme étape courante (aria-current="step").
       await expect(page.locator('[aria-current="step"]')).toContainText(/SIRET/i);
       // Le bouton de sortie du guide est présent (exigence « ignorable »).
@@ -157,6 +199,46 @@ if (!hasEnv) {
       await expect(page.getByText("Premiers pas", { exact: true })).toHaveCount(0);
       await expect(page.getByText(/Bienvenue/)).toHaveCount(0);
 
+      expect(errors, `Erreurs console détectées :\n${errors.join("\n")}`).toEqual([]);
+    });
+
+    test("SIRET + client : l'étape courante est « Créez un projet » et ouvre directement la modale (#108)", async ({
+      page,
+    }) => {
+      const errors = collectConsoleErrors(page);
+      await loginAs(page, user2.email, PASSWORD);
+
+      await expect(page.getByText(/2 \/ 4 terminés/)).toBeVisible({ timeout: 15_000 });
+      const current = page.locator('[aria-current="step"]');
+      await expect(current).toContainText(/Créez un projet/);
+
+      await current.getByRole("link", { name: "Créer un projet" }).click();
+      await page.waitForURL(/\/projets\?nouveau=1/, { timeout: 15_000 });
+
+      // La modale est ouverte d'emblée, l'unique client présélectionné.
+      const dialog = page.getByRole("dialog", { name: /Nouveau projet/ });
+      await expect(dialog).toBeVisible({ timeout: 15_000 });
+      await expect(dialog.locator("#pClient")).toHaveValue(user2ClientId);
+
+      // Échap ferme et retire le paramètre (un rechargement ne la rouvre pas).
+      await page.keyboard.press("Escape");
+      await expect(dialog).toHaveCount(0);
+      await expect(page).not.toHaveURL(/nouveau=1/, { timeout: 15_000 });
+
+      expect(errors, `Erreurs console détectées :\n${errors.join("\n")}`).toEqual([]);
+    });
+
+    test("éditeur sans projet : « Créer un projet » mène directement à la modale (#108)", async ({
+      page,
+    }) => {
+      const errors = collectConsoleErrors(page);
+      await loginAs(page, user2.email, PASSWORD);
+      await page.goto("/documents/nouveau");
+
+      const link = page.getByRole("link", { name: "Créer un projet" });
+      await expect(link).toHaveAttribute("href", "/projets?nouveau=1", {
+        timeout: 15_000,
+      });
       expect(errors, `Erreurs console détectées :\n${errors.join("\n")}`).toEqual([]);
     });
   });

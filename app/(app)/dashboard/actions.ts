@@ -446,18 +446,20 @@ export async function isOnboardingDismissed(): Promise<boolean> {
 export async function getOnboardingStatus(): Promise<OnboardingCounts> {
   const userId = await requireUserId();
 
-  const [user, clientCount, documentCount] = await Promise.all([
+  const [user, clientCount, projectCount, documentCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { siret: true },
     }),
     prisma.client.count({ where: { userId } }),
+    prisma.project.count({ where: { userId } }),
     prisma.document.count({ where: { userId } }),
   ]);
 
   return {
     hasSiret: Boolean(user?.siret && user.siret.trim().length > 0),
     clientCount,
+    projectCount,
     documentCount,
   };
 }

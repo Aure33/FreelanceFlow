@@ -2,7 +2,11 @@ import Link from "next/link";
 import { Check, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { computeOnboarding, type OnboardingCounts } from "@/lib/onboarding";
+import {
+  computeOnboarding,
+  STEP_COUNT,
+  type OnboardingCounts,
+} from "@/lib/onboarding";
 import { DismissOnboardingButton } from "./dismiss-button";
 
 // Écran « Premier lancement » (issue #60) — maquette `Premier lancement.html`.
@@ -28,6 +32,14 @@ const STEPS = [
     cta: "Créer un client",
   },
   {
+    // Ajout #108 : un document appartient toujours à un projet — sans cette
+    // étape, « Nouveau document » menait à « Créez d'abord un projet ».
+    title: "Créez un projet pour ce client",
+    desc: "Chaque devis et chaque facture sont rattachés à un projet, qui porte le client.",
+    href: "/projets?nouveau=1",
+    cta: "Créer un projet",
+  },
+  {
     title: "Émettez votre premier devis ou facture",
     desc: "TVA calculée en direct selon votre régime, PDF prêt à envoyer.",
     href: "/documents/nouveau",
@@ -37,6 +49,7 @@ const STEPS = [
 
 // « Trois étapes vous séparent… » s'adapte à l'avancement réel.
 const REMAINING_PHRASE: Record<number, string> = {
+  4: "Quatre étapes vous séparent de votre première facture.",
   3: "Trois étapes vous séparent de votre première facture.",
   2: "Deux étapes vous séparent de votre première facture.",
   1: "Plus qu'une étape vous sépare de votre première facture.",
@@ -64,7 +77,7 @@ export function OnboardingView({
           </div>
           <div className="mt-[3px] text-sm text-ink-3">
             Votre compte est prêt.{" "}
-            {REMAINING_PHRASE[state.remainingMinutes] ?? REMAINING_PHRASE[3]}
+            {REMAINING_PHRASE[state.remainingMinutes] ?? REMAINING_PHRASE[STEP_COUNT]}
           </div>
         </div>
         <div className="ml-auto">
@@ -86,14 +99,14 @@ export function OnboardingView({
               Premiers pas
             </h2>
             <span className="num ml-auto text-[12.5px] text-ink-3">
-              {state.doneCount} / 3 terminés · ~{state.remainingMinutes} min
+              {state.doneCount} / {STEP_COUNT} terminés · ~{state.remainingMinutes} min
             </span>
           </div>
           <div
             role="progressbar"
             aria-label="Progression des premiers pas"
             aria-valuemin={0}
-            aria-valuemax={3}
+            aria-valuemax={STEP_COUNT}
             aria-valuenow={state.doneCount}
             className="h-[5px] bg-surface-2"
           >

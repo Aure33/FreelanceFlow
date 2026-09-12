@@ -29,7 +29,10 @@ export function NewProjectModal({
   clients: ClientOption[];
 }) {
   const [name, setName] = useState("");
-  const [clientId, setClientId] = useState("");
+  // Un seul client (cas typique du guide « Premiers pas », #108) : présélectionné.
+  const [clientId, setClientId] = useState(
+    clients.length === 1 ? clients[0].id : "",
+  );
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
