@@ -110,11 +110,22 @@ if (!hasEnv) {
       await loginAs(page, EMAIL, PASSWORD);
       await page.goto(`/devis/${quoteOwnerId}`);
 
-      await page
-        .getByRole("button", { name: /Créer un lien de partage/i })
-        .click();
       const input = page.getByLabel("Lien public");
-      await expect(input).toBeVisible();
+      // CI : re-clic anti-course d'hydratation (cf. reminders.spec.ts) — un
+      // clic avant l'attache du handler ne déclenche rien. On ne reclique que
+      // tant que le lien n'est pas apparu (le bouton disparaît ensuite).
+      await expect(async () => {
+        if (!(await input.isVisible())) {
+          await page
+            .getByRole("button", { name: /Créer un lien de partage/i })
+            .click({ timeout: 2_000 });
+        }
+        // Erreur de la server action affichée dans l'îlot : échec explicite.
+        await expect(
+          page.locator("section", { hasText: "Partager avec le client" }).getByRole("alert"),
+        ).toHaveCount(0);
+        await expect(input).toBeVisible({ timeout: 5_000 });
+      }).toPass({ timeout: 40_000 });
       await expect(input).toHaveValue(/\/proposition\/.+/);
     });
 
