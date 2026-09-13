@@ -221,7 +221,9 @@ if (!hasEnv) {
       await openBtn.click();
       const closeBtn = page.getByRole("button", { name: "Fermer la navigation" });
       await expect(closeBtn).toHaveAttribute("aria-expanded", "true");
-      const factLink = page.getByRole("link", { name: /Factures/ });
+      // Lien « Factures » DU TIROIR : depuis #106, l'indicateur « Factures en
+      // attente » du tableau de bord est aussi un lien — sélecteur non ambigu.
+      const factLink = page.locator("aside").getByRole("link", { name: /Factures/ });
       await expect(factLink).toBeVisible();
 
       // Échap ferme et rend le focus au bouton menu.
@@ -236,7 +238,7 @@ if (!hasEnv) {
 
       // Naviguer depuis le tiroir le referme automatiquement.
       await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
-      await page.getByRole("link", { name: /Factures/ }).click();
+      await factLink.click();
       await page.waitForURL(/\/factures/);
       await expect(
         page.getByRole("button", { name: "Ouvrir la navigation" }),
