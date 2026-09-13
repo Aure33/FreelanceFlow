@@ -1,5 +1,6 @@
 import type { ProjectStatus } from "@/app/(app)/projets/actions";
 import type { TagTone } from "@/components/dashboard/tag";
+import { shortDateLabel } from "@/lib/date-fr";
 
 // Métadonnées d'affichage d'un statut de projet : libellé exact, teinte du tag
 // (`components/dashboard/tag.tsx`) et couleur de la pastille des colonnes Kanban.
@@ -13,13 +14,8 @@ export const STATUS_META: Record<
   en_pause: { label: "En pause", tone: "warn", dot: "bg-warn" },
 };
 
-// Date courte en français (ex. « 4 juil. 2026 »).
-const dateFmt = new Intl.DateTimeFormat("fr-FR", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
-
+// Date courte en français (ex. « 4 juil. 2026 »), à Paris (#113 : identique
+// côté serveur et navigateur, sinon erreur d'hydratation).
 export function formatProjectDate(d: Date): string {
-  return dateFmt.format(d);
+  return shortDateLabel(d);
 }

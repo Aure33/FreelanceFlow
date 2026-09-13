@@ -18,7 +18,7 @@ import { GatedCreateLink } from "@/components/paywall/gated-create-link";
 import { PaywallModal } from "@/components/paywall/paywall-modal";
 import { cn } from "@/lib/utils";
 import { formatEuros, type DocType } from "@/lib/invoicing";
-import { nextMonthFirstLabel } from "@/lib/date-fr";
+import { nextMonthFirstLabel, parisCurrentYear } from "@/lib/date-fr";
 import {
   duplicateDocument,
   type DocumentListItem,
@@ -364,7 +364,7 @@ export function DocumentList(props: Props) {
               )}
             >
               <Calendar className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-              {new Date().getFullYear()}
+              {parisCurrentYear()}
             </span>
           </div>
 
