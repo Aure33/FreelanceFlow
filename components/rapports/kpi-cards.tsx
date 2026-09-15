@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { ReportsData } from "@/app/(app)/rapports/actions";
 import { eurosAmount, formatDaysDelta, formatPctDelta, plural } from "./format";
 
@@ -20,7 +20,10 @@ export function KpiCards({ data }: { data: ReportsData }) {
             <span>Aucune donnée à comparer sur la période précédente</span>
           ) : (
             <>
-              <Delta positive={kpis.caEncaisseDeltaPct >= 0}>
+              <Delta
+                positive={kpis.caEncaisseDeltaPct >= 0}
+                rising={kpis.caEncaisseDeltaPct >= 0}
+              >
                 {formatPctDelta(kpis.caEncaisseDeltaPct)}
               </Delta>{" "}
               <span>{labels.caComparison}</span>
@@ -58,7 +61,10 @@ export function KpiCards({ data }: { data: ReportsData }) {
             <span>Aucune donnée à comparer sur la période précédente</span>
           ) : (
             <>
-              <Delta positive={kpis.delaiMoyenPaiementDeltaJours <= 0}>
+              <Delta
+                positive={kpis.delaiMoyenPaiementDeltaJours <= 0}
+                rising={kpis.delaiMoyenPaiementDeltaJours > 0}
+              >
                 {formatDaysDelta(kpis.delaiMoyenPaiementDeltaJours)}
               </Delta>{" "}
               <span>{labels.delayComparison}</span>
@@ -115,24 +121,27 @@ function KpiCard({
   );
 }
 
-// Pastille de delta coloré (vert = évolution positive, rouge = négative) —
-// reproduit `.delta.up` / `.delta.down`. Icône unique (flèche montante) quelle
-// que soit la direction : la maquette n'a qu'un seul tracé SVG pour les deux
-// classes (le sens de la flèche ne code pas le signe, seule la couleur le fait).
+// Pastille de delta — la COULEUR dit si l'évolution est favorable (vert) ou
+// défavorable (rouge), la FLÈCHE dit le sens de la variation (hausse / baisse).
+// Les deux sont indépendants : un délai de paiement qui baisse est vert avec
+// une flèche descendante.
 function Delta({
   positive,
+  rising,
   children,
 }: {
   positive: boolean;
+  rising: boolean;
   children: React.ReactNode;
 }) {
+  const Arrow = rising ? ArrowUpRight : ArrowDownRight;
   return (
     <span
       className={`num inline-flex items-center gap-[3px] font-semibold ${
         positive ? "text-ok-ink" : "text-danger"
       }`}
     >
-      <ArrowUpRight className="h-[13px] w-[13px]" strokeWidth={2.4} aria-hidden />
+      <Arrow className="h-[13px] w-[13px]" strokeWidth={2.4} aria-hidden />
       {children}
     </span>
   );
