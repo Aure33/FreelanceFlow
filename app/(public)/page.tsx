@@ -146,8 +146,8 @@ export default function LandingPage() {
               Des relances qui tombent à pic
             </h3>
             <p className="text-sm leading-[1.6] text-ink-2">
-              Échéances suivies automatiquement, relances en un clic. Vous êtes payé
-              plus vite, sans e-mails gênants à rédiger.
+              Échéances suivies automatiquement, factures échues relancées chaque
+              jour. Vous êtes payé plus vite, sans e-mails gênants à rédiger.
             </p>
           </article>
           <article className="rounded-lg border border-line bg-surface p-[26px] shadow-sm">

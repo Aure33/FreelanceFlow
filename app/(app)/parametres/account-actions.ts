@@ -1,8 +1,8 @@
 "use server";
 
 // Server actions de la section « Compte » des Paramètres (issue #68) :
-// changement de mot de passe, changement d'e-mail, suppression de compte
-// (droit à l'effacement RGPD — promis par la politique de confidentialité).
+// changement de mot de passe, changement d'e-mail, export des données (droit
+// d'accès et à la portabilité), suppression de compte (droit à l'effacement).
 //
 // SÉCURITÉ :
 //  - toutes les actions repartent de la SESSION (requireUserId — token validé
@@ -146,6 +146,137 @@ export async function changeEmail(input: {
   }
 
   return { success: true };
+}
+
+// --- Export des données (droit d'accès et à la portabilité, RGPD art. 15/20) ------
+
+export type ExportResult =
+  | { ok: true; filename: string; json: string }
+  | { error: string };
+
+// Toutes les données de la personne, dans un format structuré et lisible par
+// machine. Chaque requête est filtrée par l'utilisateur de la SESSION (jamais
+// un id fourni par le client) ; select explicites. Exclus volontairement :
+// identifiants Stripe, jeton public de devis et chemin du logo — des secrets
+// ou références techniques, pas des données de la personne.
+// Le JSON est sérialisé ICI : les quantités et taux sont des Decimal Prisma,
+// que la sérialisation des server actions ne sait pas transporter tels quels.
+export async function exportMyData(): Promise<ExportResult> {
+  const userId = await requireUserId();
+
+  try {
+    const [profile, clients, projects, documents] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          name: true,
+          email: true,
+          activity: true,
+          phone: true,
+          address: true,
+          siret: true,
+          tvaRegime: true,
+          iban: true,
+          bic: true,
+          planType: true,
+          remindersEnabled: true,
+          reminderFirstDays: true,
+          reminderSecondDays: true,
+          reminderFinalDays: true,
+          reminderTone: true,
+          createdAt: true,
+        },
+      }),
+      prisma.client.findMany({
+        where: { userId },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          name: true,
+          siret: true,
+          email: true,
+          phone: true,
+          address: true,
+          sector: true,
+          paymentTerms: true,
+          iban: true,
+          bic: true,
+          createdAt: true,
+        },
+      }),
+      prisma.project.findMany({
+        where: { userId },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          clientId: true,
+          name: true,
+          status: true,
+          progress: true,
+          notes: true,
+          createdAt: true,
+        },
+      }),
+      prisma.document.findMany({
+        where: { userId },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          projectId: true,
+          type: true,
+          number: true,
+          status: true,
+          object: true,
+          tvaRegime: true,
+          totalHtCents: true,
+          totalTvaCents: true,
+          totalTtcCents: true,
+          issuedAt: true,
+          emittedAt: true,
+          dueAt: true,
+          paidAt: true,
+          emailSentAt: true,
+          sourceQuoteId: true,
+          createdAt: true,
+          lines: {
+            orderBy: { position: "asc" },
+            select: {
+              label: true,
+              quantity: true,
+              unitPriceCents: true,
+              tvaRate: true,
+              position: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const exportedAt = new Date();
+    const json = JSON.stringify(
+      {
+        format: "freelanceflow-export-v1",
+        exportedAt,
+        note: "Montants en centimes d'euro entiers.",
+        profile,
+        clients,
+        projects,
+        documents,
+      },
+      null,
+      2,
+    );
+    return {
+      ok: true,
+      filename: `freelanceflow-donnees-${exportedAt.toISOString().slice(0, 10)}.json`,
+      json,
+    };
+  } catch (e) {
+    console.error("Export des données impossible :", e);
+    return {
+      error: "Impossible de préparer l'export pour le moment. Réessayez dans un instant.",
+    };
+  }
 }
 
 // --- Suppression de compte (droit à l'effacement, RGPD) ---------------------------

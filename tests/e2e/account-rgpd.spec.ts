@@ -214,4 +214,74 @@ if (!hasEnv) {
       expect(errors, `Erreurs console :\n${errors.join("\n")}`).toEqual([]);
     });
   });
+
+  // Export des données (droit d'accès et à la portabilité) : le bouton produit
+  // un vrai fichier JSON téléchargé, qui contient la donnée semée.
+  test.describe("Compte : export des données", () => {
+    const RUN_ID = randomUUID().slice(0, 8);
+    const PASSWORD = `Test-exp-${RUN_ID}-Aa1!`;
+    const EMAIL = `test-acc-exp-${RUN_ID}@freelanceflow.test`;
+    const CLIENT_NAME = `Client exporté ${RUN_ID}`;
+    let userId: string | null = null;
+    const prisma = new PrismaClient();
+
+    test.beforeAll(async () => {
+      const { data, error } = await admin.auth.admin.createUser({
+        email: EMAIL,
+        password: PASSWORD,
+        email_confirm: true,
+      });
+      if (error || !data?.user) {
+        throw new Error(`Création utilisateur : ${error?.message}`);
+      }
+      userId = data.user.id;
+      await new Promise((r) => setTimeout(r, 500));
+      await prisma.client.create({ data: { userId: userId!, name: CLIENT_NAME } });
+    });
+
+    test.afterAll(async () => {
+      try {
+        if (userId) {
+          await prisma.client.deleteMany({ where: { userId } });
+          await prisma.user.deleteMany({ where: { id: userId } });
+          await admin.auth.admin.deleteUser(userId);
+        }
+      } catch {
+        /* nettoyage tolérant */
+      }
+      await prisma.$disconnect();
+    });
+
+    test("« Télécharger mes données » produit un JSON avec le profil et les clients", async ({
+      page,
+    }) => {
+      const errors = collectConsoleErrors(page);
+      await loginExpectingSuccess(page, EMAIL, PASSWORD);
+      await page.goto("/parametres");
+
+      // Re-clic anti-course d'hydratation (cf. public-quote.spec.ts) : un clic
+      // avant l'attache du gestionnaire ne déclenche aucun téléchargement.
+      const button = page.getByRole("button", { name: /^télécharger$/i });
+      const got: { download?: import("playwright/test").Download } = {};
+      await expect(async () => {
+        const pending = page.waitForEvent("download", { timeout: 5_000 });
+        await button.click({ timeout: 2_000 });
+        got.download = await pending;
+      }).toPass({ timeout: 40_000 });
+
+      const file = got.download!;
+      expect(file.suggestedFilename()).toMatch(
+        /^freelanceflow-donnees-\d{4}-\d{2}-\d{2}\.json$/,
+      );
+      const path = await file.path();
+      const { readFile } = await import("node:fs/promises");
+      const data = JSON.parse(await readFile(path, "utf-8"));
+      expect(data.format).toBe("freelanceflow-export-v1");
+      expect(data.profile.email).toBe(EMAIL);
+      expect(data.clients.map((c: { name: string }) => c.name)).toEqual([CLIENT_NAME]);
+      await expect(page.getByText("Export téléchargé.")).toBeVisible();
+
+      expect(errors, `Erreurs console :\n${errors.join("\n")}`).toEqual([]);
+    });
+  });
 }

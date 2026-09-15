@@ -331,10 +331,7 @@ export function SubscriptionView({ usage }: { usage: Usage }) {
                 strokeWidth={2.4}
                 aria-hidden
               />
-              <span>
-                Export PDF <b className="font-[650] text-ink">avec filigrane</b>{" "}
-                Freelance Flow
-              </span>
+              <span>Export PDF des devis et factures</span>
             </li>
             <li className={cn(li, "text-ink-3")}>
               <X className={cn(liIcon, "text-line")} strokeWidth={2.4} aria-hidden />
@@ -388,7 +385,7 @@ export function SubscriptionView({ usage }: { usage: Usage }) {
             </li>
             <li className={cn(li, "text-ink-2")}>
               <Check className={cn(liIcon, "text-ok-ink")} strokeWidth={2.4} aria-hidden />
-              <span>Tout le plan Gratuit, sans filigrane</span>
+              <span>Tout le plan Gratuit</span>
             </li>
             <li className={cn(li, "text-ink-2")}>
               <Check className={cn(liIcon, "text-ok-ink")} strokeWidth={2.4} aria-hidden />
@@ -404,10 +401,6 @@ export function SubscriptionView({ usage }: { usage: Usage }) {
             <li className={cn(li, "text-ink-2")}>
               <Check className={cn(liIcon, "text-ok-ink")} strokeWidth={2.4} aria-hidden />
               <span>Statistiques avancées et évolution du CA</span>
-            </li>
-            <li className={cn(li, "text-ink-2")}>
-              <Check className={cn(liIcon, "text-ok-ink")} strokeWidth={2.4} aria-hidden />
-              <span>Support prioritaire sous 24 h</span>
             </li>
           </ul>
 

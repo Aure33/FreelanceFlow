@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { KeyRound, LogOut, Mail, Trash2 } from "lucide-react";
+import { Download, KeyRound, LogOut, Mail, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/ui/modal-shell";
 import { signOut } from "@/lib/auth/actions";
@@ -9,13 +9,15 @@ import {
   changeEmail,
   changePassword,
   deleteAccount,
+  exportMyData,
 } from "@/app/(app)/parametres/account-actions";
 import { cn } from "@/lib/utils";
 import { CARD_BODY, CARD_HEAD, CARD_TITLE, INPUT, LABEL, NOTE } from "./shared";
 
 // Section « Compte » (#68) — gestion du compte : mot de passe, e-mail,
-// déconnexion et suppression (droit à l'effacement RGPD, promis par la
-// politique de confidentialité). Écarts maquette assumés : Profil.html ne
+// export des données (droit d'accès et à la portabilité), déconnexion et
+// suppression (droit à l'effacement) — promis par la politique de
+// confidentialité. Écarts maquette assumés : Profil.html ne
 // prévoit que la déconnexion — ces blocs suivent les mêmes conventions
 // visuelles que le reste de la page.
 
@@ -47,6 +49,33 @@ export function AccountCard({ email }: { email: string }) {
   // --- E-mail ---
   const [newEmail, setNewEmail] = useState("");
   const [emailFeedback, setEmailFeedback] = useState<Feedback>(null);
+
+  // --- Export des données ---
+  const [exporting, setExporting] = useState(false);
+  const [exportFeedback, setExportFeedback] = useState<Feedback>(null);
+
+  async function downloadMyData() {
+    setExporting(true);
+    setExportFeedback(null);
+    const res = await exportMyData();
+    setExporting(false);
+    if ("error" in res) {
+      setExportFeedback({ type: "error", text: res.error });
+      return;
+    }
+    // Téléchargement côté navigateur : le JSON est déjà sérialisé serveur.
+    const url = URL.createObjectURL(
+      new Blob([res.json], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = res.filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setExportFeedback({ type: "ok", text: "Export téléchargé." });
+  }
 
   // --- Suppression ---
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -193,6 +222,31 @@ export function AccountCard({ email }: { email: string }) {
           </Button>
           <FeedbackText feedback={emailFeedback} />
         </form>
+
+        <hr className="my-5 border-none border-t border-line-soft" />
+
+        {/* --- Export des données (accès et portabilité) ------------------------ */}
+        <div>
+          <div className="flex flex-wrap items-center gap-3.5">
+            <div className="min-w-0 flex-1">
+              <b className="block text-sm font-semibold">Télécharger mes données</b>
+              <small className="text-[13px] text-ink-3">
+                Profil, clients, projets, devis et factures dans un fichier JSON
+                — droit d&apos;accès et à la portabilité RGPD.
+              </small>
+            </div>
+            <Button
+              type="button"
+              variant="default"
+              onClick={downloadMyData}
+              disabled={exporting}
+            >
+              <Download strokeWidth={2} />
+              {exporting ? "Préparation…" : "Télécharger"}
+            </Button>
+          </div>
+          <FeedbackText feedback={exportFeedback} />
+        </div>
 
         <hr className="my-5 border-none border-t border-line-soft" />
 
