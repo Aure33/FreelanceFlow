@@ -24,7 +24,8 @@ export function PublicFooter({ className }: PublicFooterProps) {
             Confidentialité
           </a>
           <a
-            href="mailto:contact@freelanceflow.fr"
+            href="https://github.com/Aure33/FreelanceFlow/issues"
+            rel="noopener"
             className="transition-colors hover:text-ink"
           >
             Contact

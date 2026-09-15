@@ -545,6 +545,71 @@ if (!hasEnv) {
     );
 
     // ------------------------------------------------------------------------
+    // exportMyData (droit d'accès et à la portabilité)
+    // ------------------------------------------------------------------------
+    describe("exportMyData", () => {
+      test("sans session : redirige vers /connexion", async () => {
+        activeUserId = "";
+        try {
+          const r = await accountActions.exportMyData();
+          throw new Error(`devait rediriger mais a renvoyé ${JSON.stringify(r)}`);
+        } catch (e) {
+          if (!(e instanceof RedirectSignal)) throw e;
+          expect(e.path).toBe("/connexion");
+        }
+      });
+
+      test(
+        "export complet des données de A, aucune donnée de B, aucun secret technique",
+        async () => {
+          // Secrets techniques posés sur A : ils ne doivent JAMAIS sortir.
+          const STRIPE_SECRET = `cus_export_${RUN_ID}`;
+          const TOKEN_SECRET = `tok_export_${RUN_ID}`;
+          await prisma.user.update({
+            where: { id: userA.id },
+            data: { stripeCustomerId: STRIPE_SECRET },
+          });
+          await prisma.document.updateMany({
+            where: { userId: userA.id, type: "devis" },
+            data: { publicToken: TOKEN_SECRET },
+          });
+
+          activeUserId = userA.id;
+          const res = await accountActions.exportMyData();
+          if (!("ok" in res)) throw new Error(`export en échec : ${res.error}`);
+
+          expect(res.filename).toMatch(/^freelanceflow-donnees-\d{4}-\d{2}-\d{2}\.json$/);
+          const data = JSON.parse(res.json);
+          expect(data.format).toBe("freelanceflow-export-v1");
+          expect(data.profile.email).toBe(userA.email);
+          expect(data.clients.map((c: { name: string }) => c.name)).toEqual([
+            `Client a ${RUN_ID}`,
+          ]);
+          expect(data.projects.map((p: { name: string }) => p.name)).toEqual([
+            `Projet a ${RUN_ID}`,
+          ]);
+          expect(data.documents).toHaveLength(2);
+          const withLines = data.documents.find(
+            (d: { lines: unknown[] }) => d.lines.length > 0,
+          );
+          expect(withLines.lines.map((l: { label: string }) => l.label)).toEqual([
+            "Ligne 1 a",
+            "Ligne 2 a",
+          ]);
+          expect(withLines.lines[1].unitPriceCents).toBe(2_550);
+
+          // Isolation : rien de B. Secrets : ni Stripe, ni jeton public.
+          expect(res.json).not.toContain(userB.email);
+          expect(res.json).not.toContain(`Client b ${RUN_ID}`);
+          expect(res.json).not.toContain(STRIPE_SECRET);
+          expect(res.json).not.toContain(TOKEN_SECRET);
+          expect(data.profile).not.toHaveProperty("stripeCustomerId");
+        },
+        TIMEOUT,
+      );
+    });
+
+    // ------------------------------------------------------------------------
     // deleteAccount
     // ------------------------------------------------------------------------
     describe("deleteAccount", () => {
