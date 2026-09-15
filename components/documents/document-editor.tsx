@@ -369,7 +369,7 @@ export function DocumentEditor({
   return (
     <div className="grid h-[calc(100vh-var(--topbar-h)-56px)] grid-cols-2 overflow-hidden rounded-lg border border-line bg-surface shadow-sm max-[1180px]:h-auto max-[1180px]:grid-cols-1">
       {/* ============ Colonne formulaire ============ */}
-      <div className="flex min-w-0 flex-col bg-bg max-[1180px]:min-h-0">
+      <div className="flex min-h-0 min-w-0 flex-col bg-bg">
         {/* Barre éditeur */}
         <div className="flex h-topbar flex-none items-center gap-[14px] border-b border-line bg-surface px-6">
           <Link
@@ -751,7 +751,7 @@ export function DocumentEditor({
       </div>
 
       {/* ============ Colonne aperçu ============ */}
-      <div className="flex min-w-0 flex-col border-l border-line bg-surface-2 max-[1180px]:border-l-0 max-[1180px]:border-t">
+      <div className="flex min-h-0 min-w-0 flex-col border-l border-line bg-surface-2 max-[1180px]:border-l-0 max-[1180px]:border-t">
         {/* Barre aperçu */}
         <div className="flex h-topbar flex-none items-center gap-3 border-b border-line px-6">
           <span className="flex items-center gap-[9px] text-[14px] font-[650] text-ink-2">

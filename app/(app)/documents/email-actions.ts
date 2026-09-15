@@ -10,6 +10,11 @@
 // test) ; appartenance vérifiée par getDocument() (where: { id, userId }) ;
 // un brouillon (sans numéro légal) est refusé, comme le téléchargement PDF.
 //
+// DEVIS : l'e-mail porte le lien public d'acceptation (#85). Sans lui, le
+// client recevait un PDF sans aucun moyen de répondre en ligne. Le lien est
+// créé à l'envoi s'il n'existe pas encore (createShareLink est idempotent et
+// réservé au propriétaire) ; une facture n'en a jamais.
+//
 // ⚠️ RESEND PALIER GRATUIT SANS DOMAINE VÉRIFIÉ : l'expéditeur est forcément
 // onboarding@resend.dev et Resend REFUSE tout destinataire autre que
 // l'adresse du compte Resend lui-même (anti-abus). L'erreur est détectée et
@@ -22,7 +27,7 @@ import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth/session";
 import { renderDocumentPdf } from "@/lib/pdf";
-import { getDocument } from "./actions";
+import { createShareLink, getDocument } from "./actions";
 
 export type SendEmailResult = { ok: true; sentAt: Date } | { error: string };
 
@@ -98,6 +103,16 @@ export async function sendDocumentByEmailCore(
     };
   }
 
+  // Lien d'acceptation pour un devis : réutilise le jeton existant, sinon le
+  // crée. Si la création échoue, l'e-mail part quand même avec le PDF seul.
+  let acceptUrl: string | null = null;
+  if (doc.type === "devis") {
+    const token =
+      doc.publicToken ??
+      (await createShareLink(id).then((r) => ("token" in r ? r.token : null)));
+    if (token) acceptUrl = `${origin}/proposition/${token}`;
+  }
+
   const kind = doc.type === "facture" ? "Facture" : "Devis";
   const emitterName = profile?.name ?? "Freelance Flow";
   const resend = new Resend(process.env.RESEND_API_KEY);
@@ -110,7 +125,14 @@ export async function sendDocumentByEmailCore(
     html: `
       <p>Bonjour,</p>
       <p>Veuillez trouver ci-joint ${kind === "Facture" ? "la facture" : "le devis"}
-      <strong>${doc.number}</strong>${doc.object ? ` — ${doc.object}` : ""}.</p>
+      <strong>${doc.number}</strong>${doc.object ? ` — ${doc.object}` : ""}.</p>${
+        acceptUrl
+          ? `
+      <p>Vous pouvez consulter ce devis et l'accepter ou le refuser en ligne, sans créer de compte :</p>
+      <p><a href="${acceptUrl}" style="display:inline-block;padding:10px 18px;background:#3b5bdb;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600">Consulter et répondre au devis</a></p>
+      <p style="font-size:13px;color:#666">Si le bouton ne fonctionne pas, copiez ce lien : ${acceptUrl}</p>`
+          : ""
+      }
       <p>Cordialement,<br>${emitterName}</p>
     `.trim(),
     attachments: [{ filename: `${doc.number}.pdf`, content: pdfBuffer }],

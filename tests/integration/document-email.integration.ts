@@ -109,6 +109,7 @@ if (!hasEnv) {
     userId: string,
     status: string,
     clientEmail: string | null = "client@exemple.fr",
+    type: "facture" | "devis" = "facture",
   ): Promise<string> {
     const client = await prisma.client.create({
       data: { userId, name: `Client ${RUN}`, email: clientEmail },
@@ -123,10 +124,13 @@ if (!hasEnv) {
       data: {
         userId,
         projectId: project.id,
-        type: "facture",
+        type,
         status,
         object: "Prestation de test",
-        number: status === "brouillon" ? null : `FAC-${RUN}-${uniq}`,
+        number:
+          status === "brouillon"
+            ? null
+            : `${type === "devis" ? "DEV" : "FAC"}-${RUN}-${uniq}`,
         totalHtCents: 100000,
         totalTvaCents: 20000,
         totalTtcCents: 120000,
@@ -231,12 +235,42 @@ if (!hasEnv) {
       expect(attachments).toHaveLength(1);
       expect(attachments[0].filename.endsWith(".pdf")).toBe(true);
       expect(Buffer.isBuffer(attachments[0].content)).toBe(true);
+      // Une facture ne porte jamais de lien d'acceptation.
+      expect(String(lastSendCall!.html)).not.toContain("/proposition/");
 
       const row = await prisma.document.findUnique({
         where: { id: doc },
         select: { emailSentAt: true },
       });
       expect(row?.emailSentAt).not.toBeNull();
+    }, TIMEOUT);
+
+    test("devis : l'e-mail porte le lien d'acceptation, jeton créé puis réutilisé", async () => {
+      activeUserId = userA.id;
+      mockSendResult = { data: { id: "sent" }, error: null };
+      const doc = await seedDocument(userA.id, "envoye", "client@exemple.fr", "devis");
+
+      lastSendCall = null;
+      const first = await sendDocumentByEmailCore(doc, { to: "destinataire@exemple.fr" }, CTX);
+      expect(first).toEqual({ ok: true, sentAt: expect.any(Date) });
+      const { publicToken } = (await prisma.document.findUnique({
+        where: { id: doc },
+        select: { publicToken: true },
+      }))!;
+      expect(publicToken).toBeTruthy();
+      expect(String(lastSendCall!.html)).toContain(
+        `${CTX.origin}/proposition/${publicToken}`,
+      );
+
+      // Second envoi : même lien, aucun nouveau jeton.
+      lastSendCall = null;
+      await sendDocumentByEmailCore(doc, { to: "destinataire@exemple.fr" }, CTX);
+      const again = await prisma.document.findUnique({
+        where: { id: doc },
+        select: { publicToken: true },
+      });
+      expect(again?.publicToken).toBe(publicToken);
+      expect(String(lastSendCall!.html)).toContain(`/proposition/${publicToken}`);
     }, TIMEOUT);
 
     test("échec Resend générique -> erreur FR neutre, rien persisté", async () => {
