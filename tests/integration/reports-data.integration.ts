@@ -413,11 +413,28 @@ if (!hasEnv) {
       // C1 = 100000+30000+10000 = 140000 ; C5 = 60000 ; C2 = 50000+5000 = 55000 ;
       // C4 = 40000 ; C3 = 20000+7000 = 27000 (le brouillon C4 999999 est exclu)
       expect(breakdown!.items).toEqual([
-        { clientName: `Client rapports C1 ${RUN_ID}`, cents: 140_000 },
-        { clientName: `Client rapports C5 ${RUN_ID}`, cents: 60_000 },
-        { clientName: `Client rapports C2 ${RUN_ID}`, cents: 55_000 },
-        { clientName: `Client rapports C4 ${RUN_ID}`, cents: 40_000 },
+        { clientId: expect.any(String), clientName: `Client rapports C1 ${RUN_ID}`, cents: 140_000 },
+        { clientId: expect.any(String), clientName: `Client rapports C5 ${RUN_ID}`, cents: 60_000 },
+        { clientId: expect.any(String), clientName: `Client rapports C2 ${RUN_ID}`, cents: 55_000 },
+        { clientId: expect.any(String), clientName: `Client rapports C4 ${RUN_ID}`, cents: 40_000 },
       ]);
+      // Liste complète (fenêtre « Voir les N clients ») : top 4 + le reste,
+      // même tri, et l'identifiant pointe bien vers le client de ce nom.
+      expect(breakdown!.allItems.map((i) => i.clientName)).toEqual([
+        `Client rapports C1 ${RUN_ID}`,
+        `Client rapports C5 ${RUN_ID}`,
+        `Client rapports C2 ${RUN_ID}`,
+        `Client rapports C4 ${RUN_ID}`,
+        `Client rapports C3 ${RUN_ID}`,
+      ]);
+      expect(breakdown!.allItems.slice(0, 4)).toEqual(breakdown!.items);
+      for (const item of breakdown!.allItems) {
+        const client = await prisma.client.findUnique({
+          where: { id: item.clientId },
+          select: { name: true, userId: true },
+        });
+        expect(client).toEqual({ name: item.clientName, userId: userA.id });
+      }
       expect(breakdown!.othersCents).toBe(27_000); // C3, seul client restant après le top 4
       // Cohérence : total du breakdown = tout ce qui a été émis (hors brouillon) cette année
       const breakdownTotal =
@@ -429,10 +446,11 @@ if (!hasEnv) {
       expect(delays).not.toBeNull();
       // C3 : [5] -> 5 ; C2 : [10] -> 10 ; C1 : [15,20] -> moyenne 17.5 -> arrondi 18
       expect(delays!.items).toEqual([
-        { clientName: `Client rapports C3 ${RUN_ID}`, days: 5 },
-        { clientName: `Client rapports C2 ${RUN_ID}`, days: 10 },
-        { clientName: `Client rapports C1 ${RUN_ID}`, days: 18 },
+        { clientId: expect.any(String), clientName: `Client rapports C3 ${RUN_ID}`, days: 5 },
+        { clientId: expect.any(String), clientName: `Client rapports C2 ${RUN_ID}`, days: 10 },
+        { clientId: expect.any(String), clientName: `Client rapports C1 ${RUN_ID}`, days: 18 },
       ]);
+      expect(delays!.allItems).toEqual(delays!.items); // 3 clients payés : tout tient dans le top 4
       // Moyenne globale réutilisée telle quelle depuis le KPI 3 (même jeu de données)
       expect(delays!.averageDays).toBe(13);
     }, 15_000);

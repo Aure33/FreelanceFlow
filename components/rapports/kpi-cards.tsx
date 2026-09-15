@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { ReportsData } from "@/app/(app)/rapports/actions";
 import { eurosAmount, formatDaysDelta, formatPctDelta, plural } from "./format";
@@ -12,6 +13,7 @@ export function KpiCards({ data }: { data: ReportsData }) {
     <section className="mb-gap grid grid-cols-4 gap-gap max-[1100px]:grid-cols-2 print:break-inside-avoid">
       {/* CA encaissé */}
       <KpiCard
+        href="/factures?statut=paye"
         label={labels.caTitle}
         value={eurosAmount(kpis.caEncaisseCents)}
         unit="€ HT"
@@ -34,6 +36,7 @@ export function KpiCards({ data }: { data: ReportsData }) {
 
       {/* En attente de paiement */}
       <KpiCard
+        href="/factures?statut=envoye"
         label="En attente de paiement"
         value={eurosAmount(kpis.enAttenteCents)}
         unit="€ HT"
@@ -47,6 +50,7 @@ export function KpiCards({ data }: { data: ReportsData }) {
 
       {/* Délai moyen de paiement */}
       <KpiCard
+        href="/factures?statut=paye"
         label="Délai moyen de paiement"
         value={
           kpis.delaiMoyenPaiementJours === null
@@ -75,6 +79,7 @@ export function KpiCards({ data }: { data: ReportsData }) {
 
       {/* Taux d'acceptation des devis */}
       <KpiCard
+        href="/devis?statut=accepte"
         label="Taux d'acceptation des devis"
         value={kpis.devisDecidesCount === 0 ? "—" : String(kpis.tauxAcceptationDevisPct)}
         unit={kpis.devisDecidesCount === 0 ? "" : "%"}
@@ -94,19 +99,26 @@ export function KpiCards({ data }: { data: ReportsData }) {
   );
 }
 
+// Chaque carte mène à la liste filtrée correspondante, comme sur le tableau
+// de bord (#106). Les indicateurs sont bornés à la période, les listes non.
 function KpiCard({
+  href,
   label,
   value,
   unit,
   foot,
 }: {
+  href: string;
   label: string;
   value: string;
   unit: string;
   foot: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-line bg-surface p-5 shadow-sm">
+    <Link
+      href={href}
+      className="block rounded-lg border border-line bg-surface p-5 shadow-sm transition-colors hover:border-accent hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent-soft focus-visible:border-accent"
+    >
       <div className="text-[13px] font-semibold text-ink-2">{label}</div>
       <div className="num mb-2 mt-[6px] text-[27px] font-bold tracking-[-0.02em]">
         {value}{" "}
@@ -117,7 +129,7 @@ function KpiCard({
       <div className="flex items-center gap-[7px] text-[12.5px] text-ink-3">
         {foot}
       </div>
-    </div>
+    </Link>
   );
 }
 

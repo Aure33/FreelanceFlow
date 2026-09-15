@@ -3,6 +3,7 @@ import { Lock } from "lucide-react";
 import type { ReportsData } from "@/app/(app)/rapports/actions";
 import { formatEuros } from "@/lib/invoicing";
 import { Tag } from "@/components/dashboard/tag";
+import { ClientListDialog } from "./client-list-dialog";
 
 // Seuil au-delà duquel un délai de paiement client est mis en évidence en
 // orange (`.late` de la maquette). Aucune règle exacte n'est donnée par la
@@ -38,18 +39,32 @@ export function ClientRevenueCard({
   }
 
   const amounts = [
-    ...data.items.map((c) => c.cents),
+    ...data.allItems.map((c) => c.cents),
     ...(data.othersCents > 0 ? [data.othersCents] : []),
   ];
   const max = Math.max(1, ...amounts);
 
   return (
     <section className="rounded-lg border border-line bg-surface shadow-sm print:break-inside-avoid">
-      <CardHead title="Répartition du CA par client" />
+      <CardHead title="Répartition du CA par client">
+        {data.allItems.length > data.items.length && (
+          <ClientListDialog
+            title="Répartition du CA par client"
+            rows={data.allItems.map((c) => ({
+              clientId: c.clientId,
+              clientName: c.clientName,
+              value: formatEuros(c.cents),
+              width: (c.cents / max) * 100,
+              barClass: "bg-accent",
+            }))}
+          />
+        )}
+      </CardHead>
       <div className="p-pad">
         {data.items.map((c) => (
           <ClientBar
-            key={c.clientName}
+            key={c.clientId}
+            href={`/clients/${c.clientId}`}
             name={c.clientName}
             width={(c.cents / max) * 100}
             value={formatEuros(c.cents)}
@@ -88,15 +103,33 @@ export function PaymentDelaysCard({
     );
   }
 
-  const max = Math.max(1, data.averageDays, ...data.items.map((c) => c.days));
+  const max = Math.max(
+    1,
+    data.averageDays,
+    ...data.allItems.map((c) => c.days),
+  );
 
   return (
     <section className="rounded-lg border border-line bg-surface shadow-sm print:break-inside-avoid">
-      <CardHead title="Délais de paiement par client" />
+      <CardHead title="Délais de paiement par client">
+        {data.allItems.length > data.items.length && (
+          <ClientListDialog
+            title="Délais de paiement par client"
+            rows={data.allItems.map((c) => ({
+              clientId: c.clientId,
+              clientName: c.clientName,
+              value: `${c.days} j`,
+              width: (c.days / max) * 100,
+              barClass: c.days > LATE_DELAY_THRESHOLD_DAYS ? "bg-warn" : "bg-ok",
+            }))}
+          />
+        )}
+      </CardHead>
       <div className="p-pad">
         {data.items.map((c) => (
           <DelayRow
-            key={c.clientName}
+            key={c.clientId}
+            href={`/clients/${c.clientId}`}
             name={c.clientName}
             width={(c.days / max) * 100}
             days={`${c.days} j`}
@@ -116,28 +149,51 @@ export function PaymentDelaysCard({
 
 // —— Sous-composants partagés ————————————————————————————————————————————
 
-function CardHead({ title }: { title: string }) {
+function CardHead({
+  title,
+  children,
+}: {
+  title: string;
+  children?: React.ReactNode;
+}) {
   return (
     <div className="flex items-center gap-3 border-b border-line-soft px-pad py-[18px]">
       <h2 className="text-[15px] font-bold tracking-[-0.01em]">{title}</h2>
+      {children ? <div className="ml-auto">{children}</div> : null}
     </div>
+  );
+}
+
+// Nom de client : lien vers la fiche quand un identifiant est fourni (lignes
+// réelles), texte simple sinon (« Autres », « Moyenne », contenu décoratif).
+function RowName({ name, href }: { name: string; href?: string }) {
+  const cls = "w-[130px] truncate text-[13.5px] font-semibold";
+  return href ? (
+    <Link
+      href={href}
+      className={`${cls} rounded-sm hover:text-accent-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+    >
+      {name}
+    </Link>
+  ) : (
+    <span className={cls}>{name}</span>
   );
 }
 
 function ClientBar({
   name,
+  href,
   width,
   value,
 }: {
   name: string;
+  href?: string;
   width: number;
   value: string;
 }) {
   return (
     <div className="mb-[13px] flex items-center gap-3 last:mb-0">
-      <span className="w-[130px] truncate text-[13.5px] font-semibold">
-        {name}
-      </span>
+      <RowName name={name} href={href} />
       <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
         <i
           className="block h-full rounded-full bg-accent"
@@ -151,20 +207,20 @@ function ClientBar({
 
 function DelayRow({
   name,
+  href,
   width,
   days,
   late,
 }: {
   name: string;
+  href?: string;
   width: number;
   days: string;
   late: boolean;
 }) {
   return (
     <div className="mb-[13px] flex items-center gap-3 last:mb-0">
-      <span className="w-[130px] truncate text-[13.5px] font-semibold">
-        {name}
-      </span>
+      <RowName name={name} href={href} />
       <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
         <i
           className={`block h-full rounded-full ${late ? "bg-warn" : "bg-ok"}`}
