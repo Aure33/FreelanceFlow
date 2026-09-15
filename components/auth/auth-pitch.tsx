@@ -21,7 +21,7 @@ export function AuthPitch({ children }: { children: ReactNode }) {
       <div className="my-auto max-w-[420px]">{children}</div>
 
       <div className="text-[12.5px] text-[oklch(0.72_0.008_95)]">
-        Hébergé en France · Données chiffrées · RGPD
+        Hébergé dans l&apos;Union européenne · Données chiffrées · RGPD
       </div>
 
       {/* Halo décoratif discret. */}

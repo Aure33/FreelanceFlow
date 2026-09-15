@@ -242,8 +242,9 @@ export function LegalDocs() {
           <p className="mb-3 text-[14.5px] leading-[1.7] text-ink-2 [text-wrap:pretty]">
             Le service s&apos;adressant exclusivement à des professionnels dans le
             cadre de leur activité, le droit de rétractation prévu pour les
-            consommateurs ne s&apos;applique pas. Une période d&apos;essai gratuite de
-            30 jours permet d&apos;évaluer le service sans engagement ni carte bancaire.
+            consommateurs ne s&apos;applique pas. L&apos;offre gratuite, limitée à
+            5 documents émis par mois, permet d&apos;évaluer le service sans engagement ni
+            carte bancaire.
           </p>
 
           <h2 className="mb-2.5 mt-[30px] text-[16.5px] font-bold tracking-[-0.015em]">

@@ -105,7 +105,7 @@ export function SignInForm() {
           CGU
         </Link>
         .<br />
-        Vos données restent en France.
+        Vos données sont hébergées dans l&apos;Union européenne.
       </p>
     </>
   );

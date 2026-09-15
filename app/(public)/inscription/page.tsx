@@ -22,8 +22,8 @@ export default function InscriptionPage() {
             }
           >
             Créez votre compte, renseignez votre SIRET, et émettez des devis et
-            factures conformes immédiatement. Gratuit pendant 30 jours, sans
-            carte bancaire.
+            factures conformes immédiatement. Gratuit jusqu&apos;à 5 documents par
+            mois, sans carte bancaire.
           </PitchHeading>
 
           {/* Témoignage client. */}

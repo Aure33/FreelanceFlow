@@ -36,7 +36,7 @@ export function SignUpForm() {
         Créer votre compte
       </h1>
       <p className="mb-[30px] text-[14.5px] text-ink-3">
-        Essai gratuit de 30 jours — sans carte bancaire.
+        Gratuit jusqu&apos;à 5 documents par mois — sans carte bancaire.
       </p>
 
       <form onSubmit={handleSubmit} noValidate>
@@ -131,7 +131,7 @@ export function SignUpForm() {
           CGU
         </Link>
         .<br />
-        Vos données restent en France.
+        Vos données sont hébergées dans l&apos;Union européenne.
       </p>
     </>
   );
