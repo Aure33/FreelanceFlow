@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { DocumentPaper } from "@/components/documents/document-paper";
 import { QuoteResponse } from "@/components/public/quote-response";
+import { LegalLinks } from "@/components/public/legal-links";
 import { getPublicQuote } from "@/app/(app)/documents/actions";
 
 // Page PUBLIQUE d'un devis partagé (issue #85) — hors shell applicatif et hors
@@ -68,9 +69,12 @@ export default async function PublicQuotePage({
         {/* Réponse client (uniquement si le devis est en attente) */}
         {pending && <QuoteResponse token={params.token} />}
 
-        <p className="pb-4 text-center text-[12px] text-ink-3">
-          Propulsé par Freelance Flow
-        </p>
+        <footer className="flex flex-col items-center gap-1.5 pb-4 text-center text-[12px] text-ink-3">
+          <p>Propulsé par Freelance Flow</p>
+          <nav aria-label="Liens légaux" className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+            <LegalLinks />
+          </nav>
+        </footer>
       </div>
     </main>
   );
