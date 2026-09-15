@@ -53,12 +53,18 @@ export type ReportsData = {
   };
   monthlyRevenue: { month: string; paidCents: number; pendingCents: number }[]; // 1 entrée par mois de la période (12 en année/12mois, 3 en trimestre)
   premium: {
+    // `items` = top 4 affiché sur la carte ; `allItems` = liste complète, même
+    // tri (fenêtre « Voir tous les clients »). Regroupement par clientId :
+    // deux clients homonymes ne sont jamais fusionnés, et chaque ligne mène à
+    // sa fiche.
     clientRevenueBreakdown: {
-      items: { clientName: string; cents: number }[];
+      items: { clientId: string; clientName: string; cents: number }[];
+      allItems: { clientId: string; clientName: string; cents: number }[];
       othersCents: number;
     } | null;
     paymentDelaysByClient: {
-      items: { clientName: string; days: number }[];
+      items: { clientId: string; clientName: string; days: number }[];
+      allItems: { clientId: string; clientName: string; days: number }[];
       averageDays: number;
     } | null;
   };
@@ -163,7 +169,7 @@ export async function getReportsData(
       select: {
         issuedAt: true,
         paidAt: true,
-        project: { select: { client: { select: { name: true } } } },
+        project: { select: { client: { select: { id: true, name: true } } } },
       },
     }),
     // Même délai, période précédente COMPLÈTE (pour le delta du KPI) — pas
@@ -296,43 +302,53 @@ export async function getReportsData(
       },
       select: {
         totalHtCents: true,
-        project: { select: { client: { select: { name: true } } } },
+        project: { select: { client: { select: { id: true, name: true } } } },
       },
     });
 
-    const totalsByClient = new Map<string, number>();
+    const totalsByClient = new Map<
+      string,
+      { clientId: string; clientName: string; cents: number }
+    >();
     for (const doc of emittedDocs) {
-      const name = doc.project.client.name;
-      totalsByClient.set(
-        name,
-        (totalsByClient.get(name) ?? 0) + doc.totalHtCents,
-      );
+      const { id, name } = doc.project.client;
+      const entry = totalsByClient.get(id) ?? {
+        clientId: id,
+        clientName: name,
+        cents: 0,
+      };
+      entry.cents += doc.totalHtCents;
+      totalsByClient.set(id, entry);
     }
-    const sortedClients = Array.from(totalsByClient.entries()).sort(
-      (a, b) => b[1] - a[1],
+    const sortedClients = Array.from(totalsByClient.values()).sort(
+      (a, b) => b.cents - a.cents,
     );
-    const topClients = sortedClients
-      .slice(0, 4)
-      .map(([clientName, cents]) => ({ clientName, cents }));
     const othersCents = sortedClients
       .slice(4)
-      .reduce((sum, [, cents]) => sum + cents, 0);
+      .reduce((sum, c) => sum + c.cents, 0);
 
-    clientRevenueBreakdown = { items: topClients, othersCents };
+    clientRevenueBreakdown = {
+      items: sortedClients.slice(0, 4),
+      allItems: sortedClients,
+      othersCents,
+    };
 
     // Délais de paiement par client : réutilise les lignes déjà chargées
     // pour le KPI (factures "paye", paidAt dans la période).
-    const delaysByClient = new Map<string, number[]>();
+    const delaysByClient = new Map<
+      string,
+      { clientName: string; days: number[] }
+    >();
     for (const row of paidThisYearRows) {
       if (!row.issuedAt || !row.paidAt) continue;
-      const name = row.project.client.name;
-      const days = daysBetween(row.issuedAt, row.paidAt);
-      const list = delaysByClient.get(name) ?? [];
-      list.push(days);
-      delaysByClient.set(name, list);
+      const { id, name } = row.project.client;
+      const entry = delaysByClient.get(id) ?? { clientName: name, days: [] };
+      entry.days.push(daysBetween(row.issuedAt, row.paidAt));
+      delaysByClient.set(id, entry);
     }
     const perClientAverages = Array.from(delaysByClient.entries())
-      .map(([clientName, days]) => ({
+      .map(([clientId, { clientName, days }]) => ({
+        clientId,
         clientName,
         days: Math.round(average(days) ?? 0),
       }))
@@ -340,6 +356,7 @@ export async function getReportsData(
 
     paymentDelaysByClient = {
       items: perClientAverages.slice(0, 4),
+      allItems: perClientAverages,
       // Moyenne globale tous clients confondus — identique à
       // delaiMoyenPaiementJours (même jeu de données), réutilisée telle
       // quelle plutôt que recalculée.
