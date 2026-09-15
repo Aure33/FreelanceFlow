@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./user-menu";
+import { LegalLinks } from "@/components/public/legal-links";
 import type { UserProfile } from "@/lib/auth/session";
 import type { Usage } from "@/app/(app)/abonnement/actions";
 import type { NavCounts } from "@/app/(app)/nav-counts";
@@ -210,6 +211,12 @@ export function Sidebar({
       <div className="border-t border-line-soft p-3">
         <UsageGauge usage={usage} />
         <UserMenu {...user} />
+        <nav
+          aria-label="Liens légaux"
+          className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-0.5 px-1 text-[11.5px] text-ink-3"
+        >
+          <LegalLinks />
+        </nav>
       </div>
     </aside>
   );
