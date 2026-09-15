@@ -352,6 +352,14 @@ export function DocumentEditor({
                 </a>
               </Button>
             )}
+            {docId && (
+              <Button asChild variant="default">
+                <Link href={`${backHref}/${docId}`}>
+                  <Eye strokeWidth={2} />
+                  {type === "facture" ? "Voir la facture" : "Voir le devis"}
+                </Link>
+              </Button>
+            )}
             <Button variant="default" onClick={resetEditor}>
               <Plus strokeWidth={2} />
               Nouveau document

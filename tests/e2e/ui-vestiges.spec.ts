@@ -288,6 +288,16 @@ if (!hasEnv) {
       const buffer = await res.body();
       expect(buffer.subarray(0, 4).toString("latin1")).toBe("%PDF");
 
+      // Accès direct au document émis, sans repasser par la liste.
+      const docId = href!.split("/")[3];
+      const viewLink = page.getByRole("link", { name: "Voir la facture" });
+      await expect(viewLink).toHaveAttribute("href", `/factures/${docId}`);
+      await viewLink.click();
+      await page.waitForURL(new RegExp(`/factures/${docId}$`), { timeout: 15_000 });
+      await expect(page.getByText(/FAC-\d{4}-\d{3}/).first()).toBeVisible({
+        timeout: 15_000,
+      });
+
       expect(errors, `Erreurs console détectées :\n${errors.join("\n")}`).toEqual(
         [],
       );
