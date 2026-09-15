@@ -150,8 +150,8 @@ export function PaywallModal({
               aria-hidden
             />
             <span>
-              PDF <b className="font-[650] text-ink">sans filigrane</b>, avec
-              votre logo
+              <b className="font-[650] text-ink">Votre logo</b> sur vos devis et
+              factures
             </span>
           </li>
         </ul>

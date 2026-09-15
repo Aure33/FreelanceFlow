@@ -407,15 +407,16 @@ if (!hasEnv) {
       expect(data.kpis.caEncaisseCents).toBe(200_000);
       expect(data.kpis.delaiMoyenPaiementJours).toBe(13);
 
-      // --- Répartition du CA par client (devis + factures émis, hors brouillon) --
+      // --- Répartition du CA par client (FACTURES émises, hors brouillon) -------
       const breakdown = data.premium.clientRevenueBreakdown;
       expect(breakdown).not.toBeNull();
-      // C1 = 100000+30000+10000 = 140000 ; C5 = 60000 ; C2 = 50000+5000 = 55000 ;
-      // C4 = 40000 ; C3 = 20000+7000 = 27000 (le brouillon C4 999999 est exclu)
+      // Factures uniquement : C1 = 100000+30000 = 130000 ; C5 = 60000 ;
+      // C2 = 50000 ; C4 = 40000 ; C3 = 20000. Les devis (C1 accepté 10000,
+      // C2 accepté 5000, C3 refusé 7000) et le brouillon C4 999999 sont exclus.
       expect(breakdown!.items).toEqual([
-        { clientId: expect.any(String), clientName: `Client rapports C1 ${RUN_ID}`, cents: 140_000 },
+        { clientId: expect.any(String), clientName: `Client rapports C1 ${RUN_ID}`, cents: 130_000 },
         { clientId: expect.any(String), clientName: `Client rapports C5 ${RUN_ID}`, cents: 60_000 },
-        { clientId: expect.any(String), clientName: `Client rapports C2 ${RUN_ID}`, cents: 55_000 },
+        { clientId: expect.any(String), clientName: `Client rapports C2 ${RUN_ID}`, cents: 50_000 },
         { clientId: expect.any(String), clientName: `Client rapports C4 ${RUN_ID}`, cents: 40_000 },
       ]);
       // Liste complète (fenêtre « Voir les N clients ») : top 4 + le reste,
@@ -435,11 +436,12 @@ if (!hasEnv) {
         });
         expect(client).toEqual({ name: item.clientName, userId: userA.id });
       }
-      expect(breakdown!.othersCents).toBe(27_000); // C3, seul client restant après le top 4
-      // Cohérence : total du breakdown = tout ce qui a été émis (hors brouillon) cette année
+      expect(breakdown!.othersCents).toBe(20_000); // C3, seul client restant après le top 4
+      // Cohérence : top 4 + autres = toutes les factures émises de la période
       const breakdownTotal =
         breakdown!.items.reduce((s, i) => s + i.cents, 0) + breakdown!.othersCents;
-      expect(breakdownTotal).toBe(140_000 + 60_000 + 55_000 + 40_000 + 27_000);
+      // = total des factures émises de la période : aucun devis n'y entre.
+      expect(breakdownTotal).toBe(130_000 + 60_000 + 50_000 + 40_000 + 20_000);
 
       // --- Délais de paiement par client (factures payées cette année) -----------
       const delays = data.premium.paymentDelaysByClient;

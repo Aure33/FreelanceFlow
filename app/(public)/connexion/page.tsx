@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 // Preuves affichées dans le panneau « promesse ».
 const PROOFS = [
   "Factures conformes au Code de commerce, mentions ajoutées automatiquement",
-  "TVA calculée selon votre régime — micro, franchise ou réel",
-  "Relances de paiement en un clic",
+  "TVA calculée selon votre régime — franchise en base, réel simplifié ou normal",
+  "Relances automatiques des factures échues",
 ];
 
 export default function ConnexionPage() {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Check } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthPitch, PitchHeading } from "@/components/auth/auth-pitch";
 import { SignUpForm } from "@/components/auth/sign-up-form";
@@ -6,6 +7,14 @@ import { SignUpForm } from "@/components/auth/sign-up-form";
 export const metadata: Metadata = {
   title: "Inscription",
 };
+
+// Ce que le compte permet dès l'inscription — uniquement des fonctions
+// réellement livrées (pas de témoignage : le service n'a pas d'utilisateurs).
+const PROOFS = [
+  "Mentions légales et TVA ajoutées automatiquement, au centime",
+  "Devis accepté en ligne par votre client, sans compte",
+  "Relances automatiques des factures échues",
+];
 
 export default function InscriptionPage() {
   return (
@@ -26,23 +35,21 @@ export default function InscriptionPage() {
             mois, sans carte bancaire.
           </PitchHeading>
 
-          {/* Témoignage client. */}
-          <figure className="mt-[36px] rounded-lg border border-[oklch(1_0_0/0.1)] bg-[oklch(1_0_0/0.05)] px-[20px] py-[18px]">
-            <blockquote className="text-[14.5px] leading-[1.6] text-[oklch(0.88_0.006_95)]">
-              « J&apos;ai envoyé mon premier devis le soir même de
-              l&apos;inscription. Les relances automatiques m&apos;ont fait
-              gagner deux semaines de trésorerie. »
-            </blockquote>
-            <figcaption className="mt-[14px] flex items-center gap-[10px]">
-              <div className="grid h-[30px] w-[30px] flex-none place-items-center rounded-full bg-[linear-gradient(135deg,oklch(0.55_0.13_264),oklch(0.5_0.12_295))] text-[11px] font-bold text-white">
-                SB
+          <div className="mt-[36px] flex flex-col gap-[13px]">
+            {PROOFS.map((proof) => (
+              <div
+                key={proof}
+                className="flex items-start gap-[11px] text-[14px] text-[oklch(0.85_0.006_95)]"
+              >
+                <Check
+                  className="mt-[2px] h-[17px] w-[17px] flex-none text-[oklch(0.75_0.09_264)]"
+                  strokeWidth={2.2}
+                  aria-hidden
+                />
+                {proof}
               </div>
-              <small className="text-[12.5px] text-[oklch(0.68_0.008_95)]">
-                <b className="text-[oklch(0.88_0.006_95)]">Sophie Bréhat</b> ·
-                architecte d&apos;intérieur, Nantes
-              </small>
-            </figcaption>
-          </figure>
+            ))}
+          </div>
         </AuthPitch>
       }
     >

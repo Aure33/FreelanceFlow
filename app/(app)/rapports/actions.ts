@@ -292,11 +292,14 @@ export async function getReportsData(
     null;
 
   if (planType === "premium") {
-    // Répartition du CA par client : tous les documents ÉMIS (devis +
-    // factures, hors brouillon) de la période, groupés par client.
+    // Répartition du CA par client : FACTURES émises (hors brouillon) de la
+    // période, groupées par client. Les devis n'en font pas partie : un devis
+    // refusé n'est pas du CA, et un devis accepté puis converti (#61) serait
+    // compté deux fois avec sa facture.
     const emittedDocs = await prisma.document.findMany({
       where: {
         userId,
+        type: "facture",
         status: { not: "brouillon" },
         issuedAt: { gte: win.start, lt: win.end },
       },
