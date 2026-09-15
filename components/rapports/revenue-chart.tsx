@@ -55,18 +55,20 @@ export function RevenueChart({ data }: { data: ReportsData }) {
               <div
                 key={d.month}
                 className="group flex h-full flex-1 flex-col items-center justify-end gap-[10px]"
-                title={`${d.month} · ${formatEuros(d.paidCents + d.pendingCents)}`}
+                title={`${d.month} · Total ${formatEuros(d.paidCents + d.pendingCents)} (encaissé ${formatEuros(d.paidCents)}, en attente ${formatEuros(d.pendingCents)})`}
               >
                 <div className="flex h-full w-full max-w-[44px] flex-col justify-end gap-[3px]">
                   {d.pendingCents > 0 && (
                     <div
                       className="w-full rounded-[5px_5px_3px_3px] border border-accent-line bg-accent-soft"
                       style={{ height: `${pendingH}%` }}
+                      title={`${d.month} · En attente ${formatEuros(d.pendingCents)}`}
                     />
                   )}
                   {d.paidCents > 0 && (
                     <div
                       className="w-full rounded-[5px_5px_3px_3px] bg-accent transition-[filter] duration-150 group-hover:brightness-[1.08]"
+                      title={`${d.month} · Encaissé ${formatEuros(d.paidCents)}`}
                       style={
                         peak
                           ? {

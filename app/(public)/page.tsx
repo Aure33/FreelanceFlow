@@ -65,7 +65,7 @@ export default function LandingPage() {
           </Button>
         </div>
         <div className="mt-3.5 text-[12.5px] text-ink-3">
-          30 jours d&apos;essai · sans carte bancaire · données hébergées en France
+          Gratuit jusqu&apos;à 5 documents par mois · sans carte bancaire · données hébergées dans l&apos;Union européenne
         </div>
 
         {/* Aperçu produit (décoratif) */}
